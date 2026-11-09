@@ -65,7 +65,21 @@ BLURBS = {
     "pdf.splitranges": "Your own parts, like 1-3 and 4-10",
     "pdf.reorder": "Pages in the order you type",
     "pdf.reverse": "Last page first",
-    "pdf.nup": "Two pages on each A4 sheet",
+    "pdf.nup": "2, 4, 6 or 9 pages on each A4 sheet",
+    "imgedit.rotl": "Turned 90° to the left",
+    "imgedit.rotr": "Turned 90° to the right",
+    "imgedit.rot180": "Turned upside down",
+    "imgedit.flip": "A mirror image",
+    "imgedit.gray": "Black and white",
+    "imgedit.resize": "A smaller copy: half, or 1920 px and less",
+    "imgedit.clean": "No location or camera details, ready to share",
+    "imgedit.stitch": "One long picture, one under the other",
+    "subtitle.vtt": "Subtitles for web video players",
+    "subtitle.srt": "Subtitles for TVs, VLC and editors",
+    "ebook.pdf": "The book on A5 pages",
+    "ebook.txt": "All the words, without layout",
+    "data.yaml": "Easy-to-read data, same values",
+    "data.jsonl": "One record per line",
     "pdf.flatten": "Form fields can't be changed any more",
     "pdf.clean": "Removes author and other hidden details",
     "pdf.pictures": "Saves the pictures inside the PDF",
@@ -250,8 +264,8 @@ class OrbitView(QWidget):
     MAX_SCALE = 1.16
     DRIFT_SECONDS = 6.0
     KID = 0.94  # a branch's choices: nearly full size, so their names stay easy to read
-    LINGER_MS = 800  # an open fan stays out this long after the pointer leaves it
-    SWITCH_MS = 350  # while a fan is open, rest this long on another option to switch to it
+    AIM_MS = 140  # heading for an open fan: if the pointer stops on the way, decide after this long
+    AIM_DEG = 38  # "heading for the fan": moving within this angle of one of its choices
 
     def __init__(self, nodes, center_title: str, card_side: str = "right", scale: float = 1.0,
                  note: str = "", quick=None, parent=None):
@@ -300,16 +314,14 @@ class OrbitView(QWidget):
         self._timer.timeout.connect(self._tick)
         self._last = time.perf_counter()
         # Hover intent: a fan doesn't snap shut when the pointer crosses a neighbour on its way out.
+        # Like a good desktop menu: moving towards the open fan keeps it, moving anywhere else
+        # switches at once. No waiting either way.
         self._pos = QPointF(-1, -1)
-        self._linger = QTimer(self)
-        self._linger.setSingleShot(True)
-        self._linger.setInterval(self.LINGER_MS)
-        self._linger.timeout.connect(self._linger_done)
-        self._pending = -1
-        self._switch = QTimer(self)
-        self._switch.setSingleShot(True)
-        self._switch.setInterval(self.SWITCH_MS)
-        self._switch.timeout.connect(self._switch_done)
+        self._trail: list[tuple[float, QPointF]] = []
+        self._aim = QTimer(self)
+        self._aim.setSingleShot(True)
+        self._aim.setInterval(self.AIM_MS)
+        self._aim.timeout.connect(self._aim_done)
 
     # ------------------------------------------------------------ layout
     def _cap(self, r: float) -> int:
@@ -1019,32 +1031,9 @@ class OrbitView(QWidget):
         self.inside = math.hypot(pos.x() - c.x(), pos.y() - c.y()) < self.E
         self.kbd = False
         self._pos = pos
-        i = self._nearest(pos)
-        if self.open >= 0:
-            if i >= self.n_top or i == self.open or self._in_fan(pos):
-                # On the branch, on one of its choices, or on the way to them: the fan stays.
-                self._linger.stop()
-                self._switch.stop()
-                self._pending = -1
-                if 0 <= i < self.n_top and i != self.open:
-                    i = self.hover if self.hover >= self.n_top else self.open  # crossing a neighbour
-                if i >= 0:
-                    self.set_hover(i)
-            elif i >= 0:
-                # Resting on another option: switch to it only after a moment.
-                if i != self._pending:
-                    self._pending = i
-                    self._switch.start()
-                self._linger.stop()
-            else:
-                self._pending = -1
-                self._switch.stop()
-                if not self._linger.isActive():
-                    self._linger.start()
-        else:
-            if 0 <= i < self.n_top and self.items[i].children:
-                self.open_branch(i)
-            self.set_hover(i)
+        now = time.perf_counter()
+        self._trail = [(ts, q) for ts, q in self._trail if now - ts < 0.12] + [(now, pos)]
+        self._route(pos, self._nearest(pos))
         i = self.hover
         for k, pl in enumerate(self.ps):
             if k == i:
@@ -1054,52 +1043,84 @@ class OrbitView(QWidget):
                 pl.mx.t = pl.my.t = 0.0
         self._wake()
 
+    def _heading_to_fan(self, pos: QPointF) -> bool:
+        """Is the pointer moving towards the open branch's choices (or back to the branch)?"""
+        if self.open < 0 or len(self._trail) < 2:
+            return False
+        now = self._trail[-1][0]
+        prev = next((q for ts, q in reversed(self._trail) if now - ts >= 0.025), self._trail[0][1])
+        vx, vy = pos.x() - prev.x(), pos.y() - prev.y()
+        speed = math.hypot(vx, vy)
+        if speed < 2.5:
+            return False  # standing still is not heading anywhere
+        c = self.orbit_center()
+        # where the choices end up (they may still be flying out) and the branch itself
+        targets = [(c.x() + math.cos(math.radians(self.ps[k].base)) * self.RC,
+                    c.y() + math.sin(math.radians(self.ps[k].base)) * self.RC) for k in range(self.n_top, len(self.ps))]
+        targets.append((self.ps[self.open].hx, self.ps[self.open].hy))
+        for tx, ty in targets:
+            dx, dy = tx - pos.x(), ty - pos.y()
+            d = math.hypot(dx, dy)
+            if d < 1:
+                return True
+            cos = (vx * dx + vy * dy) / (speed * d)
+            if cos >= math.cos(math.radians(self.AIM_DEG)):
+                return True
+        return False
+
+    def _route(self, pos: QPointF, i: int, stopped: bool = False) -> None:
+        """Decide what the pointer is on, with an open fan given the benefit of the doubt only
+        while the pointer is actually travelling towards it."""
+        if self.open < 0:
+            if 0 <= i < self.n_top and self.items[i].children:
+                self.open_branch(i)
+            self.set_hover(i)
+            return
+        if i >= self.n_top or i == self.open:  # on the branch or one of its choices
+            self._aim.stop()
+            self.set_hover(i)
+            return
+        if i < 0 and self._in_fan(pos):  # in a gap between the choices: nothing to change
+            return
+        if not stopped and self._heading_to_fan(pos):
+            self._aim.start()  # crossing something on the way to the fan; re-check if the pointer stops
+            return
+        self._aim.stop()
+        self.close_branch()
+        if 0 <= i < self.n_top and self.items[i].children:
+            self.open_branch(i)
+        self.set_hover(i)
+
+    def _aim_done(self) -> None:
+        if self._exit is not None or self.kbd:
+            return
+        if not self.underMouse():
+            self.close_branch()
+            self.set_hover(-1)
+            return
+        self._route(self._pos, self._nearest(self._pos), stopped=True)
+        self._wake()
+
     def leaveEvent(self, _):
         self.inside = False
         for pl in self.ps:
             pl.mx.t = pl.my.t = 0.0
         if not self.kbd:
-            self._switch.stop()
-            self._pending = -1
-            if self.open >= 0:
-                self._linger.start()  # coming straight back keeps the fan open
-            else:
-                self.set_hover(-1)
+            self._aim.stop()
+            self.close_branch()
+            self.set_hover(-1)
         self._wake()
-
-    def _linger_done(self) -> None:
-        """The pointer stayed away from the open fan: fold it away."""
-        here = self.underMouse()
-        i = self._nearest(self._pos) if here else -1
-        if self.open >= 0 and here and (i == self.open or i >= self.n_top or self._in_fan(self._pos)):
-            return
-        self.close_branch()
-        i = self._nearest(self._pos) if here else -1
-        if 0 <= i < self.n_top and self.items[i].children:
-            self.open_branch(i)
-        self.set_hover(i)
-
-    def _switch_done(self) -> None:
-        """Rested on another option while a fan was open: move to it."""
-        i, self._pending = self._pending, -1
-        if i < 0 or self._nearest(self._pos) != i:
-            return
-        self.close_branch()
-        if self.items[i].children:
-            self.open_branch(i)
-        self.set_hover(i)
 
     def mouseReleaseEvent(self, e):
         if self._exit is not None:
             return
         i = self._nearest(e.position())
-        if self.open >= 0 and self._in_fan(e.position()) and (i < 0 or i < self.n_top and i != self.open):
-            i = self.hover if self.hover >= self.n_top else self.open  # a click on the way into the fan
+        if i < 0 and self.open >= 0 and self._in_fan(e.position()) and self.hover >= self.n_top:
+            i = self.hover  # clicked in a gap of the fan while one of its choices is lit
         node = self.node_at(i)
         if node is None:
             return
-        self._linger.stop()
-        self._switch.stop()
+        self._aim.stop()
         if node.children:
             self.open_branch(i)  # a branch only opens; its choices do the work
             return

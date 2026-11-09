@@ -30,19 +30,23 @@ BRANCHES = {
         ("Text", "read scans", ["ocr.txt", "ocr.pdf"]),
     ],
     "image": [
+        ("Edit", "turn, resize, clean", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip",
+                                         "imgedit.resize", "imgedit.gray", "imgedit.clean", "imgedit.stitch"]),
         ("More formats", "every image format", ["image.heic", "image.avif", "image.ico", "image.tiff", "image.gif",
                                                 "image.bmp", "image.tga"]),
         ("Text", "read the text", ["ocr.txt", "ocr.pdf"]),
     ],
-    "data": [("JSON tools", "tidy or minify", ["data.tidy", "data.minify"])],
+    "data": [("JSON tools", "tidy or minify", ["data.tidy", "data.minify", "data.jsonl"])],
 }
 KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "documents"), "data": ("data file", "data files"),
-              "markdown": ("Markdown file", "Markdown files"), "archive": ("archive", "archives")}
+              "markdown": ("Markdown file", "Markdown files"), "archive": ("archive", "archives"),
+              "subtitle": ("subtitle file", "subtitle files"), "ebook": ("e-book", "e-books")}
 QUICK_MAX = 6
 # Mixed selections: the most useful actions per type (the rest are under "More…").
 MIXED_PICKS = {
     "pdf": ["pdf.compress", "pdf.merge", "pdf.lock", "pdf.splithalf", "pdf.pages", "pdf.gray", "pdf.png", "ocr.txt"],
-    "image": ["compress.image", "image.jpg", "image.png", "image.webp", "image.pdf_combined", "image.pdf", "ocr.txt"],
+    "image": ["compress.image", "image.jpg", "image.png", "image.webp", "image.pdf_combined", "imgedit.resize",
+              "ocr.txt"],
 }
 
 
@@ -205,7 +209,9 @@ FAVOURITE_CHOICES = [
     ("pdf.merge", "PDFs: into 1 PDF"), ("pdf.lock", "PDF: Lock"), ("pdf.unlock", "PDF: Unlock"),
     ("pdf.splithalf", "PDF: Split in half"), ("pdf.pages", "PDF: Keep or remove pages"),
     ("pdf.rotate", "PDF: Rotate"), ("pdf.numbers", "PDF: Page numbers"), ("pdf.watermark", "PDF: Watermark"),
-    ("pdf.gray", "PDF: Grayscale"), ("pdf.png", "PDF: pages to PNG"), ("doc.pdf", "Documents: to PDF"),
+    ("pdf.gray", "PDF: Grayscale"), ("pdf.png", "PDF: pages to PNG"), ("pdf.nup", "PDF: pages per sheet"),
+    ("imgedit.rotr", "Pictures: turn right"), ("imgedit.resize", "Pictures: resize"),
+    ("imgedit.clean", "Pictures: remove location & camera info"), ("doc.pdf", "Documents: to PDF"),
     ("archive.zip", "Any files: ZIP"),
 ]
 FAVOURITE_NAMES = dict(FAVOURITE_CHOICES)

@@ -18,7 +18,27 @@ def _make_extras(folder: Path) -> dict[str, Path]:
     from PySide6.QtGui import QColor, QFont, QImage, QPainter
 
     files = {"csv": folder / "Prices.csv", "json": folder / "Settings.json", "md": folder / "Read me.md",
-             "scan": folder / "Receipt.png"}
+             "scan": folder / "Receipt.png", "srt": folder / "Film.srt", "yaml": folder / "Config.yaml",
+             "epub": folder / "Story.epub"}
+    files["srt"].write_text("1\n00:00:01,000 --> 00:00:03,500\n<i>Hello</i> there\n\n"
+                            "2\n00:01:02,250 --> 00:01:04,000\nSecond line\n", encoding="utf-8")
+    files["yaml"].write_text("name: Tapshift\nprice: 0.10\nreleased: 2026-11-09\nusers:\n  - {id: 1}\n  - {id: 2}\n",
+                             encoding="utf-8")
+    import zipfile
+
+    with zipfile.ZipFile(files["epub"], "w") as z:  # a tiny EPUB 2 book
+        z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip")
+        z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:'
+                   'tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="c.opf" media-type="application/'
+                   'oebps-package+xml"/></rootfiles></container>')
+        z.writestr("c.opf", '<?xml version="1.0"?><package version="2.0" xmlns="http://www.idpf.org/2007/opf" '
+                   'unique-identifier="i"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Story'
+                   '</dc:title><dc:identifier id="i">s1</dc:identifier><dc:language>en</dc:language></metadata>'
+                   '<manifest><item id="a" href="a.xhtml" media-type="application/xhtml+xml"/></manifest><spine>'
+                   '<itemref idref="a"/></spine></package>')
+        z.writestr("a.xhtml", '<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><body><h1>Chapter'
+                   '</h1><p>' + " ".join(f"Line {i} of a quiet story about a river." for i in range(60)) +
+                   '</p></body></html>')
     files["csv"].write_text("item,qty,price\nApple,3,1.20\nPear,10,0.8\n", encoding="utf-8")
     files["json"].write_text('{"name":"Tapshift","tools":["zip","ocr"],"ratio":1.10}', encoding="utf-8")
     files["md"].write_text("# Read me\n\nA **short** document with a list:\n\n- one\n- two\n", encoding="utf-8")
@@ -100,8 +120,9 @@ def run(folder: Path) -> int:
             mixed.sources = [pdf, samples / "Sunset.png"]
             two = run(mixed, {}, "pdf+png->1 PDF")
             if two:
-                for label in ("In half", "Reverse", "Grayscale", "2 per page", "Clean info", "Pictures"):  # Flatten needs form fields; tested separately
+                for label in ("In half", "Reverse", "Grayscale", "Clean info", "Pictures"):  # Flatten needs form fields; tested separately
                     case([two], label, name=f"2-page pdf->{label}")
+                case([two], "Per sheet", {"per": "4"}, name="2-page pdf->4 per sheet")
         # Zip and extract, data, Markdown, text recognition
         zipped = case([samples / "Sunset.png", samples / "Mountains.jpg"], "ZIP", name="2 images->ZIP")
         if zipped:
@@ -110,6 +131,13 @@ def run(folder: Path) -> int:
         case([extras["json"]], "Tidy")
         case([extras["md"]], "PDF")
         case([extras["scan"]], "Read text")
+        # Picture edits, subtitles, other data formats, e-books
+        case([samples / "Mountains.jpg"], "Turn right")
+        case([samples / "Mountains.jpg"], "Clean info")
+        case([samples / "Sunset.png", samples / "Mountains.jpg"], "Long image", name="2 images->Long image")
+        case([extras["srt"]], "WebVTT")
+        case([extras["yaml"]], "JSON")
+        case([extras["epub"]], "PDF")
     report = {"ok": all(r["ok"] for r in results), "seconds": round(time.perf_counter() - t0, 1),
               "frozen": bool(getattr(sys, "frozen", False)), "results": results}
     (folder / "selftest.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
