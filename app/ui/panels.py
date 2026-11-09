@@ -118,7 +118,7 @@ class _Card(QWidget):
         sh = QGraphicsDropShadowEffect(self.card)
         sh.setBlurRadius(36)
         sh.setOffset(0, 6)
-        sh.setColor(QColor(0, 0, 0, 120 if theme.DARK else 60))
+        sh.setColor(theme.SHADOW)
         self.card.setGraphicsEffect(sh)
         outer.addWidget(self.card)
 
@@ -297,7 +297,7 @@ class ProgressPanel(_Card):
         self._place_and_show()
 
     def set_file(self, name: str, index: int, total: int):
-        suffix = f"  ·  {index} of {total}" if total > 1 else ""
+        suffix = f"  ({index} of {total})" if total > 1 else ""
         fm = self.sub.fontMetrics()
         self.sub.setText(fm.elidedText(name, Qt.TextElideMode.ElideMiddle, 230) + suffix)
 

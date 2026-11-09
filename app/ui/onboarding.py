@@ -78,7 +78,7 @@ class OrbitHero(Clock):
         p.save()
         p.setOpacity((0.35 + 0.65 * depth) * k)
         p.setPen(QPen(with_alpha(theme.ACCENT_A, 0.5 + 0.5 * depth), 1.2))
-        p.setBrush(QColor(24, 28, 38, 235) if theme.DARK else QColor(255, 255, 255, 240))
+        p.setBrush(theme.SURFACE)
         p.drawRoundedRect(r, h / 2, h / 2)
         p.setPen(theme.TEXT)
         p.setFont(f)
@@ -176,7 +176,7 @@ class Celebration(Clock):
             for a, dist, size, hue in self.bits:
                 d = dist * ease_out(burst)
                 pos = QPointF(c.x() + math.cos(a) * d, c.y() + math.sin(a) * d * 0.7 + 40 * burst * burst)
-                col = [theme.ACCENT_A, theme.ACCENT_B, theme.SUCCESS, QColor(251, 191, 36)][int(hue * 4)]
+                col = theme.ACCENT if hue < 0.6 else theme.DIM
                 p.setPen(Qt.PenStyle.NoPen)
                 p.setBrush(with_alpha(col, 1 - burst))
                 p.save()
@@ -221,27 +221,54 @@ def _heading(title: str, sub: str) -> tuple[QWidget, QWidget]:
     return t, s
 
 
+class WheelHero(Clock):
+    """The real format wheel, stepping through formats: shows the product, not decoration."""
+
+    SEQUENCE = ["WEBP", "PDF", "PNG", "JPG", "AVIF", "HEIC"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(QSize(330, 330))
+
+    def paintEvent(self, _):
+        from .demo import paint_wheel
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        t = self.t
+        appear = ease_back(phase(t, 0.15, 0.75), 1.2)
+        step = int(max(0.0, t - 0.9) / 1.4)
+        selected = None if t < 0.9 else self.SEQUENCE[step % len(self.SEQUENCE)]
+        paint_wheel(p, QPointF(self.width() / 2, self.height() / 2), 138 * appear, clamp(appear), selected)
+        p.end()
+
+
 class WelcomePage(Page):
     def __init__(self, parent=None):
         super().__init__(parent)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(20, 0, 20, 0)
-        lay.addStretch(1)
-        hero = OrbitHero()
-        lay.addWidget(hero, 0, Qt.AlignmentFlag.AlignHCenter)
-        w = label("Welcome to", 15, QFont.Weight.DemiBold, dim=True)
-        w.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title = GradientTitle("Tapshift", 64)
-        sub = label("Convert files in a blink: select a file, tap <b>Ctrl + Shift</b>, pick a format. "
-                    "The new file appears right next to the original.", 15, dim=True)
-        sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sub.setFixedWidth(600)  # fixed size so the wrapped text gets its full height
-        sub.setFixedHeight(sub.heightForWidth(600) + 4)
-        lay.addWidget(w)
-        lay.addWidget(title)
-        lay.addWidget(sub, 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addStretch(1)
-        self.anim_items = [w, title, sub]
+        row = QHBoxLayout(self)
+        row.setContentsMargins(44, 0, 24, 0)
+        row.setSpacing(28)
+        col = QVBoxLayout()
+        col.setSpacing(14)
+        col.addStretch(1)
+        title = GradientTitle("Tapshift", 60, align=Qt.AlignmentFlag.AlignLeft)
+        sub = label("Select a file, tap <b>Ctrl + Shift</b>, pick a format. "
+                    "The converted file lands right next to the original.", 17)
+        sub.setFixedWidth(360)
+        sub.setFixedHeight(sub.heightForWidth(360) + 4)
+        note = label("Images, Office documents and PDFs. Private: nothing leaves your computer.", 13, dim=True)
+        note.setFixedWidth(360)
+        note.setFixedHeight(note.heightForWidth(360) + 4)
+        col.addWidget(title)
+        col.addWidget(sub)
+        col.addWidget(note)
+        col.addStretch(1)
+        row.addLayout(col)
+        row.addStretch(1)
+        hero = WheelHero()
+        row.addWidget(hero, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.anim_items = [title, sub, note]
 
 
 class HowPage(Page):
@@ -300,54 +327,68 @@ class SafePage(Page):
 
 
 class FormatsPage(Page):
+    """One large Images tile next to Office and PDF stacked: an asymmetric grid, not three equal cards."""
+
     def __init__(self, office: dict[str, bool], parent=None):
         super().__init__(parent)
+        from PySide6.QtWidgets import QGridLayout
+
         lay = QVBoxLayout(self)
         lay.setContentsMargins(36, 4, 36, 0)
         lay.setSpacing(4)
-        t, s = _heading("What it converts", "The wheel only shows formats that make sense for the files you picked.")
+        t, s = _heading("What it converts", "The wheel only offers formats that make sense for the files you picked.")
         lay.addWidget(t)
         lay.addWidget(s)
         lay.addSpacing(16)
         self.anim_items = [t, s]
-        row = QHBoxLayout()
-        row.setSpacing(14)
         has_office = any(office.values())
-        cards = [
-            ("image", "", "Images", ["JPG", "PNG", "WEBP", "HEIC", "AVIF", "GIF", "TIFF", "BMP", "ICO", "PDF"],
-             "Also reads RAW camera photos, PSD and SVG.", True),
-            ("doc", "DOC", "Office documents", ["PDF", "DOCX", "ODT", "RTF", "TXT", "XLSX", "CSV", "ODS", "PPTX",
-                                                  "PNG slides"],
-             "Uses your Microsoft Office." if has_office else "Needs Microsoft Office installed.", has_office),
-            ("pdf", "PDF", "PDF tools", ["Merge", "Split", "PNG pages", "JPG pages", "Text"],
-             "Several PDFs in, one PDF out.", True),
-        ]
-        for i, (kind, lbl, name, chips, note, ok) in enumerate(cards):
+
+        def tile(kind, lbl, name, chips, note, ok, width, delay, accent=False):
             card = QFrame()
             card.setObjectName("fcard")
-            card.setStyleSheet(f"QFrame#fcard {{ background: {theme.rgba(with_alpha(theme.SURFACE, 0.75))};"
-                               f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: 16px; }}")
+            bg = theme.ACCENT_SOFT if accent else theme.SURFACE
+            card.setStyleSheet(f"QFrame#fcard {{ background: {theme.rgba(bg)};"
+                               f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: {theme.RADIUS_CARD}px; }}")
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(16, 16, 16, 14)
+            cl.setContentsMargins(18, 16, 18, 14)
             cl.setSpacing(10)
             top = QHBoxLayout()
             top.addWidget(FileBadge(kind, lbl))
             top.addSpacing(6)
             top.addWidget(label(name, 16, QFont.Weight.DemiBold), 1)
             cl.addLayout(top)
-            cl.addWidget(ChipCloud(chips, delay=0.35 + i * 0.2, width=210))
+            cl.addWidget(ChipCloud(chips, delay=delay, width=width))
             cl.addStretch(1)
-            n = label(("✓  " if ok else "!  ") + note, 12, dim=ok)
+            n = label(note, 12, dim=ok)
             if not ok:
                 n.setStyleSheet(f"color: {theme.rgba(theme.WARN)}; background: transparent;")
             cl.addWidget(n)
-            row.addWidget(card)
-            self.anim_items.append(card)
+            return card
+
+        images = tile("image", "", "Images",
+                      ["JPG", "PNG", "WEBP", "HEIC", "AVIF", "GIF", "TIFF", "BMP", "ICO", "TGA", "PDF",
+                       "Several images in 1 PDF"],
+                      "Also reads camera RAW, PSD and SVG. Lossless formats are checked pixel for pixel.",
+                      True, 740, 0.35, accent=True)
+        office_card = tile("doc", "DOC", "Office documents",
+                           ["PDF", "DOCX", "ODT", "RTF", "TXT", "XLSX", "CSV", "ODS", "PPTX", "Slides as images"],
+                           "Converted by your own Microsoft Office." if has_office
+                           else "Needs Microsoft Office installed.", has_office, 340, 0.5)
+        pdf = tile("pdf", "PDF", "PDF tools", ["Merge", "Split", "Pages as PNG", "Pages as JPG", "Text"],
+                   "Select several PDFs to merge them into one.", True, 300, 0.65)
+        grid = QGridLayout()
+        grid.setSpacing(12)
+        grid.addWidget(images, 0, 0, 1, 2)
+        grid.addWidget(office_card, 1, 0)
+        grid.addWidget(pdf, 1, 1)
+        grid.setColumnStretch(0, 6)
+        grid.setColumnStretch(1, 5)
         holder = QWidget()
-        holder.setLayout(row)
-        holder.setFixedHeight(290)
+        holder.setLayout(grid)
+        holder.setFixedHeight(360)
         lay.addWidget(holder)
         lay.addStretch(1)
+        self.anim_items += [images, office_card, pdf]
 
 
 class SetupPage(Page):

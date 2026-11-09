@@ -7,7 +7,7 @@
 **Convert files in a blink. Select a file, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format.**
 The new file appears right next to the original.
 
-[**Download for Windows**](../../releases/latest) · MIT License · Windows 10 / 11
+[**Download for Windows**](../../releases/latest) · Free and open source (AGPL-3.0) · Windows 10 / 11
 
 <img src="docs/images/how-it-works.png" width="760" alt="How Tapshift works">
 
@@ -94,4 +94,9 @@ Conversions run in separate worker processes, so a damaged file can't take the a
 
 ## License
 
-[MIT](LICENSE)
+Tapshift is free software under the [GNU Affero General Public License v3.0](LICENSE). You can use it,
+share it and change it; if you distribute a modified version, you must share its source code under the same
+license. It comes with no warranty.
+
+It bundles open-source components (Qt, PyMuPDF, Pillow, pillow-heif and others) under their own licenses;
+see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -16,8 +16,9 @@ log = logging.getLogger(__name__)
 class Settings:
     hotkey: str = "Ctrl+Shift"  # tap Ctrl+Shift together; or a combo such as "Ctrl+Shift+Space"
     theme: str = "auto"  # auto (follow Windows) | dark | light
+    palette: str = "verdant"  # verdant (green) | signal (orange) | native (your Windows accent color)
     onboarded: bool = False  # the welcome tour has been shown
-    settings_version: int = 2
+    settings_version: int = 3
     jpeg_quality: int = 92
     webp_quality: int = 92
     avif_quality: int = 88
@@ -55,6 +56,10 @@ class Settings:
                     migrated = True
                 else:
                     migrated = False
+                if data.get("settings_version", 1) < 3:
+                    data["palette"] = "verdant"  # 1.0.1 redesign: green accent by default
+                    data["settings_version"] = 3
+                    migrated = True
                 names = {f.name for f in fields(cls)}
                 for k, v in data.items():
                     if k in names and isinstance(v, type(getattr(s, k))):

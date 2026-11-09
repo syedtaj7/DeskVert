@@ -17,6 +17,26 @@ from .guide import NavRail, Sections, h1, para, section_page
 from .onboarding import CPU_CHOICES, CPU_TEXT
 
 
+def licenses_dir():
+    """The license texts and third-party notices bundled with the app."""
+    import sys
+    from pathlib import Path
+
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent)) / "licenses"
+    return Path(__file__).resolve().parent.parent.parent / "licenses"
+
+
+def open_licenses():
+    import os
+
+    d = licenses_dir()
+    if d.exists():
+        os.startfile(str(d))
+    else:
+        webbrowser.open(github_url("/blob/main/THIRD-PARTY-NOTICES.md"))
+
+
 def setting_row(title: str, text: str | QWidget, control: QWidget | None) -> QFrame:
     box = QFrame()
     box.setObjectName("row")
@@ -100,10 +120,15 @@ class SettingsWindow(ChromeWindow):
         keys.changed.connect(lambda v: self.changed.emit("hotkey", v))
         look = Segmented([("auto", "Auto"), ("dark", "Dark"), ("light", "Light")], s.theme)
         look.changed.connect(lambda v: self.changed.emit("theme", v))
+        accent = Segmented([("verdant", "Green"), ("signal", "Orange"), ("native", "Windows color")],
+                           s.palette if s.palette in ("verdant", "signal", "native") else "verdant")
+        accent.changed.connect(lambda v: self.changed.emit("palette", v))
         rows = [setting_row("Shortcut", "Choose the three-key combo if Ctrl + Shift switches your keyboard layout. "
                                         "Applies immediately.", keys),
                 setting_row("Appearance", "Auto follows Windows' light or dark mode. Applies after Tapshift "
-                                          "restarts.", look)]
+                                          "restarts.", look),
+                setting_row("Accent color", "Windows color uses the accent you picked in Windows Settings. "
+                                            "Applies after Tapshift restarts.", accent)]
         lay.addWidget(a)
         for r in rows:
             lay.addWidget(r)
@@ -160,7 +185,7 @@ class SettingsWindow(ChromeWindow):
         col = QVBoxLayout()
         col.setSpacing(0)
         col.addWidget(GradientTitle("Tapshift", 40, align=Qt.AlignmentFlag.AlignLeft))
-        col.addWidget(label(f"Version {__version__}  ·  MIT License", 13, dim=True))
+        col.addWidget(label(f"Version {__version__}", 13, dim=True))
         top.addSpacing(8)
         top.addLayout(col, 1)
         head = QWidget()
@@ -171,17 +196,23 @@ class SettingsWindow(ChromeWindow):
         gh.clicked.connect(lambda: webbrowser.open(github_url()))
         upd = PillButton("Check for updates", "ghost", min_width=170)
         upd.clicked.connect(lambda: webbrowser.open(github_url("/releases/latest")))
-        logs = PillButton("Open log folder", "ghost", min_width=150)
+        lic = PillButton("Licenses", "ghost", min_width=110)
+        lic.clicked.connect(open_licenses)
+        logs = PillButton("Log folder", "ghost", min_width=120)
         logs.clicked.connect(self.open_logs.emit)
-        btns.addWidget(gh)
-        btns.addWidget(upd)
-        btns.addWidget(logs)
+        for w in (gh, upd, lic, logs):
+            btns.addWidget(w)
         btns.addStretch(1)
         bh = QWidget()
         bh.setLayout(btns)
-        credits = para("Built with Python, Qt (PySide6), Pillow, pillow-heif, rawpy, PyMuPDF and img2pdf. "
-                       "Office documents are converted by your own Microsoft Office.<br><br>"
-                       f"<span style='color:{theme.rgba(theme.DIM)}'>github.com/{GITHUB_REPO}</span>")
+        # Appropriate legal notice (AGPL-3.0 section 0): license, no warranty, where the source is.
+        credits = para(
+            "Tapshift is free software: you can redistribute and modify it under the terms of the GNU Affero "
+            "General Public License, version 3. It comes with no warranty. "
+            f"Source code: <a style='color:{theme.rgba(theme.ACCENT)}' href='{github_url()}'>"
+            f"github.com/{GITHUB_REPO}</a><br><br>"
+            "Built with Python, Qt (PySide6), Pillow, pillow-heif, rawpy, PyMuPDF and img2pdf; Licenses lists "
+            "each one. Office documents are converted by your own Microsoft Office.")
         for w in (head, b, bh, credits):
             lay.addWidget(w)
         lay.addStretch(1)

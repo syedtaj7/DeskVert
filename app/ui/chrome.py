@@ -25,12 +25,15 @@ class _MiniLogo(QWidget):
 
 
 class _CloseButton(QAbstractButton):
-    def __init__(self, parent=None):
+    """Window control: kind 'close' (an x) or 'min' (a dash)."""
+
+    def __init__(self, parent=None, kind: str = "close"):
         super().__init__(parent)
+        self.kind = kind
         self.setFixedSize(QSize(32, 32))
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._hover = False
-        self.setToolTip("Close")
+        self.setToolTip("Minimize" if kind == "min" else "Close")
 
     def enterEvent(self, e):
         self._hover = True
@@ -50,8 +53,11 @@ class _CloseButton(QAbstractButton):
         pen = QPen(theme.TEXT if self._hover else theme.DIM, 1.6)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         p.setPen(pen)
-        p.drawLine(QPointF(11.5, 11.5), QPointF(20.5, 20.5))
-        p.drawLine(QPointF(20.5, 11.5), QPointF(11.5, 20.5))
+        if self.kind == "min":
+            p.drawLine(QPointF(11, 16), QPointF(21, 16))
+        else:
+            p.drawLine(QPointF(11.5, 11.5), QPointF(20.5, 20.5))
+            p.drawLine(QPointF(20.5, 11.5), QPointF(11.5, 20.5))
         p.end()
 
 
@@ -59,7 +65,10 @@ class ChromeWindow(QWidget):
     closed = Signal()
 
     def __init__(self, title: str, size: QSize):
-        super().__init__(None, Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
+        # Frameless, but still a normal window to Windows: the minimize/system-menu
+        # hints let the taskbar button minimize and restore it.
+        super().__init__(None, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint
+                         | Qt.WindowType.WindowMinimizeButtonHint | Qt.WindowType.WindowSystemMenuHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle(title)
@@ -74,7 +83,7 @@ class ChromeWindow(QWidget):
         shadow = QGraphicsDropShadowEffect(self.frame)
         shadow.setBlurRadius(44)
         shadow.setOffset(0, 10)
-        shadow.setColor(QColor(0, 0, 0, 150 if theme.DARK else 70))
+        shadow.setColor(theme.SHADOW)
         self.frame.setGraphicsEffect(shadow)
         outer.addWidget(self.frame)
 
@@ -89,6 +98,9 @@ class ChromeWindow(QWidget):
         name.setStyleSheet(f"color: {theme.rgba(theme.TEXT)}; background: transparent;")
         head.addWidget(name)
         head.addStretch(1)
+        minimize = _CloseButton(kind="min")
+        minimize.clicked.connect(self.showMinimized)
+        head.addWidget(minimize)
         close = _CloseButton()
         close.clicked.connect(self.close)
         head.addWidget(close)

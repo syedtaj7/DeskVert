@@ -239,8 +239,8 @@ class Controller(QObject):
             except OSError:
                 log.exception("couldn't change start-with-Windows")
             return
-        if key == "theme":
-            self.settings.theme = value
+        if key in ("theme", "palette"):
+            setattr(self.settings, key, value)
             self.settings.save()
             self.panel.message("info", "Appearance saved", "The new look applies the next time Tapshift starts.", 4500)
             return

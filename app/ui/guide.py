@@ -179,12 +179,14 @@ def _wheel_demo() -> QWidget:
     row.setContentsMargins(0, 6, 0, 6)
     wheel = Wheel(items, "1 HEIC")
     info = label("Hover a format to see what it does.", 13, dim=True)
+    info.setTextFormat(Qt.TextFormat.RichText)  # the hover text below is formatted
     info.setMinimumWidth(220)
 
     def hovered(i: int):
         if 0 <= i < len(items) and items[i] is not None:
             o = items[i]
-            warn = "<br>".join(f"\u26a0 {w}" for w in o.warnings) or "No quality loss."
+            warn = "<br><br>".join(f"<span style='color:{theme.rgba(theme.WARN)}'>{w}</span>"
+                                   for w in o.warnings) or "No quality loss."
             info.setText(f"<b style='color:{theme.rgba(theme.TEXT)}; font-size:16px;'>{o.target.label}</b>"
                          f"<br><span style='color:{theme.rgba(theme.ACCENT_A)};'>{o.caption}</span><br><br>{warn}")
         elif 0 <= i < len(items):

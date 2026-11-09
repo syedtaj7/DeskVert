@@ -77,9 +77,10 @@ def with_alpha(c: QColor, a: float) -> QColor:
 
 
 def accent_gradient(x1: float, y1: float, x2: float, y2: float) -> QLinearGradient:
+    """The accent as a brush. Deliberately flat (one color): no gradients in Tapshift's design."""
     g = QLinearGradient(x1, y1, x2, y2)
-    g.setColorAt(0, theme.ACCENT_A)
-    g.setColorAt(1, theme.ACCENT_B)
+    g.setColorAt(0, theme.ACCENT)
+    g.setColorAt(1, theme.ACCENT)
     return g
 
 
@@ -115,11 +116,10 @@ class Clock(QWidget):
 # ---------------------------------------------------------------- background
 
 
-class Aurora(Clock):
-    """Window backdrop: deep gradient with soft glowing blobs drifting slowly."""
+class Aurora(QWidget):
+    """Window backdrop: a calm, flat surface with a hairline edge (no blobs, no gradients)."""
 
-    FPS = 30
-    radius = 22
+    radius = theme.RADIUS_CARD
 
     def paintEvent(self, _):
         p = QPainter(self)
@@ -127,29 +127,7 @@ class Aurora(Clock):
         r = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         path = QPainterPath()
         path.addRoundedRect(r, self.radius, self.radius)
-        p.setClipPath(path)
-        base = QLinearGradient(0, 0, r.width(), r.height())
-        if theme.DARK:
-            base.setColorAt(0, QColor(13, 16, 24))
-            base.setColorAt(1, QColor(19, 22, 31))
-        else:
-            base.setColorAt(0, QColor(248, 250, 253))
-            base.setColorAt(1, QColor(238, 243, 250))
-        p.fillPath(path, base)
-        t = self.t * 0.12
-        w, h = r.width(), r.height()
-        blobs = [
-            (theme.ACCENT_A, 0.18 + 0.08 * math.sin(t * 1.3), 0.20 + 0.10 * math.cos(t), 0.55, 0.30),
-            (theme.ACCENT_B, 0.82 + 0.07 * math.cos(t * 0.9), 0.30 + 0.12 * math.sin(t * 1.1), 0.60, 0.28),
-            (QColor(139, 92, 246), 0.55 + 0.10 * math.sin(t * 0.7), 0.95 + 0.05 * math.cos(t * 1.4), 0.65, 0.18),
-        ]
-        strength = 1.0 if theme.DARK else 0.55
-        for color, cx, cy, size, alpha in blobs:
-            g = QRadialGradient(QPointF(cx * w, cy * h), size * max(w, h))
-            g.setColorAt(0, with_alpha(color, alpha * strength))
-            g.setColorAt(1, with_alpha(color, 0))
-            p.fillRect(r, g)
-        p.setClipping(False)
+        p.fillPath(path, theme.BG)
         p.setPen(QPen(theme.LINE, 1))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawPath(path)
@@ -160,7 +138,7 @@ class Aurora(Clock):
 
 
 class AnimatedLogo(Clock):
-    """The Tapshift mark drawing itself in, then gently rotating with a soft glow."""
+    """The Tapshift mark drawing itself in once, then holding still."""
 
     def __init__(self, size: int = 120, parent=None):
         super().__init__(parent)
@@ -170,23 +148,17 @@ class AnimatedLogo(Clock):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         s = self.width()
-        c = QPointF(s / 2, s / 2)
-        t = self.t
-        glow = QRadialGradient(c, s * 0.5)
-        pulse = 0.22 + 0.08 * math.sin(t * 2.0)
-        glow.setColorAt(0, with_alpha(theme.ACCENT_A, pulse * ease_out(t / 1.2)))
-        glow.setColorAt(1, with_alpha(theme.ACCENT_A, 0))
-        p.fillRect(self.rect(), glow)
-        progress = ease_out(t / 1.2)
-        spin = 0.0 if t < 1.2 else (t - 1.2) * 18
-        theme.paint_logo(p, c, s * 0.82, progress=progress, spin=spin)
+        theme.paint_logo(p, QPointF(s / 2, s / 2), s * 0.82, progress=ease_out(self.t / 1.0))
         p.end()
+        if self.t > 1.1:
+            self._timer.stop()
 
 
-def paint_gradient_text(p: QPainter, rect: QRectF, text: str, f: QFont, align=Qt.AlignmentFlag.AlignCenter):
-    path = QPainterPath()
+def paint_wordmark(p: QPainter, rect: QRectF, text: str, f: QFont, align=Qt.AlignmentFlag.AlignCenter):
+    """Solid text. For the brand name, "Tap" in the text color and "shift" in the accent."""
     fm = QFontMetricsF(f)
-    w = fm.horizontalAdvance(text)
+    parts = [(text[:3], theme.TEXT), (text[3:], theme.ACCENT)] if text == "Tapshift" else [(text, theme.TEXT)]
+    w = sum(fm.horizontalAdvance(t) for t, _ in parts)
     if align & Qt.AlignmentFlag.AlignLeft:
         x = rect.left()
     elif align & Qt.AlignmentFlag.AlignRight:
@@ -194,20 +166,26 @@ def paint_gradient_text(p: QPainter, rect: QRectF, text: str, f: QFont, align=Qt
     else:
         x = rect.center().x() - w / 2
     y = rect.center().y() + (fm.ascent() - fm.descent()) / 2
-    path.addText(QPointF(x, y), f, text)
-    p.fillPath(path, accent_gradient(x, rect.top(), x + w, rect.bottom()))
+    p.setFont(f)
+    for t, col in parts:
+        p.setPen(col)
+        p.drawText(QPointF(x, y), t)
+        x += fm.horizontalAdvance(t)
 
 
 class GradientTitle(QWidget):
+    """The large wordmark/title (name kept for compatibility; it's solid, not a gradient)."""
+
     def __init__(self, text: str, px: int = 52, parent=None, align=Qt.AlignmentFlag.AlignCenter):
         super().__init__(parent)
-        self.text, self.f, self.align = text, font(px, QFont.Weight.Bold, display=True), align
-        self.setFixedHeight(int(px * 1.35))
+        self.text, self.f, self.align = text, font(px, QFont.Weight.DemiBold, display=True), align
+        self.f.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 97)
+        self.setFixedHeight(int(px * 1.3))
 
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        paint_gradient_text(p, QRectF(self.rect()), self.text, self.f, self.align)
+        paint_wordmark(p, QRectF(self.rect()), self.text, self.f, self.align)
         p.end()
 
 
@@ -265,27 +243,19 @@ class PillButton(QAbstractButton):
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        inset = 1.0 + self._press * 1.5
-        r = QRectF(self.rect()).adjusted(inset, inset, -inset, -inset)
-        radius = r.height() / 2
+        # Tactile press: the button sinks by 1 px instead of glowing.
+        r = QRectF(self.rect()).adjusted(1, 1 + self._press, -1, -1 + self._press)
+        radius = theme.RADIUS_CONTROL
         if not self.isEnabled():
             p.setOpacity(0.45)
         if self.kind == "primary":
-            if self._hover > 0:
-                glow = QRectF(r).adjusted(-4, -2, 4, 6)
-                p.setPen(Qt.PenStyle.NoPen)
-                p.setBrush(with_alpha(theme.ACCENT_B, 0.28 * self._hover))
-                p.drawRoundedRect(glow, glow.height() / 2, glow.height() / 2)
-            g = accent_gradient(r.left(), r.top(), r.right(), r.bottom())
-            if self._hover:
-                g.setColorAt(0, mix(theme.ACCENT_A, QColor(255, 255, 255), 0.12 * self._hover))
             p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(QBrush(g))
+            p.setBrush(mix(theme.ACCENT, theme.ACCENT_HOVER, self._hover))
             p.drawRoundedRect(r, radius, radius)
-            p.setPen(QColor(255, 255, 255))
+            p.setPen(theme.ON_ACCENT)
         else:
-            p.setPen(QPen(mix(theme.LINE, theme.ACCENT_A, self._hover), 1.2))
-            p.setBrush(with_alpha(theme.HOVER, 0.4 + self._hover))
+            p.setPen(QPen(theme.LINE, 1))
+            p.setBrush(mix(theme.SURFACE, theme.SURFACE2, self._hover))
             p.drawRoundedRect(r, radius, radius)
             p.setPen(theme.TEXT)
         p.setFont(self.font())
@@ -326,12 +296,12 @@ class Toggle(QAbstractButton):
         p.drawRoundedRect(r, r.height() / 2, r.height() / 2)
         if self._pos > 0:
             p.setOpacity(self._pos)
-            p.setBrush(QBrush(accent_gradient(r.left(), 0, r.right(), 0)))
+            p.setBrush(theme.ACCENT)
             p.drawRoundedRect(r, r.height() / 2, r.height() / 2)
             p.setOpacity(1)
         d = r.height() - 6
         x = r.left() + 3 + (r.width() - d - 6) * self._pos
-        p.setBrush(QColor(255, 255, 255))
+        p.setBrush(mix(theme.DIM, theme.ON_ACCENT, self._pos))
         p.drawEllipse(QRectF(x, r.top() + 3, d, d))
         p.end()
 
@@ -386,13 +356,13 @@ class Segmented(QWidget):
         p.drawRoundedRect(r, r.height() / 2, r.height() / 2)
         hl = QRectF(4 + self._x * self._w, 4, self._w, r.height() - 7)
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QBrush(accent_gradient(hl.left(), 0, hl.right(), 0)))
+        p.setBrush(theme.ACCENT)
         p.drawRoundedRect(hl, hl.height() / 2, hl.height() / 2)
         p.setFont(self.font())
         for i, (_, label) in enumerate(self.options):
             cell = QRectF(4 + i * self._w, 4, self._w, r.height() - 7)
             near = clamp(1 - abs(self._x - i))
-            p.setPen(mix(theme.DIM, QColor(255, 255, 255), near))
+            p.setPen(mix(theme.DIM, theme.ON_ACCENT, near))
             p.drawText(cell, Qt.AlignmentFlag.AlignCenter, label)
         p.end()
 
@@ -424,7 +394,7 @@ class StepDots(QWidget):
             w = 8 + 18 * near
             r = QRectF(x, 3, w, 8)
             if near > 0.02:
-                p.setBrush(QBrush(accent_gradient(r.left(), 0, r.right(), 0)))
+                p.setBrush(theme.ACCENT)
                 p.setOpacity(0.35 + 0.65 * near)
             else:
                 p.setBrush(theme.TRACK)
@@ -444,19 +414,12 @@ def paint_keycap(p: QPainter, r: QRectF, label: str, pressed: float = 0.0, glow:
     body = QRectF(r.left(), r.top() + (5 - depth), r.width(), r.height() - 5)
     side = QRectF(body.left(), body.top() + 4, body.width(), body.height() + depth - 4)
     p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QColor(8, 10, 16) if theme.DARK else QColor(170, 182, 198))
-    p.drawRoundedRect(side, 9, 9)
-    top = QLinearGradient(body.topLeft(), body.bottomLeft())
-    if theme.DARK:
-        top.setColorAt(0, mix(QColor(52, 58, 72), theme.ACCENT_B, glow * 0.6))
-        top.setColorAt(1, mix(QColor(36, 41, 52), theme.ACCENT_B, glow * 0.5))
-    else:
-        top.setColorAt(0, mix(QColor(255, 255, 255), theme.ACCENT_A, glow * 0.35))
-        top.setColorAt(1, mix(QColor(236, 240, 246), theme.ACCENT_A, glow * 0.3))
-    p.setBrush(QBrush(top))
-    p.setPen(QPen(mix(theme.LINE, theme.ACCENT_A, glow), 1.2))
-    p.drawRoundedRect(body, 9, 9)
-    p.setPen(QColor(255, 255, 255) if (theme.DARK or glow > 0.5) else theme.TEXT)
+    p.setBrush(theme.TRACK.darker(140) if theme.DARK else theme.TRACK.darker(115))
+    p.drawRoundedRect(side, theme.RADIUS_CONTROL, theme.RADIUS_CONTROL)
+    p.setBrush(mix(theme.SURFACE2, theme.ACCENT, glow))
+    p.setPen(QPen(mix(theme.LINE, theme.ACCENT, glow), 1))
+    p.drawRoundedRect(body, theme.RADIUS_CONTROL, theme.RADIUS_CONTROL)
+    p.setPen(mix(theme.TEXT, theme.ON_ACCENT, glow))
     p.setFont(font(min(18, body.height() * 0.36), QFont.Weight.DemiBold))
     p.drawText(body, Qt.AlignmentFlag.AlignCenter, label)
 
@@ -563,7 +526,22 @@ def fade_in(widget: QWidget, delay_ms: int = 0, duration: int = 420, rise: int =
     eff.setOpacity(0.0)
     widget.setGraphicsEffect(eff)
 
+    def alive() -> bool:
+        # A newer fade_in on the same widget replaces (and deletes) this effect.
+        try:
+            import shiboken6
+
+            return shiboken6.isValid(eff) and shiboken6.isValid(widget) and widget.graphicsEffect() is eff
+        except Exception:
+            return False
+
+    def done():
+        if alive():
+            widget.setGraphicsEffect(None)
+
     def go():
+        if not alive():
+            return
         if not widget.isVisible():
             eff.setOpacity(1.0)
             return
@@ -572,7 +550,7 @@ def fade_in(widget: QWidget, delay_ms: int = 0, duration: int = 420, rise: int =
         a.setStartValue(0.0)
         a.setEndValue(1.0)
         a.setEasingCurve(QEasingCurve.Type.OutCubic)
-        a.finished.connect(lambda: widget.setGraphicsEffect(None))
+        a.finished.connect(done)
         a.start()
         if rise:
             m = QPropertyAnimation(widget, b"pos", widget)

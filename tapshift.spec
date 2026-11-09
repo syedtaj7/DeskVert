@@ -18,7 +18,11 @@ hidden = [
 a = Analysis(
     ["run.pyw"],
     pathex=[str(ROOT)],
-    datas=[(str(ROOT / "assets" / "tapshift.ico"), "assets")],
+    datas=[(str(ROOT / "assets" / "tapshift.ico"), "assets"),
+           # License texts and third-party notices travel with the app (AGPL/GPL/LGPL obligations).
+           (str(ROOT / "LICENSE"), "licenses"),
+           (str(ROOT / "THIRD-PARTY-NOTICES.md"), "licenses"),
+           (str(ROOT / "licenses" / "*.txt"), "licenses")],
     hiddenimports=hidden,
     excludes=["tkinter", "pytest", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
               "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf"],

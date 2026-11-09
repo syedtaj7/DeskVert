@@ -31,6 +31,12 @@ def _font(px: float, weight: QFont.Weight = QFont.Weight.Normal) -> QFont:
     return f
 
 
+def with_a(c: QColor, a: float) -> QColor:
+    out = QColor(c)
+    out.setAlphaF(a)
+    return out
+
+
 # ====================================================================== wheel
 
 
@@ -118,7 +124,7 @@ class Wheel(QWidget):
                 p.setFont(f2)
                 fm2 = QFontMetrics(f2)
                 cap = fm2.elidedText(caption, Qt.TextElideMode.ElideRight, 70)
-                p.setPen(QColor(255, 255, 255, 210) if i == self.hover else theme.DIM)
+                p.setPen(with_a(theme.ON_ACCENT, 0.75) if i == self.hover else theme.DIM)
                 p.drawText(QPointF(pos.x() - fm2.horizontalAdvance(cap) / 2, pos.y() + 16), cap)
             if item is not None and _has_real_warning(item):
                 p.setPen(Qt.PenStyle.NoPen)
@@ -222,12 +228,12 @@ class OfferDelegate(QStyledItemDelegate):
         w1 = QFontMetrics(f1).horizontalAdvance(o.target.label)
         f2 = _font(11)
         p.setFont(f2)
-        p.setPen(QColor(255, 255, 255, 200) if selected else theme.DIM)
+        p.setPen(with_a(theme.ON_ACCENT, 0.75) if selected else theme.DIM)
         p.drawText(QPointF(x + w1 + 10, top), o.caption)
         if o.warnings:
             fm = QFontMetrics(f2)
-            text = fm.elidedText(" · ".join(o.warnings), Qt.TextElideMode.ElideRight, r.width() - 24)
-            p.setPen(QColor(255, 244, 214) if selected else theme.WARN)
+            text = fm.elidedText(o.warnings[0], Qt.TextElideMode.ElideRight, r.width() - 24)
+            p.setPen(with_a(theme.ON_ACCENT, 0.85) if selected else theme.WARN)
             p.drawText(QPointF(x, top + 18), text)
         p.restore()
 
@@ -396,7 +402,7 @@ class OptionsPage(QWidget):
                 self.lay.addWidget(combo)
                 self.getters[opt.key] = combo.currentText
         for w in offer.warnings:
-            lab = QLabel("⚠ " + w)
+            lab = QLabel(w)
             lab.setObjectName("warn")
             lab.setWordWrap(True)
             self.lay.addWidget(lab)
@@ -449,9 +455,9 @@ class Popup(QWidget):
         card.setObjectName("card")
         card.setStyleSheet(theme.CARD_QSS)
         shadow = QGraphicsDropShadowEffect(card)
-        shadow.setBlurRadius(40)
+        shadow.setBlurRadius(32)
         shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 0, 0, 150))
+        shadow.setColor(theme.SHADOW)
         card.setGraphicsEffect(shadow)
         outer.addWidget(card)
 
@@ -505,7 +511,7 @@ class Popup(QWidget):
     def _default_hint(self):
         self.hint.setObjectName("hint")
         self.hint.setStyleSheet("")
-        self.hint.setText("Click a format · right-click for options · type to search · Esc closes")
+        self.hint.setText("Right-click a format for its options, or start typing to search.")
 
     def _wheel_hover(self, i: int):
         item = self.wheel.items[i] if 0 <= i < len(self.wheel.items) else None
@@ -517,7 +523,7 @@ class Popup(QWidget):
         if item.warnings:
             self.hint.setObjectName("warn")
             self.hint.setStyleSheet(f"color: {theme.rgba(theme.WARN)};")
-            self.hint.setText("⚠ " + "  ".join(item.warnings))
+            self.hint.setText("  ".join(item.warnings))
         else:
             self.hint.setStyleSheet("")
             self.hint.setText(f"{item.target.label}: {item.caption}. No quality loss.")
@@ -539,7 +545,7 @@ class Popup(QWidget):
     def _show_list(self, text: str):
         self.stack.setCurrentIndex(1)
         self._default_hint()
-        self.hint.setText("↑↓ to move · Enter to convert · Tab for options · Esc to go back")
+        self.hint.setText("Enter converts. Tab opens options. Esc goes back.")
         self.list_page.focus(text)
         self._fit()
 

@@ -42,16 +42,19 @@ class DemoScene(Clock):
         # ---------------- explorer window
         win = QRectF(18, 14, 380, 232)
         p.setPen(QPen(theme.LINE, 1))
-        p.setBrush(QColor(24, 27, 35) if theme.DARK else QColor(255, 255, 255))
-        p.drawRoundedRect(win, 14, 14)
-        bar = QRectF(win.left(), win.top(), win.width(), 34)
-        p.setPen(Qt.PenStyle.NoPen)
-        for i, col in enumerate((QColor(248, 113, 113), QColor(251, 191, 36), QColor(52, 211, 153))):
-            p.setBrush(col)
-            p.drawEllipse(QPointF(win.left() + 18 + i * 14, win.top() + 17), 4.2, 4.2)
-        p.setPen(theme.DIM)
+        p.setBrush(theme.SURFACE)
+        p.drawRoundedRect(win, theme.RADIUS_CONTROL, theme.RADIUS_CONTROL)
+        # Windows-style title bar: folder name on the left, window controls on the right.
+        p.setPen(theme.TEXT)
         p.setFont(font(11, QFont.Weight.DemiBold))
-        p.drawText(QRectF(win.left() + 66, win.top(), 200, 34), Qt.AlignmentFlag.AlignVCenter, "Pictures")
+        p.drawText(QRectF(win.left() + 14, win.top(), 200, 34), Qt.AlignmentFlag.AlignVCenter, "Pictures")
+        ctl = QPen(theme.DIM, 1.1)
+        p.setPen(ctl)
+        cx, cy = win.right() - 18, win.top() + 17
+        p.drawLine(QPointF(cx - 4, cy - 4), QPointF(cx + 4, cy + 4))
+        p.drawLine(QPointF(cx + 4, cy - 4), QPointF(cx - 4, cy + 4))
+        p.drawRect(QRectF(cx - 32, cy - 4, 8, 8))
+        p.drawLine(QPointF(cx - 60, cy), QPointF(cx - 52, cy))
         p.setPen(QPen(theme.LINE, 1))
         p.drawLine(QPointF(win.left(), win.top() + 34), QPointF(win.right(), win.top() + 34))
 
@@ -67,7 +70,7 @@ class DemoScene(Clock):
             if i == 0 and selected > 0:
                 p.setPen(QPen(with_alpha(theme.ACCENT_A, selected), 1.6))
                 p.setBrush(with_alpha(theme.ACCENT_A, 0.14 * selected))
-                p.drawRoundedRect(r.adjusted(-6, -6, 6, 6), 10, 10)
+                p.drawRoundedRect(r.adjusted(-6, -6, 6, 6), theme.RADIUS_CONTROL, theme.RADIUS_CONTROL)
             paint_file_icon(p, QRectF(r.left() + 12, r.top() + 4, 52, 64), kind, lbl)
             p.setPen(theme.TEXT)
             p.setFont(font(10.5))
@@ -81,7 +84,7 @@ class DemoScene(Clock):
             p.translate(-c)
             p.setPen(QPen(with_alpha(theme.SUCCESS, 1 - phase(t, 7.6, 8.6)), 1.6))
             p.setBrush(with_alpha(theme.SUCCESS, 0.14 * (1 - phase(t, 7.6, 8.6))))
-            p.drawRoundedRect(r.adjusted(-6, -6, 6, 6), 10, 10)
+            p.drawRoundedRect(r.adjusted(-6, -6, 6, 6), theme.RADIUS_CONTROL, theme.RADIUS_CONTROL)
             paint_file_icon(p, QRectF(r.left() + 12, r.top() + 4, 52, 64), "image")
             p.setPen(theme.TEXT)
             p.setFont(font(10.5, QFont.Weight.DemiBold))
@@ -144,54 +147,8 @@ class DemoScene(Clock):
         return k if 0 < k < 1 else 0.0
 
     def _wheel(self, p: QPainter, c: QPointF, R: float, alpha: float, hover: bool, chosen: float):
-        labels = ["JPG", "PNG", "WEBP", "PDF", "HEIC", "AVIF"]
-        n = len(labels)
-        span = 360 / n
-        r = R * 0.42
-        p.save()
-        p.setOpacity(p.opacity() * clamp(alpha))
-        glow = QRectF(c.x() - R - 14, c.y() - R - 14, 2 * R + 28, 2 * R + 28)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(with_alpha(QColor(0, 0, 0), 0.25 if theme.DARK else 0.08))
-        p.drawEllipse(glow.adjusted(4, 10, 4, 10))
-        p.setBrush(QColor(21, 23, 28) if theme.DARK else QColor(255, 255, 255))
-        p.setPen(QPen(theme.LINE, 1))
-        p.drawEllipse(c, R + 8, R + 8)
-        outer = QRectF(c.x() - R, c.y() - R, 2 * R, 2 * R)
-        inner = QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r)
-        for i, lbl in enumerate(labels):
-            mid = 90 - i * span
-            start = mid + span / 2
-            path = QPainterPath()
-            path.arcMoveTo(outer, start)
-            path.arcTo(outer, start, -span)
-            path.arcTo(inner, start - span, span)
-            path.closeSubpath()
-            on = hover and lbl == "WEBP"
-            if on:
-                p.fillPath(path, QBrush(accent_gradient(c.x() - R, c.y() - R, c.x() + R, c.y() + R)))
-            else:
-                p.fillPath(path, theme.SLICE)
-            p.setPen(QPen(theme.SLICE_EDGE, 2.5))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawPath(path)
-            a = math.radians(mid)
-            rr = (r + R) / 2
-            pos = QPointF(c.x() + rr * math.cos(a), c.y() - rr * math.sin(a))
-            p.setPen(QColor(255, 255, 255) if on else theme.TEXT)
-            p.setFont(font(max(7, R * 0.12), QFont.Weight.Bold))
-            p.drawText(QRectF(pos.x() - 30, pos.y() - 10, 60, 20), Qt.AlignmentFlag.AlignCenter, lbl)
-        p.setPen(QPen(theme.LINE, 1.2))
-        p.setBrush(theme.CENTER)
-        p.drawEllipse(c, r - 5, r - 5)
-        p.setPen(theme.TEXT)
-        p.setFont(font(max(7, R * 0.11), QFont.Weight.Bold))
-        p.drawText(QRectF(c.x() - r, c.y() - 14, 2 * r, 16), Qt.AlignmentFlag.AlignCenter, "1 HEIC")
-        p.setPen(theme.ACCENT_A if hover else theme.DIM)
-        p.setFont(font(max(6, R * 0.085), QFont.Weight.DemiBold))
-        p.drawText(QRectF(c.x() - r, c.y() + 1, 2 * r, 14), Qt.AlignmentFlag.AlignCenter,
-                   "→ WEBP" if hover else "convert to")
-        p.restore()
+        paint_wheel(p, c, R, alpha, "WEBP" if hover else None)
+
 
     def _card(self, p: QPainter, appear: float, prog: float, done: float):
         p.save()
@@ -199,11 +156,11 @@ class DemoScene(Clock):
         x = 600 - (1 - appear) * 40
         r = QRectF(x - 236, 196, 220, 76)
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(with_alpha(QColor(0, 0, 0), 0.25 if theme.DARK else 0.08))
-        p.drawRoundedRect(r.adjusted(2, 6, 2, 6), 14, 14)
+        p.setBrush(with_alpha(theme.SHADOW, 0.5))
+        p.drawRoundedRect(r.adjusted(2, 6, 2, 6), theme.RADIUS_CARD, theme.RADIUS_CARD)
         p.setPen(QPen(theme.LINE, 1))
-        p.setBrush(QColor(21, 23, 28) if theme.DARK else QColor(255, 255, 255))
-        p.drawRoundedRect(r, 14, 14)
+        p.setBrush(theme.SURFACE)
+        p.drawRoundedRect(r, theme.RADIUS_CARD, theme.RADIUS_CARD)
         ic = QPointF(r.left() + 24, r.top() + 24)
         if done > 0:
             paint_check(p, ic, 26, done)
@@ -261,10 +218,64 @@ class DemoScene(Clock):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QBrush(accent_gradient(badge.left(), badge.top(), badge.right(), badge.bottom())))
         p.drawEllipse(badge)
-        p.setPen(QColor(255, 255, 255))
+        p.setPen(theme.ON_ACCENT)
         p.setFont(font(12, QFont.Weight.Bold))
         p.drawText(badge, Qt.AlignmentFlag.AlignCenter, num)
         p.setPen(theme.TEXT)
         p.setFont(font(15, QFont.Weight.DemiBold, display=True))
         p.drawText(QRectF(56, y - 2, 520, 30), Qt.AlignmentFlag.AlignVCenter, text)
+        p.restore()
+
+
+def paint_wheel(p: QPainter, c: QPointF, R: float, alpha: float = 1.0, selected: str | None = None,
+                labels: tuple = ("JPG", "PNG", "WEBP", "PDF", "HEIC", "AVIF"), center: str = "1 HEIC"):
+    """A picture of the format wheel with one format highlighted (used by the demo and the welcome page)."""
+    hover = selected is not None
+    if True:
+        n = len(labels)
+        span = 360 / n
+        r = R * 0.42
+        p.save()
+        p.setOpacity(p.opacity() * clamp(alpha))
+        glow = QRectF(c.x() - R - 14, c.y() - R - 14, 2 * R + 28, 2 * R + 28)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(with_alpha(theme.SHADOW, 0.5))
+        p.drawEllipse(glow.adjusted(4, 10, 4, 10))
+        p.setBrush(theme.BG)
+        p.setPen(QPen(theme.LINE, 1))
+        p.drawEllipse(c, R + 8, R + 8)
+        outer = QRectF(c.x() - R, c.y() - R, 2 * R, 2 * R)
+        inner = QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r)
+        for i, lbl in enumerate(labels):
+            mid = 90 - i * span
+            start = mid + span / 2
+            path = QPainterPath()
+            path.arcMoveTo(outer, start)
+            path.arcTo(outer, start, -span)
+            path.arcTo(inner, start - span, span)
+            path.closeSubpath()
+            on = lbl == selected
+            if on:
+                p.fillPath(path, theme.ACCENT)
+            else:
+                p.fillPath(path, theme.SLICE)
+            p.setPen(QPen(theme.SLICE_EDGE, 2.5))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawPath(path)
+            a = math.radians(mid)
+            rr = (r + R) / 2
+            pos = QPointF(c.x() + rr * math.cos(a), c.y() - rr * math.sin(a))
+            p.setPen(theme.ON_ACCENT if on else theme.TEXT)
+            p.setFont(font(max(7, R * 0.12), QFont.Weight.Bold))
+            p.drawText(QRectF(pos.x() - 30, pos.y() - 10, 60, 20), Qt.AlignmentFlag.AlignCenter, lbl)
+        p.setPen(QPen(theme.LINE, 1.2))
+        p.setBrush(theme.CENTER)
+        p.drawEllipse(c, r - 5, r - 5)
+        p.setPen(theme.TEXT)
+        p.setFont(font(max(7, R * 0.11), QFont.Weight.Bold))
+        p.drawText(QRectF(c.x() - r, c.y() - 14, 2 * r, 16), Qt.AlignmentFlag.AlignCenter, center)
+        p.setPen(theme.ACCENT if hover else theme.DIM)
+        p.setFont(font(max(6, R * 0.085), QFont.Weight.DemiBold))
+        p.drawText(QRectF(c.x() - r, c.y() + 1, 2 * r, 14), Qt.AlignmentFlag.AlignCenter,
+                   f"→ {selected}" if hover else "convert to")
         p.restore()
