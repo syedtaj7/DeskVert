@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1
+
+### Orbit, floating
+- **No more box:** the picker floats over your files on its own round disc with a soft shadow, instead of
+  sitting inside a large dark rectangle. The side card appears next to it only while you point at something.
+- **Smaller:** about 10% more compact, so it covers less of your window.
+- The file name now shows in the centre, and notes (like files left out of a mixed selection) sit under
+  the disc.
+- Smoother opening: everything is drawn before the first frame (worst frame 11.7 ms, under the 16.7 ms
+  that 60 fps allows).
+
 ## 1.2.0
 
 ### Orbit: a new picker

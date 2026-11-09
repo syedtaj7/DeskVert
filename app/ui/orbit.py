@@ -233,16 +233,18 @@ class OrbitView(QWidget):
     DRIFT_SECONDS = 6.0
 
     def __init__(self, offers: list[Offer], center_title: str, card_side: str = "right", scale: float = 1.0,
-                 parent=None):
+                 note: str = "", parent=None):
         super().__init__(parent)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)  # we paint every pixel: parents can skip
+        # No background: the orbit floats over the desktop on its own disc.
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.motion = animations_enabled()
         self.center_title = center_title
+        self.note = note or "Right-click for options  ·  type to search"
         self.side = card_side
         k = scale
-        self.D, self.HUB, self.GAP = 72 * k, 108 * k, 14 * k
+        self.D, self.HUB, self.GAP = 64 * k, 100 * k, 12 * k
         self.CARD_W, self.CARD_GAP = round(218 * k + 10 * (1 - k)), round(22 * k)
         self._layout(list(offers))
         self.hover = -1
@@ -254,6 +256,9 @@ class OrbitView(QWidget):
         self.speed = Spring(1.0 if self.motion else 0.0)
         self.ring_a = Spring(0.0)
         self.hub_s = Spring(0.75)
+        self.disc_s = Spring(0.9)
+        self._disc_pix: QPixmap | None = None
+        self._note_pix: QPixmap | None = None
         # side card
         self.card_a, self.card_y, self.card_dx = Spring(0), Spring(0), Spring(0)
         self.card_pix: QPixmap | None = None
@@ -315,10 +320,12 @@ class OrbitView(QWidget):
                 self.ps.append(_Planet(ri, base, 0.03 + order * 0.028))
                 order += 1
         self.hidden_count = len(offers) - sum(1 for o in self.items if o is not None)
-        self.E = self.radii[-1] + D * 0.6 + 16  # orbit half-size, with room for hover scale and the magnet
+        self.DR = self.radii[-1] + D / 2 + 18  # the disc everything sits on
+        self.E = self.DR + 22  # half-size of the orbit area: disc plus room for its shadow
         S = 2 * self.E
+        self.NOTE_H = 34
         self.ox = (self.CARD_W + self.CARD_GAP) if self.side == "left" else 0
-        self.setFixedSize(QSize(int(S + self.CARD_GAP + self.CARD_W) + 4, int(S)))
+        self.setFixedSize(QSize(int(S + self.CARD_GAP + self.CARD_W) + 4, int(S + self.NOTE_H)))
 
     def orbit_center(self) -> QPointF:
         return QPointF(self.ox + self.E, self.E)
@@ -332,6 +339,9 @@ class OrbitView(QWidget):
             self._hub_pix.clear()
             self._cards.clear()
             self._rings_pix = None
+            self._disc_pix = None
+            self._note_pix = None
+            self.__dict__.pop("_card_shadows", None)
         return dpr
 
     def _new_pix(self, w: float, h: float) -> QPixmap:
@@ -456,6 +466,72 @@ class OrbitView(QWidget):
         p.drawText(QPointF(c.x() - fm.horizontalAdvance(sub) / 2, c.y() + 15 * k), sub)
         p.end()
         self._hub_pix[self.hover] = pm
+        return pm
+
+    def _disc_pixmap(self) -> QPixmap:
+        """Soft shadow, the disc and both orbits, drawn once."""
+        if self._disc_pix is not None:
+            return self._disc_pix
+        from PySide6.QtGui import QRadialGradient
+
+        S = 2 * self.E
+        pm = self._new_pix(S, S)
+        p = self._painter(pm)
+        c = QPointF(self.E, self.E)
+        R = self.DR
+        g = QRadialGradient(QPointF(c.x(), c.y() + 7), R + 20)
+        edge = R / (R + 20)
+        g.setColorAt(0.0, _alpha(theme.SHADOW, theme.SHADOW.alphaF() * 0.9))
+        g.setColorAt(edge * 0.94, _alpha(theme.SHADOW, theme.SHADOW.alphaF() * 0.8))
+        g.setColorAt(1.0, _alpha(theme.SHADOW, 0.0))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(g)
+        p.drawEllipse(QPointF(c.x(), c.y() + 7), R + 20, R + 20)
+        p.setPen(QPen(theme.LINE, 1.2))
+        p.setBrush(theme.BG)
+        p.drawEllipse(c, R, R)
+        p.drawPixmap(QPointF(0, 0), self._rings_pixmap())
+        p.end()
+        self._disc_pix = pm
+        return pm
+
+    def _card_shadow(self, w: float, h: float) -> QPixmap:
+        """A smooth soft shadow for the side card (many faint layers, drawn once per size)."""
+        key = (round(w), round(h))
+        cache = self.__dict__.setdefault("_card_shadows", {})
+        pm = cache.get(key)
+        if pm is not None:
+            return pm
+        pad = 16
+        pm = self._new_pix(w + 2 * pad, h + 2 * pad)
+        p = self._painter(pm)
+        p.setPen(Qt.PenStyle.NoPen)
+        base = theme.SHADOW.alphaF()
+        for k in range(pad):
+            grow = pad - k
+            p.setBrush(_alpha(theme.SHADOW, base * 0.07 * (k + 1) / pad))
+            p.drawRoundedRect(QRectF(pad - grow, pad - grow, w + 2 * grow, h + 2 * grow), 12 + grow, 12 + grow)
+        p.end()
+        cache[key] = pm
+        return pm
+
+    def _note_pixmap(self) -> QPixmap:
+        if self._note_pix is not None:
+            return self._note_pix
+        f = _font(11.5)
+        fm = QFontMetrics(f)
+        text = fm.elidedText(self.note, Qt.TextElideMode.ElideRight, int(2 * self.E - 40))
+        w, h = fm.horizontalAdvance(text) + 26, 24
+        pm = self._new_pix(w + 2, h + 2)
+        p = self._painter(pm)
+        p.setPen(QPen(theme.LINE, 1))
+        p.setBrush(_alpha(theme.BG, 0.94))
+        p.drawRoundedRect(QRectF(1, 1, w, h), h / 2, h / 2)
+        p.setFont(f)
+        p.setPen(theme.DIM)
+        p.drawText(QRectF(1, 1, w, h), Qt.AlignmentFlag.AlignCenter, text)
+        p.end()
+        self._note_pix = pm
         return pm
 
     def _rings_pixmap(self) -> QPixmap:
@@ -600,6 +676,15 @@ class OrbitView(QWidget):
             p.a.snap(0 if self.motion else 1)
         self.ring_a.snap(0 if self.motion else 1)
         self.hub_s.snap(0.75 if self.motion else 1)
+        self.disc_s.snap(0.9 if self.motion else 1)
+        # Draw the base images now, while the window is still fully transparent, so the
+        # opening animation's frames only copy finished images.
+        self._check_dpr()
+        self._disc_pixmap()
+        self._note_pixmap()
+        self._hub_pixmap()
+        for i in range(len(self.items)):
+            self._planet_pixmap(i, False)
         self._wake()
 
     def hideEvent(self, e):
@@ -632,6 +717,8 @@ class OrbitView(QWidget):
         busy |= self.ring_a.step(dt, 120, 20, m)
         self.hub_s.t = 1.08 if ex else 1.0
         busy |= self.hub_s.step(dt, 220, 16, m)
+        self.disc_s.t = 1.04 if ex else 1.0
+        busy |= self.disc_s.step(dt, 200, 17, m)
         c = self.orbit_center()
         for i, p in enumerate(self.ps):
             if self._t < p.delay and ex is None:
@@ -698,27 +785,25 @@ class OrbitView(QWidget):
     def paintEvent(self, _):
         self._check_dpr()
         p = QPainter(self)
-        p.fillRect(self.rect(), theme.BG)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         c = self.orbit_center()
         ra = max(0.0, min(1.0, self.ring_a.v))
+        # the disc (shadow, fill, edge and both orbits in one cached image)
+        disc = self._disc_pixmap()
+        ds = 2 * self.E * self.disc_s.v
+        p.setOpacity(1.0 if self._exit is None else max(0.0, 1 - self._exit["t"] / self._exit["dur"]))
+        if abs(self.disc_s.v - 1.0) < 1e-3:  # at rest: a plain copy, no rescaling of the big image
+            p.drawPixmap(QPointF(c.x() - self.E, c.y() - self.E), disc)
+        else:
+            p.drawPixmap(QRectF(c.x() - ds / 2, c.y() - ds / 2, ds, ds), disc, QRectF(disc.rect()))
+        # the note under the disc
+        note = self._note_pixmap()
+        nw = note.width() / self._dpr
+        p.setOpacity(ra)
+        p.drawPixmap(QPointF(c.x() - nw / 2, 2 * self.E + self.NOTE_H - note.height() / self._dpr - 2), note)
         if ra > 0.01:
             p.setOpacity(ra)
-            p.drawPixmap(QPointF(c.x() - self.E, c.y() - self.E), self._rings_pixmap())
-            # comet trails show the drift direction; they fade as the orbits stop
-            sp = self.speed.v
-            if sp > 0.02:
-                p.setPen(Qt.PenStyle.NoPen)
-                for i, pl in enumerate(self.ps):
-                    if pl.a.v < 0.05:
-                        continue
-                    direction = 1.0 if pl.ring == 0 and len(self.radii) == 2 else -1.0
-                    rr = pl.r.v + self.D / 2 + 5
-                    for k in range(1, 5):
-                        a = pl.ang + direction * k * 0.05
-                        p.setBrush(_alpha(theme.ACCENT, 0.42 * sp * pl.a.v * (1 - k / 5)))
-                        p.drawEllipse(QPointF(c.x() + math.cos(a) * rr, c.y() + math.sin(a) * rr), 2.2 - k * 0.3, 2.2 - k * 0.3)
             if 0 <= self.hover < len(self.ps):
                 pl = self.ps[self.hover]
                 ang = math.atan2(pl.y - c.y(), pl.x - c.x())
@@ -763,6 +848,8 @@ class OrbitView(QWidget):
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(theme.ACCENT)
             p.drawEllipse(QPointF(edge_x, ly), 3, 3)
+            sh = self._card_shadow(cw, ch)
+            p.drawPixmap(QPointF(cx - 16, cy - 16 + 6), sh)
             if self.card_old is not None and self.card_mix < 1:
                 p.setOpacity(ca * (1 - self.card_mix))
                 p.drawPixmap(QPointF(cx, cy), self.card_old)

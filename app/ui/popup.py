@@ -574,13 +574,14 @@ class Popup(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(16, 14, 16, 12)
         lay.setSpacing(8)
-        head = QLabel(title)
+        head = self._head = QLabel(title)
         head.setObjectName("title")
         head.setText(QFontMetrics(_font(13, QFont.Weight.DemiBold)).elidedText(title, Qt.TextElideMode.ElideMiddle, 300))
         head.setToolTip(title)
         lay.addWidget(head)
+        self._sub = None
         if subtitle:
-            sub = QLabel(subtitle)
+            sub = self._sub = QLabel(subtitle)
             sub.setObjectName("sub")
             sub.setWordWrap(True)
             lay.addWidget(sub)
@@ -590,7 +591,7 @@ class Popup(QWidget):
         screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
         area = screen.availableGeometry()
         side = "left" if QCursor.pos().x() > area.left() + area.width() * 0.6 else "right"
-        self.wheel = self.orbit = OrbitView(offers, center_title, card_side=side)
+        self.wheel = self.orbit = OrbitView(offers, title, card_side=side, note=subtitle)
         wheel_holder = QWidget()
         wl = QHBoxLayout(wheel_holder)
         wl.setContentsMargins(0, 0, 0, 0)
@@ -611,6 +612,9 @@ class Popup(QWidget):
         self.hint.setMinimumHeight(22)
         self.hint.setMaximumWidth(460)
         lay.addWidget(self.hint)
+        self._card_lay = lay
+        self._chrome_on = True
+        self._set_chrome(False)  # the orbit floats on its own; the card frame is for the list and options
         self._default_hint()
 
         self.wheel.activated.connect(self._wheel_activate)
@@ -667,11 +671,29 @@ class Popup(QWidget):
         (self.list_page.search if self._options_return == 1 else self.wheel).setFocus()
         self._fit()
 
+    def _set_chrome(self, on: bool) -> None:
+        """The card frame, title and hint line: shown for the list and options pages,
+        hidden for the orbit, which floats on its own disc."""
+        if on == self._chrome_on:
+            return
+        self._chrome_on = on
+        self._card.setStyleSheet(theme.CARD_QSS if on else
+                                 theme.CARD_QSS + "QFrame#card { background: transparent; border: none; }")
+        for w in (self._head, self._sub, self.hint):
+            if w is not None:
+                w.setVisible(on)
+        if on:
+            self._card_lay.setContentsMargins(16, 14, 16, 12)
+        else:
+            self._card_lay.setContentsMargins(0, 0, 0, 0)
+        self.update()
+
     def _fit(self):
         """Size the window to the page that's showing (the orbit is much wider than
         the list or the options), keeping it centered where it was."""
         center = self.geometry().center()
         current = self.stack.currentIndex()
+        self._set_chrome(current != 0)
         for k in range(self.stack.count()):
             w = self.stack.widget(k)
             pol = QSizePolicy.Policy.Preferred if k == current else QSizePolicy.Policy.Ignored
@@ -711,6 +733,8 @@ class Popup(QWidget):
 
     def paintEvent(self, _):
         """The card's soft shadow, drawn once per size and then reused."""
+        if not self._chrome_on:
+            return  # the orbit draws its own disc and shadow
         r = self._card.geometry()
         key = (r.width(), r.height(), self.devicePixelRatioF())
         if key != self._shadow_key:
