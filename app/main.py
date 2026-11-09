@@ -15,7 +15,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from . import __version__, selection, winutil
-from .catalog import describe_selection, explain_unsupported, office_installed, offers_for, pick_group
+from .catalog import describe_selection, explain_unsupported, office_installed
 from .hotkey import is_modifier_tap, make_listener
 from .jobs import Batch, JobManager, clean_stale_workdirs
 from .paths import APP_NAME, documents_dir, log_dir
@@ -52,6 +52,7 @@ def _alive(w) -> bool:
 class Controller(QObject):
     hotkey_pressed = Signal(int)
     show_requested = Signal()  # Tapshift was started again while running
+    pick_requested = Signal()  # files arrived from the right-click menu
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -75,6 +76,7 @@ class Controller(QObject):
         self.panel = ProgressPanel()
         self.panel.cancel_requested.connect(self.jobs.cancel)
         self.panel.show_folder.connect(winutil.show_in_explorer)
+        self.panel.undo_requested.connect(self.undo)
 
         self.tray = QSystemTrayIcon(theme.app_icon(), self)
         self.tray.activated.connect(self._tray_activated)
@@ -93,6 +95,21 @@ class Controller(QObject):
                 pass
         self.show_requested.connect(lambda: self.show_settings(0))
         winutil.watch_show_requests(self.show_requested.emit)
+        # Right-click "Convert with Tapshift": Explorer starts one copy per file; gather them briefly.
+        self._pick_timer = QTimer(self)
+        self._pick_timer.setSingleShot(True)
+        self._pick_timer.setInterval(350)
+        self._pick_timer.timeout.connect(self._open_picked)
+        self.pick_requested.connect(self._pick_timer.start)
+        winutil.watch_picks(self.pick_requested.emit)
+        if self.settings.context_menu:
+            try:
+                winutil.set_context_menu(True)  # keep it pointing at this copy (e.g. after an update)
+            except OSError:
+                log.exception("couldn't add the right-click menu entry")
+        self._last_action: dict | None = None  # for "tap twice to repeat"
+        self._popup_opened = 0.0
+        self._popup_files: list[Path] = []
         ok, err = self._start_hotkey()
         if not self.settings.onboarded:
             QTimer.singleShot(700, self.show_tour)
@@ -144,13 +161,14 @@ class Controller(QObject):
         m.addSeparator()
         m.addAction("How to use Tapshift", self.show_guide)
         m.addAction("Settings", lambda: self.show_settings(0))
+        m.addAction("Customize the picker", lambda: self.show_settings(4))
         m.addAction("Welcome tour", self.show_tour)
         m.addSeparator()
         self.pause_action = m.addAction("Pause shortcut")
         self.pause_action.setCheckable(True)
         self.pause_action.toggled.connect(lambda v: setattr(self, "paused", v))
-        m.addAction("About Tapshift", lambda: self.show_settings(4))
-        m.addAction("Check for updates\u2026", lambda: self.show_settings(4, check_updates=True))
+        m.addAction("About Tapshift", lambda: self.show_settings(5))
+        m.addAction("Check for updates\u2026", lambda: self.show_settings(5, check_updates=True))
         if winutil.uninstaller() is not None:
             m.addAction("Uninstall Tapshift\u2026", self.uninstall)
         m.addAction("Quit", self.quit)
@@ -241,8 +259,29 @@ class Controller(QObject):
         if check_updates:
             w.check_updates()
 
+    def undo(self, outputs: list[str]) -> None:
+        """Undo on the Saved card: the new files go to the Recycle Bin (originals are never touched)."""
+        try:
+            n = winutil.recycle(outputs)
+        except Exception as e:  # noqa: BLE001
+            log.exception("undo failed")
+            self.panel.message("error", "Couldn't undo", f"{e}. The new file is still there.", 8000)
+            return
+        self.recent = [p for p in self.recent if p not in outputs]
+        self._refresh_recent()
+        self.panel.message("info", "Undone", f"Moved {n} new file{'s' if n != 1 else ''} to the Recycle Bin. "
+                           "Your originals are unchanged.", 5000)
+
     def _apply(self, key: str, value, save: bool = True) -> None:
         """Apply one setting change right away."""
+        if key == "context_menu":
+            setattr(self.settings, key, bool(value))
+            self.settings.save()
+            try:
+                winutil.set_context_menu(bool(value))
+            except OSError:
+                log.exception("couldn't change the right-click menu entry")
+            return
         if key == "autostart":
             try:
                 winutil.set_autostart(bool(value))
@@ -284,9 +323,15 @@ class Controller(QObject):
     def on_hotkey(self, hwnd: int) -> None:
         if self.paused:
             return
+        import time
+
         if _alive(self.popup):
+            quick = time.monotonic() - self._popup_opened < 0.55
+            files = list(self._popup_files)
             self.popup.close()  # pressing the shortcut again closes the popup
             self.popup = None
+            if quick and self._last_action:  # a double tap: repeat the last action on these files
+                self.repeat_last(files)
             return
         self.popup = None
         try:
@@ -304,8 +349,56 @@ class Controller(QObject):
                               f"Select one or more files in File Explorer or on the Desktop, then {how} "
                               f"{self.key_label}.", "info")
             return
-        offers, left_out = offers_for(files, self.settings)
-        kind, group, _ = pick_group(files)
+        self.open_picker(files, where)
+
+    def _open_picked(self) -> None:
+        paths = [Path(p) for p in winutil.take_picks() if os.path.isfile(p)]
+        if paths:
+            if _alive(self.popup):
+                self.popup.close()
+            self.open_picker(paths, "menu")
+
+    def repeat_last(self, files: list[Path]) -> None:
+        """Run the last chosen action again, with the same options, on these files."""
+        from .menu import build_menu
+
+        last = self._last_action
+        nodes, quick, _ = build_menu(files, self.settings)
+        leaves = [leaf for n in quick + nodes for leaf in n.leaves()]
+        node = next((n for n in leaves if n.key == last["key"]), None) or next(
+            (n for n in leaves if n.offer is not None and n.offer.target.key == last["target"]), None)
+        offer = node.offer if node is not None else None
+        if offer is None:
+            self._show_notice(f"Can't repeat {last['label']} here",
+                              f"{last['label']} doesn't apply to the selected files.", "info")
+            return
+        log.info("repeat: %s on %d file(s)", last["key"], len(offer.sources))
+        self._submit(offer, dict(last["options"]), last["key"])
+
+    def _submit(self, offer, options: dict, key: str = "") -> None:
+        from .menu import remember
+
+        key = key or (self.popup.last_key if _alive(self.popup) and self.popup.last_key else offer.target.key)
+        self._last_action = {"key": key, "target": offer.target.key, "label": offer.target.label,
+                             "options": dict(options)}
+        remember(self.settings, key)  # recently used actions move to the picker's inner ring
+        try:
+            self.settings.save()
+        except OSError:
+            pass
+        self.jobs.submit(offer, options)
+
+    def open_picker(self, files: list[Path], where: str) -> None:
+        import time
+
+        from .menu import build_menu
+
+        nodes, quick, left_out = build_menu(files, self.settings)
+        offers = []  # every action, for the searchable list
+        for n in quick + nodes:
+            for leaf in n.leaves():
+                if leaf.offer is not None and leaf.preset is None and all(leaf.offer is not o for o in offers):
+                    offers.append(leaf.offer)
         if not offers:
             title, msg = explain_unsupported(left_out or files)
             self._show_notice(title, msg)
@@ -313,18 +406,20 @@ class Controller(QObject):
         notes = []
         if where == "clipboard":
             notes.append("From files copied to the clipboard.")
-        if kind is None:
+        group = [p for p in files if p not in left_out] or files
+        if left_out and len(left_out) == len(files):
             # Nothing to convert, but the files can still be zipped: say why ZIP is the only choice.
-            group = files
             notes.append(explain_unsupported(files)[1].split(". Tapshift")[0] + ". You can still zip it.")
         elif left_out:
-            notes.append(f"{len(left_out)} other file(s) aren't included (different type); ZIP includes everything.")
+            notes.append(f"{len(left_out)} file(s) of an unsupported type: only ZIP includes them.")
         center = f"1 {group[0].suffix.upper().lstrip('.') or 'file'}" if len(group) == 1 else f"{len(group)} files"
         self.popup = Popup(describe_selection(group), center, " ".join(notes), offers,
-                           estimator=self.jobs.estimate)
-        self.popup.chosen.connect(self.jobs.submit)
+                           estimator=self.jobs.estimate, nodes=nodes, quick=quick)
+        self.popup.chosen.connect(self._submit)
         self.popup.destroyed.connect(self._popup_closed)
         self.popup.show_at_cursor()
+        self._popup_opened = time.monotonic()
+        self._popup_files = list(files)
 
     def _popup_closed(self, *_):
         self.popup = None
@@ -372,7 +467,7 @@ class Controller(QObject):
         elif len(batch.results) == 1 and ok:
             r = ok[0]
             body = "  ".join(r.get("notes", [])[:2]) or "Checked against the original: everything matches."
-            self.panel.finish("success", f"Saved {Path(r['output']).name}", body, first_out)
+            self.panel.finish("success", f"Saved {Path(r['output']).name}", body, first_out, [r["output"]])
         elif len(batch.results) == 1 and failed:
             r = failed[0]
             self.panel.finish("error", f"Couldn't convert {Path(r['sources'][0]).name}",
@@ -390,7 +485,7 @@ class Controller(QObject):
             if not lines:
                 lines.append("All checked against the originals.")
             self.panel.finish("error" if failed and not ok else ("warning" if failed else "success"),
-                              title, "\n".join(lines), first_out)
+                              title, "\n".join(lines), first_out, [r["output"] for r in ok])
         QTimer.singleShot(3000, winutil.trim_memory)
 
     # ------------------------------------------------------------ exit
@@ -497,9 +592,15 @@ def main() -> int:
         i = sys.argv.index("--selftest")
         target = Path(sys.argv[i + 1]) if len(sys.argv) > i + 1 else Path.cwd() / "tapshift-selftest"
         return selftest(target)
+    picks = []
+    if "--pick" in sys.argv:  # right-click "Convert with Tapshift"
+        picks = [a for a in sys.argv[sys.argv.index("--pick") + 1:] if not a.startswith("--")]
     mutex = winutil.single_instance(wait_seconds=8.0 if "--restarted" in sys.argv else 0.0)
     if mutex is None:
-        winutil.signal_running_instance()  # already running: bring its window to the front instead
+        if picks:
+            winutil.send_pick(picks)  # the running Tapshift opens the picker for these files
+        else:
+            winutil.signal_running_instance()  # already running: bring its window to the front instead
         return 0
     try:
         clean_stale_workdirs()
@@ -512,6 +613,8 @@ def main() -> int:
     if not QSystemTrayIcon.isSystemTrayAvailable():
         log.error("no system tray available")
     ctl = Controller(app)  # noqa: F841 - keep alive
+    if picks:
+        winutil.send_pick(picks)  # started from the right-click menu: open the picker right away
     from .ui.orbit import warm_fonts
 
     QTimer.singleShot(1500, warm_fonts)  # so the picker's first hover doesn't pay for loading fonts

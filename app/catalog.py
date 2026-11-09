@@ -220,7 +220,7 @@ PPT_TARGETS = [_doc("doc.pdf", "PDF", ".pdf"), _doc("doc.pptx", "PPTX", ".pptx")
                _doc("doc.odp", "ODP", ".odp"), _doc("doc.ppt", "PPT", ".ppt")]
 PDF_TARGETS = [_doc("pdf.png", "PNG", "", folder="pages PNG"),
                _doc("pdf.jpg", "JPG", "", folder="pages JPG"), _doc("pdf.txt", "TXT", ".txt"),
-               _doc("pdf.split", "Split", "", folder="pages")]
+               _doc("pdf.split", "Every page", "", folder="pages")]
 PDF_MERGE = Target("pdf.merge", "1 PDF", ".pdf", combine=True)
 
 

@@ -645,7 +645,8 @@ def _kb(kb: int) -> str:
 class Popup(QWidget):
     chosen = Signal(object, dict)  # Offer, options
 
-    def __init__(self, title: str, center_title: str, subtitle: str, offers: list[Offer], estimator=None):
+    def __init__(self, title: str, center_title: str, subtitle: str, offers: list[Offer], estimator=None,
+                 nodes=None, quick=None):
         super().__init__(
             None,
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
@@ -688,7 +689,10 @@ class Popup(QWidget):
         screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
         area = screen.availableGeometry()
         side = "left" if QCursor.pos().x() > area.left() + area.width() * 0.6 else "right"
-        self.wheel = self.orbit = OrbitView(offers, title, card_side=side, note=subtitle)
+        self.wheel = self.orbit = OrbitView(nodes if nodes is not None else offers, title, card_side=side,
+                                            note=subtitle, quick=quick)
+        self.last_key = ""  # what was chosen (for recents and "tap twice to repeat")
+        self._chosen_node = None
         wheel_holder = QWidget()
         wl = QHBoxLayout(wheel_holder)
         wl.setContentsMargins(0, 0, 0, 0)
@@ -730,21 +734,24 @@ class Popup(QWidget):
         self.hint.setStyleSheet("")
         self.hint.setText("Right-click an option for its settings, or start typing to search.")
 
-    def _wheel_activate(self, i: int):
-        item = self.wheel.items[i]
-        if item is None:
+    def _wheel_activate(self, node):
+        if node.key.startswith("more:") or node.offer is None:
             self._show_list("")
-        else:
-            self._choose(item, None)
+            return
+        self._chosen_node = node
+        self.last_key = node.key
+        self._choose(node.offer, dict(node.preset) if node.preset is not None else None)
 
-    def _wheel_options(self, i: int):
-        item = self.wheel.items[i]
-        if item is None:
+    def _wheel_options(self, node):
+        if node.offer is None:
             self._show_list("")
         else:
-            self._show_options(item)
+            self.last_key = node.key
+            self._show_options(node.offer)
 
     def _show_list(self, text: str):
+        self.last_key = ""  # whatever is picked in the list is what gets remembered
+        self._chosen_node = None
         self.stack.setCurrentIndex(1)
         self._default_hint()
         self.hint.setText("Enter converts. Tab opens options. Esc goes back.")
@@ -816,15 +823,18 @@ class Popup(QWidget):
         self._done = True
         if opts is None:
             opts = {o.key: o.default for o in offer.options}
+        if not self.last_key:
+            self.last_key = offer.target.key
         self.chosen.emit(offer, opts)  # the conversion starts now; the exit motion runs alongside
-        if self.stack.currentIndex() == 0 and offer in self.orbit.items and self.orbit.motion:
+        node = self._chosen_node
+        if self.stack.currentIndex() == 0 and node is not None and node in self.orbit.items and self.orbit.motion:
             fade = QPropertyAnimation(self, b"windowOpacity", self)
             fade.setDuration(200)
             fade.setStartValue(self.windowOpacity())
             fade.setEndValue(0.0)
             fade.setEasingCurve(QEasingCurve.Type.InCubic)
             fade.start()
-            self.orbit.play_exit(self.orbit.items.index(offer), self.close)
+            self.orbit.play_exit(node, self.close)
         else:
             self.close()
 

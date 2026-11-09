@@ -215,6 +215,7 @@ class Notice(_Card):
 class ProgressPanel(_Card):
     cancel_requested = Signal()
     show_folder = Signal(str)
+    undo_requested = Signal(list)  # the files this conversion made
 
     def __init__(self):
         super().__init__(340)
@@ -266,15 +267,21 @@ class ProgressPanel(_Card):
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cancel_btn.clicked.connect(self.cancel_requested.emit)
+        self.undo_btn = QPushButton("Undo")
+        self.undo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.undo_btn.setToolTip("Move the new file to the Recycle Bin")
+        self.undo_btn.clicked.connect(self._undo)
         self.folder_btn = QPushButton("Show in folder")
         self.folder_btn.setObjectName("primary")
         self.folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.folder_btn.clicked.connect(self._open_folder)
         btns.addWidget(self.cancel_btn)
+        btns.addWidget(self.undo_btn)
         btns.addWidget(self.folder_btn)
         lay.addLayout(btns)
 
         self._output = ""
+        self._outputs: list[str] = []
         self._hide_timer = QTimer(self)
         self._hide_timer.setSingleShot(True)
         self._hide_timer.timeout.connect(self._dismiss)
@@ -294,6 +301,7 @@ class ProgressPanel(_Card):
         self.bar_row.show()
         self.cancel_btn.show()
         self.folder_btn.hide()
+        self.undo_btn.hide()
         self._place_and_show()
 
     def set_file(self, name: str, index: int, total: int):
@@ -307,14 +315,17 @@ class ProgressPanel(_Card):
         self.bar.set_value(frac)
         self.pct.setText(f"{frac * 100:.0f}%" if frac > 0 else "working...")
 
-    def finish(self, kind: str, title: str, body: str, output: str = ""):
+    def finish(self, kind: str, title: str, body: str, output: str = "", outputs: list[str] | None = None):
         self._busy = False
         self.icon.set_kind(kind)
         self.title.setText(title)
         self.sub.setText(body)
         self.cancel_btn.hide()
         self._output = output
+        self._outputs = list(outputs or [])
         self.folder_btn.setVisible(bool(output))
+        self.undo_btn.setVisible(bool(self._outputs))
+        self.undo_btn.setText("Undo" if len(self._outputs) <= 1 else f"Undo all {len(self._outputs)}")
         if kind == "success":
             self.bar.color_override = theme.SUCCESS
             self.bar.set_value(1)
@@ -344,6 +355,12 @@ class ProgressPanel(_Card):
     def _dismiss(self):
         self._hide_timer.stop()
         self.hide()
+
+    def _undo(self):
+        if self._outputs:
+            self.undo_requested.emit(self._outputs)
+            self._outputs = []
+            self.undo_btn.hide()
 
     def _open_folder(self):
         if self._output:

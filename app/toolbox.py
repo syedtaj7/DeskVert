@@ -104,12 +104,23 @@ def validate(opt: Option, value) -> str | None:
 COMPRESS_IMAGE = Target("compress.image", "Compress", "*", suffix=" (compressed)", ask=True)
 
 PDF_COMPRESS = Target("pdf.compress", "Compress", ".pdf", suffix=" (compressed)", ask=True)
-PDF_PAGES = Target("pdf.pages", "Pages", ".pdf", suffix=" (pages)", ask=True)
+PDF_PAGES = Target("pdf.pages", "Keep or remove", ".pdf", suffix=" (pages)", ask=True)
 PDF_LOCK = Target("pdf.lock", "Lock", ".pdf", suffix=" (locked)", ask=True)
 PDF_UNLOCK = Target("pdf.unlock", "Unlock", ".pdf", suffix=" (unlocked)", ask=True)
 PDF_NUMBERS = Target("pdf.numbers", "Numbers", ".pdf", suffix=" (numbered)", ask=True)
 PDF_WATERMARK = Target("pdf.watermark", "Watermark", ".pdf", suffix=" (watermarked)", ask=True)
 PDF_ROTATE = Target("pdf.rotate", "Rotate", ".pdf", suffix=" (rotated)", ask=True)
+PDF_SPLIT_HALF = Target("pdf.splithalf", "In half", "", folder="halves")
+PDF_SPLIT_EVERY = Target("pdf.splitevery", "Every N pages", "", folder="parts", ask=True)
+PDF_SPLIT_RANGES = Target("pdf.splitranges", "By ranges", "", folder="parts", ask=True)
+PDF_REORDER = Target("pdf.reorder", "Reorder", ".pdf", suffix=" (reordered)", ask=True)
+PDF_REVERSE = Target("pdf.reverse", "Reverse", ".pdf", suffix=" (reversed)")
+PDF_PICTURES = Target("pdf.pictures", "Pictures", "", folder="pictures")
+PDF_GRAY = Target("pdf.gray", "Grayscale", ".pdf", suffix=" (grayscale)")
+PDF_FLATTEN = Target("pdf.flatten", "Flatten", ".pdf", suffix=" (flattened)")
+PDF_CLEAN = Target("pdf.clean", "Clean info", ".pdf", suffix=" (clean)")
+PDF_NUP = Target("pdf.nup", "2 per page", ".pdf", suffix=" (2 per page)")
+MIXED_PDF = Target("mixed.pdf", "1 PDF", ".pdf", combine=True)
 
 OCR_TXT = Target("ocr.txt", "Read text", ".txt", suffix=" (text)")
 OCR_PDF = Target("ocr.pdf", "Searchable", ".pdf", suffix=" (searchable)")
@@ -229,6 +240,31 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
             Option("pages", "Only these pages (blank = all)", "text", "", placeholder="e.g. 2, 5-6",
                    validate="pages_optional"),
         ], unlocked))
+        offers.append(_offer(PDF_SPLIT_HALF, "two PDFs", ["Saved as two PDFs in a new folder next to it."], [],
+                             unlocked))
+        offers.append(_offer(PDF_SPLIT_EVERY, "equal parts", ["Saved in a new folder next to it."], [
+            Option("n", "Pages in each part", "text", "2", placeholder="e.g. 2", required=True, validate="int"),
+        ], unlocked))
+        offers.append(_offer(PDF_SPLIT_RANGES, "your parts", ["Each range becomes its own PDF, in a new folder."], [
+            Option("ranges", "Parts", "text", "", placeholder="e.g. 1-3, 4-10, 11-end", required=True,
+                   validate="pages"),
+        ], unlocked))
+        offers.append(_offer(PDF_REORDER, "new page order", [], [
+            Option("order", "New order", "text", "", placeholder="e.g. 3, 1, 2 (others follow)", required=True,
+                   validate="pages"),
+        ], unlocked))
+        offers.append(_offer(PDF_REVERSE, "last page first", [], [], unlocked))
+        offers.append(_offer(PDF_NUP, "A4 sheets", ["Two pages side by side on each landscape A4 sheet."], [],
+                             unlocked))
+        offers.append(_offer(PDF_FLATTEN, "lock in form fields", [
+            "Form fields and comments become part of the page: they look the same but can't be edited."], [],
+            unlocked))
+        offers.append(_offer(PDF_CLEAN, "remove hidden details", [
+            "Removes the author, title, software and other hidden details, plus scripts. Pages are unchanged."], [],
+            unlocked))
+        offers.append(_offer(PDF_PICTURES, "save the pictures", ["Saved exactly as stored, in a new folder."], [],
+                             unlocked))
+        offers.append(_offer(PDF_GRAY, "black and white", [], [], unlocked))
     if locked:
         offers.insert(0, _offer(PDF_UNLOCK, "remove password", [
             "Removes the password, using the password you type. Tapshift can't open PDFs without it."], [

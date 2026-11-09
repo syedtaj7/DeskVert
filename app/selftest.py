@@ -66,6 +66,9 @@ def run(folder: Path) -> int:
             if offer is None:
                 results.append({"case": name, "ok": False, "error": "not offered"})
                 return None
+            return run(offer, options, name)
+
+        def run(offer, options: dict | None, name: str) -> Path | None:
             opts = {o.key: o.default for o in offer.options}
             opts.update(options or {})
             job = build_jobs(offer, opts, s)[0]
@@ -83,12 +86,22 @@ def run(folder: Path) -> int:
         # PDF tools on the PDF we just made
         pdf = next((Path(r["output"]) for r in results if r["case"] == "Mountains.jpg->PDF" and r["ok"]), None)
         if pdf:
-            for label in ("PNG", "Split"):
+            for label in ("PNG", "Every page"):
                 case([pdf], label, name=f"pdf->{label}")
             case([pdf], "Numbers", name="pdf->Numbers")
             locked = case([pdf], "Lock", {"password": "selftest"}, name="pdf->Lock")
             if locked:
                 case([locked], "Unlock", {"password": "selftest"}, name="pdf->Unlock")
+            # A picture and a PDF combined into one 2-page PDF, then the page tools on it
+            from .toolbox import MIXED_PDF
+            from .catalog import Offer
+
+            mixed = Offer(MIXED_PDF, "into 1 PDF", [])
+            mixed.sources = [pdf, samples / "Sunset.png"]
+            two = run(mixed, {}, "pdf+png->1 PDF")
+            if two:
+                for label in ("In half", "Reverse", "Grayscale", "2 per page", "Clean info", "Pictures"):  # Flatten needs form fields; tested separately
+                    case([two], label, name=f"2-page pdf->{label}")
         # Zip and extract, data, Markdown, text recognition
         zipped = case([samples / "Sunset.png", samples / "Mountains.jpg"], "ZIP", name="2 images->ZIP")
         if zipped:

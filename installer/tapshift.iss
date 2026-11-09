@@ -53,6 +53,9 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; Start-up entry left by early development builds (named File Formatter then).
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "FileFormatter"; Flags: uninsdeletevalue dontcreatekey
 
+; The right-click "Convert with Tapshift" entry (Tapshift adds it while running).
+Root: HKCU; Subkey: "Software\Classes\*\shell\Tapshift"; Flags: uninsdeletekey dontcreatekey
+
 [UninstallDelete]
 ; Settings, logs and scratch space: nothing of Tapshift stays behind.
 Type: filesandordirs; Name: "{userappdata}\Tapshift"
