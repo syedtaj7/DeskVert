@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+
+### Fixes and small things
+- **Clicking the Tapshift icon opens Tapshift.** Clicking the tray icon opens Settings (your latest files
+  are in the tray menu under Recent conversions). Starting Tapshift again from the Start menu or a pinned
+  taskbar icon brings its window to the front instead of doing nothing.
+- **Maximize:** Settings, the guide and the welcome tour have a maximize button. Double-click the title bar
+  to maximize or restore; it never covers the taskbar.
+- **Settings → About fits the window again:** the buttons are in two rows, so nothing is cut off.
+
 ## 1.3.0
 
 ### Ready for upload forms

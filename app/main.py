@@ -51,6 +51,7 @@ def _alive(w) -> bool:
 
 class Controller(QObject):
     hotkey_pressed = Signal(int)
+    show_requested = Signal()  # Tapshift was started again while running
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -90,6 +91,8 @@ class Controller(QObject):
                 winutil.set_autostart(True)  # keep the start-up entry pointing at this copy (e.g. after installing)
             except OSError:
                 pass
+        self.show_requested.connect(lambda: self.show_settings(0))
+        winutil.watch_show_requests(self.show_requested.emit)
         ok, err = self._start_hotkey()
         if not self.settings.onboarded:
             QTimer.singleShot(700, self.show_tour)
@@ -163,11 +166,9 @@ class Controller(QObject):
             self.recent_menu.addAction(Path(path).name, lambda p=path: winutil.show_in_explorer(p))
 
     def _tray_activated(self, reason) -> None:
-        if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            if self._last_output:
-                winutil.show_in_explorer(self._last_output)
-            else:
-                self.show_guide()
+        # Clicking the icon opens Tapshift itself; the latest files are under "Recent conversions".
+        if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
+            self.show_settings(0)
 
     # ------------------------------------------------------------ windows
     def _window(self, key: str, factory):
@@ -498,6 +499,7 @@ def main() -> int:
         return selftest(target)
     mutex = winutil.single_instance(wait_seconds=8.0 if "--restarted" in sys.argv else 0.0)
     if mutex is None:
+        winutil.signal_running_instance()  # already running: bring its window to the front instead
         return 0
     try:
         clean_stale_workdirs()

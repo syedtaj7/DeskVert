@@ -265,7 +265,8 @@ def build_guide_sections(sections: Sections) -> list[str]:
                                        "name exists, you get <b>photo (1).webp</b>. Nothing is ever overwritten."),
         ("New folders for many files", "Slides or PDF pages as images, and split PDFs, go into a new folder "
                                        "such as <b>Report (pages PNG)</b>."),
-        ("Show in folder", "Click it on the card, or click the tray icon to jump to your latest conversion."),
+        ("Show in folder", "Click it on the card, or find it under Recent conversions in the tray menu. Clicking "
+                           "the tray icon opens Tapshift."),
         ("If something fails", "The card turns red and says why, in plain words. Your original is untouched."),
     ])
     for w in (a, b):

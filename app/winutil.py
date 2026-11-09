@@ -73,6 +73,40 @@ def single_instance(name: str = "Local\\Tapshift.SingleInstance", wait_seconds: 
         time.sleep(0.2)
 
 
+SHOW_EVENT = "Local\\Tapshift.Show"
+
+
+def signal_running_instance() -> bool:
+    """Ask the Tapshift that's already running to show its window (used when it's started twice)."""
+    kernel32.OpenEventW.restype = ctypes.c_void_p
+    h = kernel32.OpenEventW(0x0002, False, SHOW_EVENT)  # EVENT_MODIFY_STATE
+    if not h:
+        return False
+    kernel32.SetEvent(ctypes.c_void_p(h))
+    kernel32.CloseHandle(ctypes.c_void_p(h))
+    return True
+
+
+def watch_show_requests(callback) -> None:
+    """Call ``callback`` (from a background thread) whenever a second launch asks to show
+    the window. Waiting on a Windows event uses no CPU."""
+    import threading
+
+    kernel32.CreateEventW.restype = ctypes.c_void_p
+    h = kernel32.CreateEventW(None, False, False, SHOW_EVENT)  # auto-reset
+    if not h:
+        return
+
+    def run():
+        while kernel32.WaitForSingleObject(ctypes.c_void_p(h), 0xFFFFFFFF) == 0:
+            try:
+                callback()
+            except Exception:
+                pass
+
+    threading.Thread(target=run, name="show-requests", daemon=True).start()
+
+
 def launch_command(extra: str = "") -> str:
     if getattr(sys, "frozen", False):
         return f'"{sys.executable}" {extra}'.strip()
