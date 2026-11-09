@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330" role="img" aria-label="Safety: built in a private folder, verified, then saved next to the original">
+<title>Safety: built in a private folder, verified, then saved next to the original</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',Inter,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Code','Cascadia Mono',Consolas,'SF Mono',Menlo,ui-monospace,monospace}
+.b{font-weight:700} .sb{font-weight:600}
+.fb{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion: reduce){
+*{animation:none!important}
+.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+[class*="ink"],.cover{opacity:0}
+}
+
+.pk{animation:pk 7s cubic-bezier(.6,0,.4,1) infinite}
+@keyframes pk{0%{transform:translateX(0);opacity:0}4%{opacity:1}22%{transform:translateX(0)}34%{transform:translateX(400px)}62%{transform:translateX(400px)}74%{transform:translateX(800px)}94%{transform:translateX(800px);opacity:1}100%{transform:translateX(800px);opacity:0}}
+.pkok{animation:pkok 7s infinite}
+@keyframes pkok{0%,70%{fill:#26262B}74%,100%{fill:#34BE84}}
+.pktx{animation:pktx 7s infinite}
+@keyframes pktx{0%,70%{fill:#F0F0EE}74%,100%{fill:#121214}}
+.beam{opacity:0;animation:beam 7s linear infinite}
+@keyframes beam{0%,36%{opacity:0;transform:translateY(-36px)}38%{opacity:1}58%{opacity:1;transform:translateY(36px)}60%,100%{opacity:0;transform:translateY(36px)}}
+.chk{opacity:0;animation:chk 7s linear infinite}
+@keyframes chk{0%{opacity:0}1%,21%{opacity:1}24%,100%{opacity:0}}
+.pipe{animation:pipe 1s linear infinite}
+@keyframes pipe{to{stroke-dashoffset:-20}}
+.nring{animation:nring 7s linear infinite}
+@keyframes nring{0%{stroke:#303036}3%,30%{stroke:#34BE84}34%,100%{stroke:#303036}}
+</style>
+<rect x="0.5" y="0.5" width="1199" height="329" rx="28" fill="#121214" stroke="rgba(255,255,255,0.08)"/>
+<line class="pipe" x1="290" y1="120" x2="510" y2="120" stroke="#303036" stroke-width="4" stroke-dasharray="10 10"/>
+<line class="pipe" x1="690" y1="120" x2="910" y2="120" stroke="#303036" stroke-width="4" stroke-dasharray="10 10"/>
+<rect class="nring" style="animation-delay:0.00s" x="110" y="60" width="180" height="120" rx="20" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b" x="200" y="224" font-size="22" fill="#F0F0EE" text-anchor="middle">1 · Work copy</text><text class="s" x="200" y="250" font-size="15" fill="#96969E" text-anchor="middle">built in a private folder</text>
+<rect class="nring" style="animation-delay:2.24s" x="510" y="60" width="180" height="120" rx="20" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b" x="600" y="224" font-size="22" fill="#F0F0EE" text-anchor="middle">2 · Verify</text><text class="s" x="600" y="250" font-size="15" fill="#96969E" text-anchor="middle">re-opened and compared</text>
+<rect class="nring" style="animation-delay:4.48s" x="910" y="60" width="180" height="120" rx="20" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b" x="1000" y="224" font-size="22" fill="#F0F0EE" text-anchor="middle">3 · Commit</text><text class="s" x="1000" y="250" font-size="15" fill="#96969E" text-anchor="middle">moved next to the original</text>
+<g class="chk" style="animation-delay:2.52s"><text class="s sb" x="600" y="168" font-size="14" fill="#34BE84" text-anchor="middle">✓ same pixels</text></g>
+<g class="chk" style="animation-delay:2.94s"><text class="s sb" x="600" y="168" font-size="14" fill="#34BE84" text-anchor="middle">✓ same pages</text></g>
+<g class="chk" style="animation-delay:3.36s"><text class="s sb" x="600" y="168" font-size="14" fill="#34BE84" text-anchor="middle">✓ same words</text></g>
+<g class="chk" style="animation-delay:3.78s"><text class="s sb" x="600" y="168" font-size="14" fill="#34BE84" text-anchor="middle">✓ same cells</text></g>
+<g class="beam"><rect x="530" y="118" width="140" height="4" rx="2" fill="#34BE84"/></g>
+<text class="s" x="1000" y="168" font-size="13" fill="#96969E" text-anchor="middle">never overwrites</text><text class="s" x="200" y="168" font-size="13" fill="#96969E" text-anchor="middle">original untouched</text>
+<g class="pk"><rect class="pkok" x="146" y="84" width="108" height="34" rx="17" fill="#26262B"/><text class="m sb pktx" x="200" y="106" font-size="13" fill="#F0F0EE" text-anchor="middle">photo.webp</text></g>
+</svg>

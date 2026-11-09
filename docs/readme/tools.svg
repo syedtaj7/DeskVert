@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="Everyday tools: compress images, PDF toolkit, OCR, zip, data files, Markdown">
+<title>Everyday tools: compress images, PDF toolkit, OCR, zip, data files, Markdown</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',Inter,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Code','Cascadia Mono',Consolas,'SF Mono',Menlo,ui-monospace,monospace}
+.b{font-weight:700} .sb{font-weight:600}
+.fb{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion: reduce){
+*{animation:none!important}
+.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+[class*="ink"],.cover{opacity:0}
+}
+
+.photo{animation:photo 6s cubic-bezier(.6,0,.3,1) infinite}
+@keyframes photo{0%,10%{transform:scale(1)}55%,88%{transform:scale(.46)}100%{transform:scale(1)}}
+.bar{animation:bar 6s cubic-bezier(.6,0,.3,1) infinite}
+@keyframes bar{0%,10%{transform:scaleX(1)}55%,88%{transform:scaleX(.06)}100%{transform:scaleX(1)}}
+.sz{opacity:0;animation:sz 6s linear infinite}
+@keyframes sz{0%{opacity:0}1%,17%{opacity:1}18%,100%{opacity:0}}
+.szlast{opacity:0;animation:szl 6s linear infinite}
+@keyframes szl{0%,54%{opacity:0}55%,96%{opacity:1}97%,100%{opacity:0}}
+.pill{animation:pill 6s cubic-bezier(.2,1.6,.4,1) infinite}
+@keyframes pill{0%,56%{transform:scale(0)}62%,92%{transform:scale(1)}97%,100%{transform:scale(0)}}
+.shackle{animation:shackle 6s cubic-bezier(.5,0,.2,1.4) infinite}
+@keyframes shackle{0%,18%{transform:translateY(-12px)}28%,92%{transform:none}100%{transform:translateY(-12px)}}
+.lockb{animation:lockb 6s cubic-bezier(.2,1.5,.4,1) infinite}
+@keyframes lockb{0%,4%{transform:scale(0)}14%,94%{transform:scale(1)}100%{transform:scale(0)}}
+.wm{opacity:0;animation:wm 6s ease-out infinite}
+@keyframes wm{0%,34%{opacity:0;transform:scale(1.4)}44%,92%{opacity:1;transform:scale(1)}100%{opacity:0}}
+.pn{opacity:0;animation:pn 6s linear infinite}
+@keyframes pn{0%,50%{opacity:0}54%,92%{opacity:1}100%{opacity:0}}
+.scan{animation:scan 6s linear infinite}
+@keyframes scan{0%,6%{transform:translateY(0);opacity:0}8%{opacity:1}62%{transform:translateY(150px);opacity:1}66%,100%{transform:translateY(150px);opacity:0}}
+.fly{animation:fly 3s cubic-bezier(.5,0,.3,1) infinite alternate both}
+@keyframes fly{0%,15%{transform:none;opacity:1}70%,100%{transform:translateY(96px) scale(.6);opacity:0}}
+.lid{animation:lid 3s cubic-bezier(.5,0,.3,1) infinite alternate both}
+@keyframes lid{0%,55%{transform:translateY(-34px);opacity:.55}80%,100%{transform:none;opacity:1}}
+.zipt{animation:zipt 3s infinite alternate both}
+@keyframes zipt{0%,75%{opacity:0}90%,100%{opacity:1}}
+.cell{animation:cell 6s cubic-bezier(.2,1.5,.4,1) infinite}
+@keyframes cell{0%,8%{transform:scale(0);opacity:0}16%,90%{transform:scale(1);opacity:1}98%,100%{transform:scale(0);opacity:0}}
+.arrow{animation:arrow 1.2s ease-in-out infinite}
+@keyframes arrow{50%{transform:translateX(8px)}}
+.raw{animation:raw 6s ease-in-out infinite}
+@keyframes raw{0%,15%{opacity:1;transform:none}35%,85%{opacity:.28;transform:translateX(-6px)}100%{opacity:1;transform:none}}
+.ren{opacity:0;animation:ren 6s cubic-bezier(.2,.9,.2,1) infinite}
+@keyframes ren{0%,18%{opacity:0;transform:translateY(10px)}30%,86%{opacity:1;transform:none}96%,100%{opacity:0}}
+.ink0{animation:ink0 6s linear infinite}@keyframes ink0{0%,8.0%{opacity:1}10.0%,90%{opacity:0}96%,100%{opacity:1}}.txt0{opacity:0;animation:txt0 6s linear infinite}@keyframes txt0{0%,8.0%{opacity:0}11.0%,90%{opacity:1}96%,100%{opacity:0}}.ink1{animation:ink1 6s linear infinite}@keyframes ink1{0%,18.5%{opacity:1}20.5%,90%{opacity:0}96%,100%{opacity:1}}.txt1{opacity:0;animation:txt1 6s linear infinite}@keyframes txt1{0%,18.5%{opacity:0}21.5%,90%{opacity:1}96%,100%{opacity:0}}.ink2{animation:ink2 6s linear infinite}@keyframes ink2{0%,29.0%{opacity:1}31.0%,90%{opacity:0}96%,100%{opacity:1}}.txt2{opacity:0;animation:txt2 6s linear infinite}@keyframes txt2{0%,29.0%{opacity:0}32.0%,90%{opacity:1}96%,100%{opacity:0}}.ink3{animation:ink3 6s linear infinite}@keyframes ink3{0%,39.5%{opacity:1}41.5%,90%{opacity:0}96%,100%{opacity:1}}.txt3{opacity:0;animation:txt3 6s linear infinite}@keyframes txt3{0%,39.5%{opacity:0}42.5%,90%{opacity:1}96%,100%{opacity:0}}.ink4{animation:ink4 6s linear infinite}@keyframes ink4{0%,50.0%{opacity:1}52.0%,90%{opacity:0}96%,100%{opacity:1}}.txt4{opacity:0;animation:txt4 6s linear infinite}@keyframes txt4{0%,50.0%{opacity:0}53.0%,90%{opacity:1}96%,100%{opacity:0}}</style>
+<rect width="1200" height="720" fill="none"/>
+<rect x="24.5" y="24.5" width="367" height="323" rx="22" fill="#121214" stroke="rgba(255,255,255,0.08)"/><rect x="40" y="40" width="336" height="206" rx="14" fill="#1C1C20"/><text class="s b" x="48" y="288" font-size="22" fill="#F0F0EE">Compress images</text><text class="s" x="48" y="316" font-size="14" fill="#96969E">Pick “under 100 KB”; see quality &amp; size first</text>
+<g class="fb photo"><rect x="98.0" y="64" width="220" height="136" rx="10" fill="#2D6A8E"/><circle cx="270.0" cy="98" r="16" fill="#E8B04B"/><path d="M98.0,200 L162.0,126 L208.0,166 L254.0,114 L318.0,182 L318.0,190 Q318.0,200 308.0,200 Z" fill="#34BE84"/><path d="M98.0,200 L188.0,154 L258.0,200 Z" fill="#1F8A5F"/></g>
+<rect x="64" y="222" width="288" height="8" rx="4" fill="#303036"/><rect class="fb bar" x="64" y="222" width="288" height="8" rx="4" fill="#34BE84" style="transform-origin:left center"/>
+<text class="s b sz" style="animation-delay:0.00s" x="352" y="210" font-size="16" fill="#F0F0EE" text-anchor="end">3.8 MB</text>
+<text class="s b sz" style="animation-delay:1.08s" x="352" y="210" font-size="16" fill="#F0F0EE" text-anchor="end">2.1 MB</text>
+<text class="s b sz" style="animation-delay:2.16s" x="352" y="210" font-size="16" fill="#F0F0EE" text-anchor="end">820 KB</text>
+<text class="s b szlast" x="352" y="210" font-size="16" fill="#34BE84" text-anchor="end">96 KB</text>
+<g class="fb pill"><rect x="64" y="192" width="132" height="24" rx="12" fill="#34BE84"/><text class="s b" x="130" y="209" font-size="13" fill="#121214" text-anchor="middle">quality 82% ✓</text></g>
+<rect x="416.5" y="24.5" width="367" height="323" rx="22" fill="#121214" stroke="rgba(255,255,255,0.08)"/><rect x="432" y="40" width="336" height="206" rx="14" fill="#1C1C20"/><text class="s b" x="440" y="288" font-size="22" fill="#F0F0EE">PDF toolkit</text><text class="s" x="440" y="316" font-size="14" fill="#96969E">Compress · Lock · Pages · Numbers · Watermark</text>
+<rect x="520" y="58" width="128" height="170" rx="8" fill="#F4F4F1"/>
+<rect x="536" y="80" width="96" height="6" rx="3" fill="#CFCFCA"/>
+<rect x="536" y="98" width="78" height="6" rx="3" fill="#CFCFCA"/>
+<rect x="536" y="116" width="60" height="6" rx="3" fill="#CFCFCA"/>
+<rect x="536" y="134" width="96" height="6" rx="3" fill="#CFCFCA"/>
+<rect x="536" y="152" width="78" height="6" rx="3" fill="#CFCFCA"/>
+<rect x="536" y="170" width="60" height="6" rx="3" fill="#CFCFCA"/>
+<rect x="536" y="188" width="96" height="6" rx="3" fill="#CFCFCA"/>
+<g class="fb wm"><text class="s b" x="584" y="154" font-size="17" fill="rgba(200,60,60,.55)" text-anchor="middle" transform="rotate(-38 584 148)">CONFIDENTIAL</text></g>
+<g class="pn"><text class="s sb" x="584" y="220" font-size="11" fill="#2A2A30" text-anchor="middle">Page 1 of 3</text></g>
+<g class="fb lockb"><g class="shackle"><path d="M662,144 v-16 a16,16 0 0 1 32,0 v16" fill="none" stroke="#F0F0EE" stroke-width="7" stroke-linecap="round"/></g><rect x="650" y="140" width="56" height="46" rx="10" fill="#34BE84"/><circle cx="678" cy="160" r="5" fill="#121214"/><rect x="676" y="162" width="4" height="10" rx="2" fill="#121214"/><text class="s b" x="678" y="210" font-size="12" fill="#96969E" text-anchor="middle">AES-256</text></g>
+<rect x="808.5" y="24.5" width="367" height="323" rx="22" fill="#121214" stroke="rgba(255,255,255,0.08)"/><rect x="824" y="40" width="336" height="206" rx="14" fill="#1C1C20"/><text class="s b" x="832" y="288" font-size="22" fill="#F0F0EE">Read text (OCR)</text><text class="s" x="832" y="316" font-size="14" fill="#96969E">Pictures &amp; scans → text or searchable PDF</text>
+<rect x="892" y="54" width="200" height="176" rx="8" fill="#F4F4F1"/>
+<g><path d="M910,84 q12,-8 24,0 t24,0 t24,0 t24,0 t24,0 t24,0" fill="none" stroke="#8E8E88" stroke-width="5" stroke-linecap="round" class="ink0"/></g><text class="m sb txt0" x="910" y="90" font-size="13" fill="#2A2A30">Invoice 2026-114</text>
+<g><path d="M910,114 q12,-8 24,0 t24,0 t24,0 t24,0 t24,0 t24,0" fill="none" stroke="#8E8E88" stroke-width="5" stroke-linecap="round" class="ink1"/></g><text class="m sb txt1" x="910" y="120" font-size="13" fill="#2A2A30">Northwind Traders</text>
+<g><path d="M910,144 q12,-8 24,0 t24,0 t24,0 t24,0 t24,0 t24,0" fill="none" stroke="#8E8E88" stroke-width="5" stroke-linecap="round" class="ink2"/></g><text class="m sb txt2" x="910" y="150" font-size="13" fill="#2A2A30">2 × Coffee   9.40</text>
+<g><path d="M910,174 q12,-8 24,0 t24,0 t24,0 t24,0 t24,0 t24,0" fill="none" stroke="#8E8E88" stroke-width="5" stroke-linecap="round" class="ink3"/></g><text class="m sb txt3" x="910" y="180" font-size="13" fill="#2A2A30">Delivery     4.00</text>
+<g><path d="M910,204 q12,-8 24,0 t24,0 t24,0 t24,0 t24,0 t24,0" fill="none" stroke="#8E8E88" stroke-width="5" stroke-linecap="round" class="ink4"/></g><text class="m sb txt4" x="910" y="210" font-size="13" fill="#2A2A30">Total due 13.40</text>
+<g class="scan"><rect x="884" y="66" width="216" height="3" rx="1.5" fill="#34BE84"/><rect x="884" y="46" width="216" height="20" fill="rgba(52,190,132,.16)"/></g>
+<rect x="24.5" y="372.5" width="367" height="323" rx="22" fill="#121214" stroke="rgba(255,255,255,0.08)"/><rect x="40" y="388" width="336" height="206" rx="14" fill="#1C1C20"/><text class="s b" x="48" y="636" font-size="22" fill="#F0F0EE">Zip &amp; extract</text><text class="s" x="48" y="664" font-size="14" fill="#96969E">ZIP · 7Z · RAR · TAR · GZ · ISO</text>
+<g class="fly" style="animation-delay:0.00s"><rect x="116.0" y="412" width="52" height="62" rx="8" fill="#F4F4F1"/><rect x="116.0" y="456" width="52" height="18" rx="0" fill="#2D6A8E"/><text class="s b" x="142.0" y="470" font-size="11" fill="#fff" text-anchor="middle">JPG</text></g>
+<g class="fly" style="animation-delay:0.12s"><rect x="182.0" y="412" width="52" height="62" rx="8" fill="#F4F4F1"/><rect x="182.0" y="456" width="52" height="18" rx="0" fill="#C0503C"/><text class="s b" x="208.0" y="470" font-size="11" fill="#fff" text-anchor="middle">PDF</text></g>
+<g class="fly" style="animation-delay:0.24s"><rect x="248.0" y="412" width="52" height="62" rx="8" fill="#F4F4F1"/><rect x="248.0" y="456" width="52" height="18" rx="0" fill="#3A6FC4"/><text class="s b" x="274.0" y="470" font-size="11" fill="#fff" text-anchor="middle">DOCX</text></g>
+<rect x="134.0" y="514" width="148" height="56" rx="10" fill="#E8B04B"/><rect x="200.0" y="514" width="16" height="56" fill="#C9902F"/><g class="lid"><rect x="128.0" y="500" width="160" height="16" rx="6" fill="#F2C266"/></g><g class="zipt"><text class="s b" x="208.0" y="550" font-size="16" fill="#121214" text-anchor="middle">.zip</text></g>
+<rect x="416.5" y="372.5" width="367" height="323" rx="22" fill="#121214" stroke="rgba(255,255,255,0.08)"/><rect x="432" y="388" width="336" height="206" rx="14" fill="#1C1C20"/><text class="s b" x="440" y="636" font-size="22" fill="#F0F0EE">Data files</text><text class="s" x="440" y="664" font-size="14" fill="#96969E">CSV · TSV · JSON → Excel, JSON, CSV</text>
+<text class="m" x="448" y="446" font-size="13" fill="#34BE84">id,name,price</text>
+<text class="m" x="448" y="476" font-size="13" fill="#F0F0EE">1,Ana,1.50</text>
+<text class="m" x="448" y="506" font-size="13" fill="#F0F0EE">2,Bo,007</text>
+<text class="m" x="448" y="536" font-size="13" fill="#F0F0EE">3,Cé,12</text>
+<g class="arrow"><path d="M576,490 h22 m-8,-8 l8,8 l-8,8" fill="none" stroke="#34BE84" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g class="fb cell" style="animation-delay:0.25s"><rect x="616" y="422" width="46" height="30" rx="4" fill="#34BE84"/><text class="s b" x="639" y="442" font-size="12" fill="#121214" text-anchor="middle">id</text></g>
+<g class="fb cell" style="animation-delay:0.32s"><rect x="664" y="422" width="46" height="30" rx="4" fill="#34BE84"/><text class="s b" x="687" y="442" font-size="12" fill="#121214" text-anchor="middle">name</text></g>
+<g class="fb cell" style="animation-delay:0.39s"><rect x="712" y="422" width="46" height="30" rx="4" fill="#34BE84"/><text class="s b" x="735" y="442" font-size="12" fill="#121214" text-anchor="middle">price</text></g>
+<g class="fb cell" style="animation-delay:0.46s"><rect x="616" y="454" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="639" y="474" font-size="12" fill="#F0F0EE" text-anchor="middle">1</text></g>
+<g class="fb cell" style="animation-delay:0.53s"><rect x="664" y="454" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="687" y="474" font-size="12" fill="#F0F0EE" text-anchor="middle">Ana</text></g>
+<g class="fb cell" style="animation-delay:0.60s"><rect x="712" y="454" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="735" y="474" font-size="12" fill="#F0F0EE" text-anchor="middle">1.50</text></g>
+<g class="fb cell" style="animation-delay:0.67s"><rect x="616" y="486" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="639" y="506" font-size="12" fill="#F0F0EE" text-anchor="middle">2</text></g>
+<g class="fb cell" style="animation-delay:0.74s"><rect x="664" y="486" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="687" y="506" font-size="12" fill="#F0F0EE" text-anchor="middle">Bo</text></g>
+<g class="fb cell" style="animation-delay:0.81s"><rect x="712" y="486" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="735" y="506" font-size="12" fill="#F0F0EE" text-anchor="middle">007</text></g>
+<g class="fb cell" style="animation-delay:0.88s"><rect x="616" y="518" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="639" y="538" font-size="12" fill="#F0F0EE" text-anchor="middle">3</text></g>
+<g class="fb cell" style="animation-delay:0.95s"><rect x="664" y="518" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="687" y="538" font-size="12" fill="#F0F0EE" text-anchor="middle">Cé</text></g>
+<g class="fb cell" style="animation-delay:1.02s"><rect x="712" y="518" width="46" height="30" rx="4" fill="#26262B"/><text class="s " x="735" y="538" font-size="12" fill="#F0F0EE" text-anchor="middle">12</text></g>
+<rect x="808.5" y="372.5" width="367" height="323" rx="22" fill="#121214" stroke="rgba(255,255,255,0.08)"/><rect x="824" y="388" width="336" height="206" rx="14" fill="#1C1C20"/><text class="s b" x="832" y="636" font-size="22" fill="#F0F0EE">Markdown</text><text class="s" x="832" y="664" font-size="14" fill="#96969E">→ PDF · HTML · Word</text>
+<g class="raw" style="animation-delay:0.00s"><text class="m" x="840" y="438" font-size="13" fill="#96969E"># Notes</text></g>
+<g class="raw" style="animation-delay:0.10s"><text class="m" x="840" y="472" font-size="13" fill="#96969E">- **fast** and light</text></g>
+<g class="raw" style="animation-delay:0.20s"><text class="m" x="840" y="506" font-size="13" fill="#96969E">- `code` blocks</text></g>
+<g class="raw" style="animation-delay:0.30s"><text class="m" x="840" y="540" font-size="13" fill="#96969E">> quotes</text></g>
+<g class="ren"><rect x="988" y="404" width="160" height="176" rx="8" fill="#F4F4F1"/><text class="s b" x="1002" y="436" font-size="22" fill="#2A2A30">Notes</text><circle cx="1006" cy="461" r="3" fill="#2A2A30"/><text class="s" x="1016" y="466" font-size="13" fill="#2A2A30"><tspan font-weight="700">fast</tspan> and light</text><circle cx="1006" cy="489" r="3" fill="#2A2A30"/><rect x="1015" y="480" width="40" height="18" rx="4" fill="#E2E2DD"/><text class="m" x="1019" y="493" font-size="12" fill="#B4442E">code</text><text class="s" x="1060" y="494" font-size="13" fill="#2A2A30">blocks</text><rect x="1002" y="512" width="4" height="26" fill="#34BE84"/><text class="s" x="1014" y="530" font-size="13" font-style="italic" fill="#55555C">quotes</text></g>
+</svg>

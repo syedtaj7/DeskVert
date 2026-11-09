@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-label="Tap. Pick. Done.">
+<title>Tap. Pick. Done.</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',Inter,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Code','Cascadia Mono',Consolas,'SF Mono',Menlo,ui-monospace,monospace}
+.b{font-weight:700} .sb{font-weight:600}
+.fb{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion: reduce){
+*{animation:none!important}
+.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+[class*="ink"],.cover{opacity:0}
+}
+
+.wv{animation:wv 2.4s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes wv{0%,60%,100%{transform:none}20%{transform:translateY(-16px)}40%{transform:translateY(3px)}}
+</style>
+<rect x="0.5" y="0.5" width="1199" height="219" rx="28" fill="#121214" stroke="rgba(255,255,255,0.08)"/>
+<g class="wv" style="animation-delay:0.00s"><text class="s b" x="420" y="122" font-size="64" fill="#F0F0EE" text-anchor="middle" letter-spacing="-1.5">Tap.</text></g>
+<g class="wv" style="animation-delay:0.18s"><text class="s b" x="600" y="122" font-size="64" fill="#F0F0EE" text-anchor="middle" letter-spacing="-1.5">Pick.</text></g>
+<g class="wv" style="animation-delay:0.36s"><text class="s b" x="786" y="122" font-size="64" fill="#34BE84" text-anchor="middle" letter-spacing="-1.5">Done.</text></g>
+<text class="s" x="600" y="170" font-size="17" fill="#96969E" text-anchor="middle">Free and open source · made for Windows 10 and 11 · no account, no uploads</text>
+</svg>

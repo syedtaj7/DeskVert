@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="96" viewBox="0 0 1200 96" role="img" aria-label="Examples: compress a photo, lock a PDF, read text, CSV to Excel, zip, Markdown to PDF">
+<title>Examples: compress a photo, lock a PDF, read text, CSV to Excel, zip, Markdown to PDF</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',Inter,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Code','Cascadia Mono',Consolas,'SF Mono',Menlo,ui-monospace,monospace}
+.b{font-weight:700} .sb{font-weight:600}
+.fb{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion: reduce){
+*{animation:none!important}
+.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+[class*="ink"],.cover{opacity:0}
+}
+
+.line{opacity:0;animation:line 19.200000000000003s linear infinite}
+@keyframes line{0%{opacity:0}1%{opacity:1}15.17%{opacity:1}16.67%{opacity:0}100%{opacity:0}}
+.cover{animation:type 19.200000000000003s steps(48,end) infinite}
+@keyframes type{0%{transform:translateX(0)}9.17%,100%{transform:translateX(1000px)}}
+.ok{opacity:0;animation:ok 19.200000000000003s linear infinite}
+@keyframes ok{0%,9.17%{opacity:0}10.00%,15.17%{opacity:1}16.67%,100%{opacity:0}}
+.caret{animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+</style>
+<rect x="0.5" y="0.5" width="1199" height="95" rx="20" fill="#121214" stroke="rgba(255,255,255,0.08)"/>
+<circle cx="34" cy="48" r="6" fill="#34BE84"/><circle cx="34" cy="48" r="11" fill="none" stroke="#34BE84" stroke-opacity=".35"/>
+<defs><clipPath id="tc"><rect x="60" y="10" width="1120" height="76"/></clipPath></defs>
+<g clip-path="url(#tc)"><g class="line" style="animation-delay:0.00s"><text class="m" x="64" y="56" font-size="20"><tspan fill="#F0F0EE">IMG_2041.HEIC</tspan><tspan fill="#96969E">  →  </tspan><tspan fill="#34BE84" font-weight="600">Compress · under 100 KB</tspan></text><g class="cover" style="animation-delay:0.00s"><rect x="60" y="14" width="1100" height="68" fill="#121214"/><rect class="caret" x="62" y="34" width="3" height="28" fill="#34BE84"/></g><g class="ok" style="animation-delay:0.00s"><text class="s sb" x="1166" y="55" font-size="18" fill="#F0F0EE" text-anchor="end">✓  96 KB at quality 82%</text></g></g><g class="line" style="animation-delay:3.20s"><text class="m" x="64" y="56" font-size="20"><tspan fill="#F0F0EE">contract.pdf</tspan><tspan fill="#96969E">  →  </tspan><tspan fill="#34BE84" font-weight="600">Lock · AES-256</tspan></text><g class="cover" style="animation-delay:3.20s"><rect x="60" y="14" width="1100" height="68" fill="#121214"/><rect class="caret" x="62" y="34" width="3" height="28" fill="#34BE84"/></g><g class="ok" style="animation-delay:3.20s"><text class="s sb" x="1166" y="55" font-size="18" fill="#F0F0EE" text-anchor="end">✓  contract (locked).pdf</text></g></g><g class="line" style="animation-delay:6.40s"><text class="m" x="64" y="56" font-size="20"><tspan fill="#F0F0EE">scan-001.jpg</tspan><tspan fill="#96969E">  →  </tspan><tspan fill="#34BE84" font-weight="600">Read text</tspan></text><g class="cover" style="animation-delay:6.40s"><rect x="60" y="14" width="1100" height="68" fill="#121214"/><rect class="caret" x="62" y="34" width="3" height="28" fill="#34BE84"/></g><g class="ok" style="animation-delay:6.40s"><text class="s sb" x="1166" y="55" font-size="18" fill="#F0F0EE" text-anchor="end">✓  214 words recognized</text></g></g><g class="line" style="animation-delay:9.60s"><text class="m" x="64" y="56" font-size="20"><tspan fill="#F0F0EE">sales.csv</tspan><tspan fill="#96969E">  →  </tspan><tspan fill="#34BE84" font-weight="600">Excel</tspan></text><g class="cover" style="animation-delay:9.60s"><rect x="60" y="14" width="1100" height="68" fill="#121214"/><rect class="caret" x="62" y="34" width="3" height="28" fill="#34BE84"/></g><g class="ok" style="animation-delay:9.60s"><text class="s sb" x="1166" y="55" font-size="18" fill="#F0F0EE" text-anchor="end">✓  1,204 rows · 007 stays 007</text></g></g><g class="line" style="animation-delay:12.80s"><text class="m" x="64" y="56" font-size="20"><tspan fill="#F0F0EE">12 photos</tspan><tspan fill="#96969E">  →  </tspan><tspan fill="#34BE84" font-weight="600">ZIP</tspan></text><g class="cover" style="animation-delay:12.80s"><rect x="60" y="14" width="1100" height="68" fill="#121214"/><rect class="caret" x="62" y="34" width="3" height="28" fill="#34BE84"/></g><g class="ok" style="animation-delay:12.80s"><text class="s sb" x="1166" y="55" font-size="18" fill="#F0F0EE" text-anchor="end">✓  12 files checked</text></g></g><g class="line" style="animation-delay:16.00s"><text class="m" x="64" y="56" font-size="20"><tspan fill="#F0F0EE">notes.md</tspan><tspan fill="#96969E">  →  </tspan><tspan fill="#34BE84" font-weight="600">PDF</tspan></text><g class="cover" style="animation-delay:16.00s"><rect x="60" y="14" width="1100" height="68" fill="#121214"/><rect class="caret" x="62" y="34" width="3" height="28" fill="#34BE84"/></g><g class="ok" style="animation-delay:16.00s"><text class="s sb" x="1166" y="55" font-size="18" fill="#F0F0EE" text-anchor="end">✓  3 A4 pages</text></g></g></g>
+</svg>

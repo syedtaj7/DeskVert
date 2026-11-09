@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="How it works: select files, tap Ctrl + Shift, pick a format, saved and verified">
+<title>How it works: select files, tap Ctrl + Shift, pick a format, saved and verified</title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',Inter,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Code','Cascadia Mono',Consolas,'SF Mono',Menlo,ui-monospace,monospace}
+.b{font-weight:700} .sb{font-weight:600}
+.fb{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion: reduce){
+*{animation:none!important}
+.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+[class*="ink"],.cover{opacity:0}
+}
+
+.ring{animation:ring 8s linear infinite}
+@keyframes ring{0%{stroke:#303036}2%,22%{stroke:#34BE84}25%,100%{stroke:#303036}}
+.lbl{animation:lbl 8s linear infinite}
+@keyframes lbl{0%{fill:#96969E}2%,22%{fill:#F0F0EE}25%,100%{fill:#96969E}}
+.flowline{animation:flowline 1.2s linear infinite}
+@keyframes flowline{to{stroke-dashoffset:-24}}
+.packet{animation:packet 8s cubic-bezier(.6,0,.4,1) infinite}
+@keyframes packet{0%{transform:translateX(0);opacity:0}3%{opacity:1}22%{transform:translateX(0)}27%{transform:translateX(300px)}47%{transform:translateX(300px)}52%{transform:translateX(600px)}72%{transform:translateX(600px)}77%{transform:translateX(900px)}97%{transform:translateX(900px);opacity:1}100%{transform:translateX(900px);opacity:0}}
+.sel{animation:sel 8s linear infinite}
+@keyframes sel{0%,4%{opacity:0}7%,24%{opacity:1}27%,100%{opacity:0}}
+.cursor{animation:cursor 8s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes cursor{0%{transform:translate(40px,40px);opacity:0}3%{opacity:1}6%,22%{transform:none;opacity:1}25%,100%{opacity:0}}
+.fk1{animation:fpress 8s infinite} .fk2{animation:fpress 8s .15s infinite}
+@keyframes fpress{0%,27%{transform:none}31%,34%{transform:translateY(5px)}37%,100%{transform:none}}
+.done{stroke-dasharray:44;animation:done 8s ease-out infinite}
+@keyframes done{0%,78%{stroke-dashoffset:44}86%,100%{stroke-dashoffset:0}}
+.badge{animation:badge 8s cubic-bezier(.2,1.6,.4,1) infinite}
+@keyframes badge{0%,76%{transform:scale(0)}82%,98%{transform:scale(1)}100%{transform:scale(0)}}
+
+.mwpop{animation:mwpop .7s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes mwpop{0%{opacity:0;transform:scale(.4)}100%{opacity:1;transform:scale(1)}}
+.mwhl{opacity:0;animation:mwhl 4.0s linear infinite}
+@keyframes mwhl{0%{opacity:0}1.5%{opacity:1}11.00%{opacity:1}12.50%{opacity:0}100%{opacity:0}}
+</style>
+<rect x="0.5" y="0.5" width="1199" height="299" rx="28" fill="#121214" stroke="rgba(255,255,255,0.08)"/>
+<line class="flowline" x1="226" y1="128" x2="374" y2="128" stroke="#303036" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+<line class="flowline" x1="526" y1="128" x2="674" y2="128" stroke="#303036" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+<line class="flowline" x1="826" y1="128" x2="974" y2="128" stroke="#303036" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+<circle class="ring" style="animation-delay:0.00s" cx="150" cy="128" r="68" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b lbl" style="animation-delay:0.00s" x="150" y="240" font-size="21" fill="#96969E" text-anchor="middle">Select files</text>
+<text class="s" x="150" y="266" font-size="14" fill="#96969E" text-anchor="middle">in Explorer or on the Desktop</text>
+<circle class="ring" style="animation-delay:2.00s" cx="450" cy="128" r="68" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b lbl" style="animation-delay:2.00s" x="450" y="240" font-size="21" fill="#96969E" text-anchor="middle">Tap Ctrl + Shift</text>
+<text class="s" x="450" y="266" font-size="14" fill="#96969E" text-anchor="middle">press both, let go</text>
+<circle class="ring" style="animation-delay:4.00s" cx="750" cy="128" r="68" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b lbl" style="animation-delay:4.00s" x="750" y="240" font-size="21" fill="#96969E" text-anchor="middle">Pick a format</text>
+<text class="s" x="750" y="266" font-size="14" fill="#96969E" text-anchor="middle">or a tool, like Compress</text>
+<circle class="ring" style="animation-delay:6.00s" cx="1050" cy="128" r="68" fill="#1C1C20" stroke="#303036" stroke-width="3"/>
+<text class="s b lbl" style="animation-delay:6.00s" x="1050" y="240" font-size="21" fill="#96969E" text-anchor="middle">Saved &amp; verified</text>
+<text class="s" x="1050" y="266" font-size="14" fill="#96969E" text-anchor="middle">next to the original</text>
+<rect class="sel" x="112" y="84" width="76" height="88" rx="10" fill="rgba(52,190,132,.18)" stroke="#34BE84" stroke-width="2"/>
+<path d="M130,96 h26 l14,14 v50 h-40 z" fill="#F4F4F1"/><path d="M156,96 v14 h14" fill="#D9D9D4"/><rect x="137" y="122" width="26" height="4" rx="2" fill="#C9C9C4"/><rect x="137" y="131" width="20" height="4" rx="2" fill="#C9C9C4"/><text class="s b" x="150" y="154" font-size="10" fill="#2A2A30" text-anchor="middle">JPG</text>
+<g transform="translate(164,140)"><g class="cursor"><path d="M0,0 L0,24 L6,18 L11,29 L15,27 L10,16 L18,16 Z" fill="#F0F0EE" stroke="#121214" stroke-width="1.5"/></g></g>
+<g transform="translate(394,108)"><g class="fk1"><rect y="4" width="50" height="38" rx="8" fill="#0B0B0D"/><rect width="50" height="38" rx="8" fill="#26262B" stroke="#303036"/><text class="s sb" x="25.0" y="25" font-size="14" fill="#F0F0EE" text-anchor="middle">Ctrl</text></g></g>
+<g transform="translate(450,108)"><g class="fk2"><rect y="4" width="58" height="38" rx="8" fill="#0B0B0D"/><rect width="58" height="38" rx="8" fill="#26262B" stroke="#303036"/><text class="s sb" x="29.0" y="25" font-size="14" fill="#F0F0EE" text-anchor="middle">Shift</text></g></g>
+<g class="fb mwpop" style="animation-delay:0.15s"><path d="M751.1,72.0 A56,56 0 0 1 788.8,87.6 L762.5,115.0 A18,18 0 0 0 750.3,110.0 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="764.2" y="99.8" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:1.40s"><path d="M751.1,72.0 A56,56 0 0 1 788.8,87.6 L762.5,115.0 A18,18 0 0 0 750.3,110.0 Z" fill="#34BE84"/><text class="s b" x="764.2" y="99.8" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.24s"><path d="M790.4,89.2 A56,56 0 0 1 806.0,126.9 L768.0,127.7 A18,18 0 0 0 763.0,115.5 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="784.2" y="119.8" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:1.90s"><path d="M790.4,89.2 A56,56 0 0 1 806.0,126.9 L768.0,127.7 A18,18 0 0 0 763.0,115.5 Z" fill="#34BE84"/><text class="s b" x="784.2" y="119.8" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.33s"><path d="M806.0,129.1 A56,56 0 0 1 790.4,166.8 L763.0,140.5 A18,18 0 0 0 768.0,128.3 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="784.2" y="148.2" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:2.40s"><path d="M806.0,129.1 A56,56 0 0 1 790.4,166.8 L763.0,140.5 A18,18 0 0 0 768.0,128.3 Z" fill="#34BE84"/><text class="s b" x="784.2" y="148.2" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.42s"><path d="M788.8,168.4 A56,56 0 0 1 751.1,184.0 L750.3,146.0 A18,18 0 0 0 762.5,141.0 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="764.2" y="168.2" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:2.90s"><path d="M788.8,168.4 A56,56 0 0 1 751.1,184.0 L750.3,146.0 A18,18 0 0 0 762.5,141.0 Z" fill="#34BE84"/><text class="s b" x="764.2" y="168.2" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.51s"><path d="M748.9,184.0 A56,56 0 0 1 711.2,168.4 L737.5,141.0 A18,18 0 0 0 749.7,146.0 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="735.8" y="168.2" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:3.40s"><path d="M748.9,184.0 A56,56 0 0 1 711.2,168.4 L737.5,141.0 A18,18 0 0 0 749.7,146.0 Z" fill="#34BE84"/><text class="s b" x="735.8" y="168.2" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.60s"><path d="M709.6,166.8 A56,56 0 0 1 694.0,129.1 L732.0,128.3 A18,18 0 0 0 737.0,140.5 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="715.8" y="148.2" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:3.90s"><path d="M709.6,166.8 A56,56 0 0 1 694.0,129.1 L732.0,128.3 A18,18 0 0 0 737.0,140.5 Z" fill="#34BE84"/><text class="s b" x="715.8" y="148.2" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.69s"><path d="M694.0,126.9 A56,56 0 0 1 709.6,89.2 L737.0,115.5 A18,18 0 0 0 732.0,127.7 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="715.8" y="119.8" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:4.40s"><path d="M694.0,126.9 A56,56 0 0 1 709.6,89.2 L737.0,115.5 A18,18 0 0 0 732.0,127.7 Z" fill="#34BE84"/><text class="s b" x="715.8" y="119.8" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><g class="fb mwpop" style="animation-delay:0.78s"><path d="M711.2,87.6 A56,56 0 0 1 748.9,72.0 L749.7,110.0 A18,18 0 0 0 737.5,115.0 Z" fill="#26262B" stroke="#121214" stroke-width="1"/><text class="s b" x="735.8" y="99.8" font-size="1" text-anchor="middle" fill="#F0F0EE"></text><g class="mwhl" style="animation-delay:4.90s"><path d="M711.2,87.6 A56,56 0 0 1 748.9,72.0 L749.7,110.0 A18,18 0 0 0 737.5,115.0 Z" fill="#34BE84"/><text class="s b" x="735.8" y="99.8" font-size="1" text-anchor="middle" fill="#121214"></text></g></g><circle cx="750" cy="128" r="12" fill="#1C1C20" stroke="#303036"/>
+<path d="M1030,96 h26 l14,14 v50 h-40 z" fill="#F4F4F1"/><path d="M1056,96 v14 h14" fill="#D9D9D4"/><text class="s b" x="1050" y="154" font-size="10" fill="#2A2A30" text-anchor="middle">WEBP</text>
+<g class="fb badge"><circle cx="1072" cy="98" r="17" fill="#34BE84"/></g><path class="done" d="M1064,98 l6,6 l10,-12" fill="none" stroke="#121214" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<g class="packet"><circle cx="226" cy="128" r="7" fill="#34BE84"/></g>
+</svg>

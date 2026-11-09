@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="28" viewBox="0 0 1200 28" role="img" aria-label="">
+<title></title>
+<style>
+.s{font-family:'Segoe UI Variable Display','Segoe UI',Inter,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif} .m{font-family:'Cascadia Code','Cascadia Mono',Consolas,'SF Mono',Menlo,ui-monospace,monospace}
+.b{font-weight:700} .sb{font-weight:600}
+.fb{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion: reduce){
+*{animation:none!important}
+.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+[class*="ink"],.cover{opacity:0}
+}
+
+.comet{animation:comet 3.2s cubic-bezier(.5,0,.5,1) infinite}
+@keyframes comet{from{transform:translateX(-220px)}to{transform:translateX(1220px)}}
+</style>
+<defs><linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="#34BE84" stop-opacity="0"/><stop offset="1" stop-color="#34BE84"/></linearGradient></defs><rect x="0" y="13" width="1200" height="2" rx="1" fill="#303036"/><g class="comet"><rect x="0" y="12" width="200" height="4" rx="2" fill="url(#cg)"/><circle cx="200" cy="14" r="5" fill="#34BE84"/></g>
+</svg>

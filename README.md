@@ -1,85 +1,169 @@
 <div align="center">
 
-<img src="assets/tapshift.png" width="96" alt="Tapshift logo">
+<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="docs/readme/hero.svg" width="100%" alt="Tapshift: select a file, tap Ctrl + Shift, pick a format"></a>
 
-# Tapshift
+<br>
 
-**Convert files in a blink. Select a file, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format.**
-The new file appears right next to the original.
+<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows-34BE84?style=for-the-badge&logo=windows11&logoColor=121214&labelColor=34BE84" height="44" alt="Download for Windows"></a>
 
-[**Download for Windows**](../../releases/latest) · Free and open source (AGPL-3.0) · Windows 10 / 11
+<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="https://img.shields.io/github/v/release/syedtaj7/TapShift?style=flat-square&label=version&color=34BE84&labelColor=1C1C20" alt="Latest version"></a>
+<a href="https://github.com/syedtaj7/TapShift/releases"><img src="https://img.shields.io/github/downloads/syedtaj7/TapShift/total?style=flat-square&label=downloads&color=34BE84&labelColor=1C1C20" alt="Downloads"></a>
+<img src="https://img.shields.io/badge/Windows-10_%7C_11-34BE84?style=flat-square&labelColor=1C1C20" alt="Windows 10 and 11">
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-34BE84?style=flat-square&labelColor=1C1C20" alt="AGPL-3.0"></a>
+<a href="https://github.com/syedtaj7/TapShift/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/syedtaj7/TapShift/release.yml?style=flat-square&label=build&labelColor=1C1C20" alt="Build"></a>
 
-<img src="docs/images/how-it-works.png" width="760" alt="How Tapshift works">
+<br><br>
+
+<img src="docs/readme/ticker.svg" width="100%" alt="Examples of what Tapshift does">
+
+**No app to open. No upload. No account.**<br>
+Tapshift waits quietly in your tray. Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick what you want,<br>
+and the new file appears right next to the original, checked and ready.
 
 </div>
 
-## Why Tapshift
+<img src="docs/readme/divider.svg" width="100%" alt="">
 
-- **No app to open.** It waits in the system tray. Select files in File Explorer or on the Desktop and tap the shortcut.
-- **The new file lands next to the original.** `photo.heic` becomes `photo.webp` in the same folder, and nothing is ever overwritten.
-- **Every result is double-checked.** Each converted file is opened again and compared with the original: pixels, pages, words, every spreadsheet cell. If anything is off, it's thrown away and you're told why.
-- **Private.** Everything happens on your computer. No uploads, no account.
-- **Light.** It uses no CPU while idle. Conversions run under a hard CPU limit that Windows enforces (15%, 25% or 50%, your choice), so your laptop stays cool and responsive.
+## ⚡ How it works
 
-<div align="center">
-<img src="docs/images/wheel-and-progress.png" width="620" alt="The format wheel and the progress card">
-</div>
+<img src="docs/readme/flow.svg" width="100%" alt="Select files, tap Ctrl + Shift, pick a format, saved and verified">
 
-## What it converts
+1. **Select** one file or many, in File Explorer or on the Desktop.
+2. **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd>: press both, let go. Normal shortcuts like <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> keep working.
+3. **Pick** a format or a tool on the wheel. Right-click a slice for its options, or just start typing (`pdf`, `zip`…).
+4. **Done.** `photo.heic` becomes `photo.webp` in the same folder. Nothing is ever overwritten.
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 🧰 Everyday tools
+
+<img src="docs/readme/tools.svg" width="100%" alt="Compress images, PDF toolkit, OCR, zip and extract, data files, Markdown">
+
+| Tool | What you get |
+|---|---|
+| 🗜️ **Compress images** | Pick **under 20 KB, 50 KB, 100 KB, 200 KB, 500 KB or 1 MB**, or drag a quality slider. Every choice shows the quality % and the new size *before* you click. The limit is always respected. |
+| 📄 **PDF toolkit** | **Compress** (Light, Balanced, Strong) · **Lock / Unlock** with an AES-256 password · keep or remove **Pages** (`1-3, 7, 10-end`) · **Rotate** · page **Numbers** · **Watermark** · **Merge** · **Split** |
+| 🔍 **Read text (OCR)** | Text from photos and scanned PDFs, or a **searchable PDF** that looks exactly like the scan. Uses the engine built into Windows, so nothing extra is downloaded. Sideways scans are turned upright automatically. |
+| 📦 **Zip & extract** | ZIP the selected files · extract **ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO** · repack any archive as a ZIP |
+| 📊 **Data files** | CSV / TSV / JSON → **Excel**, JSON or CSV · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
+| 📝 **Markdown** | → **PDF** (A4, with headings, tables, code and images) · **HTML** · **Word** |
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 🔁 Every format
+
+<img src="docs/readme/formats.svg" width="100%" alt="Supported formats">
+
+<details>
+<summary><b>See what converts to what</b></summary>
+<br>
 
 | You select | You can make |
 |---|---|
-| **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | **Compress** to a size limit (under 20 KB, 50 KB, 100 KB … 1 MB) or a quality, with the quality and size shown before you pick; JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, several images in one PDF; **Read text** (OCR) |
-| **PDF** | **Compress**, **Lock / Unlock** (AES-256 password), keep or remove **Pages**, **Rotate**, page **Numbers**, **Watermark**, merge into one, split into single pages, PNG or JPG pages, text, **Searchable PDF** from scans (OCR) |
+| **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, several images in one PDF · Compress · Read text |
+| **PDF** | PNG or JPG pages, text, Split, Merge · Compress · Lock / Unlock · Pages · Rotate · Numbers · Watermark · Read text · Searchable PDF |
 | **Word:** DOCX, DOC, ODT, RTF, TXT, HTML | PDF, DOCX, ODT, RTF, TXT, DOC |
 | **Excel:** XLSX, XLS, ODS | PDF, XLSX, CSV (first sheet), ODS, XLS |
 | **PowerPoint:** PPTX, PPT, ODP | PDF, PPTX, ODP, PPT, PNG or JPG slides |
 | **Data:** CSV, TSV, JSON | XLSX, JSON, CSV, tidy or minified JSON |
-| **Markdown** | PDF, HTML, DOCX (with Word) |
+| **Markdown** | PDF, HTML, DOCX |
 | **Archives:** ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO | Extract into a new folder, or repack as ZIP |
-| **Any files** | ZIP the selected files into one archive |
+| **Any files** | ZIP the selection |
 
-Every tool saves a new file next to the original (for example `photo (compressed).jpg`) and checks it before keeping it. The original is never changed. Text recognition uses the engine built into Windows, so nothing extra is downloaded.
+- **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office opens hidden, read-only and with macros off, and your Office settings are never changed.
+- **Photos** keep their rotation, camera details (EXIF), GPS and color profile. Lossless formats are checked pixel for pixel.
+- **Audio and video** aren't supported, on purpose: Tapshift stays small and light.
 
-- **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office is opened hidden, read-only and with macros disabled, and it's closed afterwards. Your Office settings are never changed.
-- **Images:**
-  - The camera's rotation is applied.
-  - Camera details (EXIF), GPS and the color profile are kept.
-  - Lossless formats are verified pixel for pixel.
+</details>
 
-## Install
+<img src="docs/readme/divider.svg" width="100%" alt="">
 
-1. Download **`Tapshift-Setup-x.y.z.exe`** from the [latest release](../../releases/latest). No admin rights are needed.
-   Prefer not to install? Download **`Tapshift-x.y.z-portable.zip`**, unzip it anywhere and run `Tapshift.exe`.
-2. A short welcome tour shows you around and lets you choose your settings.
-3. Select a file, tap **Ctrl + Shift**, and pick a format.
+## 🛡️ Safe by design
 
-> Windows SmartScreen may warn about a new, unsigned app. Choose **More info → Run anyway**.
+<img src="docs/readme/safety.svg" width="100%" alt="Built in a private folder, verified, then saved next to the original">
 
-<div align="center">
-<img src="docs/images/welcome.png" width="420" alt="Welcome tour"> <img src="docs/images/setup.png" width="420" alt="Setup">
-</div>
+- **Your original is never touched.** Every result is a new file, such as `report (compressed).pdf`, and nothing is overwritten.
+- **Every result is checked before you see it.** The new file is opened again and compared with the original: pixels, pages, words, every spreadsheet cell. If anything is off, it's thrown away and you're told why, in plain words.
+- **Private.** Everything happens on your PC. No uploads, no account, no tracking.
+- **Crash-proof.** Conversions run in separate worker processes, so a damaged file can't take Tapshift down.
 
-## Using it
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 🍃 Light on your laptop
+
+<img src="docs/readme/cpu.svg" width="100%" alt="CPU use stays under a hard cap">
+
+Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion runs under a **hard CPU limit that Windows itself enforces** (15%, 25% or 50%, your choice), at the lowest priority and in efficiency mode, so your laptop stays cool and quiet while you keep working.
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 📸 See it
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/wheel-and-progress.png" alt="The format wheel and the progress card"><br><sub><b>The wheel</b> and the progress card in the corner</sub></td>
+<td width="50%"><img src="docs/images/welcome.png" alt="Welcome tour"><br><sub><b>Welcome tour</b>: a minute to get going</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/guide.png" alt="How-to-use guide"><br><sub><b>Built-in guide</b> from the tray</sub></td>
+<td><img src="docs/images/settings.png" alt="Settings"><br><sub><b>Settings</b>: shortcut, quality, CPU limit, look</sub></td>
+</tr>
+</table>
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 📥 Install
+
+1. Download **`Tapshift-Setup-x.y.z.exe`** from the [latest release](https://github.com/syedtaj7/TapShift/releases/latest). No admin rights needed.<br>
+   Prefer not to install? Get **`Tapshift-x.y.z-portable.zip`**, unzip it anywhere and run `Tapshift.exe`.
+2. A short welcome tour shows you around.
+3. Select a file, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format. That's it.
+
+> [!NOTE]
+> **"Windows protected your PC"?** Windows SmartScreen shows this for new apps that aren't widely downloaded yet. Click **More info → Run anyway**. Tapshift is open source: every release is built from this repository by GitHub Actions, and you can read every line.
+
+### Uninstall
+
+Any of these works, and each removes everything (app, settings, logs):
+- **Start menu → Uninstall Tapshift**
+- **Tray icon → Uninstall Tapshift…**
+- **Tapshift Settings → About → Uninstall**
+- **Windows Settings → Apps → Installed apps → Tapshift → Uninstall**
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## ⌨️ Using it
 
 | Action | How |
 |---|---|
-| Convert | Select files, tap **Ctrl + Shift**, click a format |
-| Change quality or other options | Right-click a format on the wheel |
-| See every format | Click **More**, or just start typing (e.g. `pdf`) |
-| Close the wheel | Esc, click elsewhere, or tap the shortcut again |
-| Convert copied files | If nothing is selected, files you copied with Ctrl + C are used |
-| Guide, settings, recent conversions | Right-click the Tapshift icon in the tray |
+| Convert | Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, click a format |
+| Options (quality, pages, password…) | Right-click a format on the wheel; tools ask when you click them |
+| Every format | Click **More**, or just start typing |
+| Close the wheel | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
+| Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
+| Guide, settings, recent files | Right-click the Tapshift icon in the tray |
 
-**About the tap:**
-- It only counts when you press Ctrl and Shift alone and let go. Ctrl+Shift+T, Ctrl+Shift+click and other shortcuts keep working as usual.
-- If Ctrl + Shift switches your keyboard layout, choose **Ctrl + Shift + Space** in Settings.
+<details>
+<summary><b>FAQ</b></summary>
+<br>
 
-<div align="center">
-<img src="docs/images/guide.png" width="420" alt="How-to-use guide"> <img src="docs/images/settings.png" width="420" alt="Settings">
-</div>
+**Ctrl + Shift switches my keyboard layout.** Choose <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> in Settings → Shortcut &amp; look.
 
-## Build from source
+**Do I need Microsoft Office?** Only for Word, Excel and PowerPoint files (and Markdown → Word). Everything else works without it.
+
+**Which languages can OCR read?** The languages installed in Windows (Settings → Time & language → Language). Add a language there to read it.
+
+**Can it open password-protected files?** PDFs: yes, use **Unlock** (you need the password). Office files: remove the password in Office first.
+
+**Is anything sent to the internet?** No. Conversions happen on your PC. The only link is "Check for updates", which opens the releases page.
+
+**Something failed. Where's the log?** Tray menu → Settings → About → Log folder. Please attach `app.log` when [reporting an issue](https://github.com/syedtaj7/TapShift/issues).
+
+</details>
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 🛠️ Build from source
 
 ```powershell
 python -m venv .venv
@@ -89,20 +173,19 @@ python -m venv .venv
 powershell -ExecutionPolicy Bypass -File tools\build_release.ps1 # installer + portable zip
 ```
 
-Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php). Pushing a tag like `v1.0.0` builds the release automatically with GitHub Actions.
+Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php). Pushing a tag like `v1.2.0` builds and publishes the release with GitHub Actions. `Tapshift.exe --selftest <folder>` runs real conversions in a built copy.
 
-**How it's organized:**
-- `app/` is the tray app: the shortcut, the wheel, the windows.
-- `app/engines/` holds the converters, each with its own safety checks.
-- `app/ui/` holds the animated interface.
+| Folder | What's inside |
+|---|---|
+| `app/` | The tray app: shortcut, wheel, windows |
+| `app/engines/` | The converters and tools, each with its own checks |
+| `app/ui/` | The animated interface |
+| `docs/readme/` | This page's animations (`python docs/readme/make_art.py` regenerates them) |
 
-Conversions run in separate worker processes, so a damaged file can't take the app down.
+## 📜 License
 
-## License
+Tapshift is free software under the [GNU Affero General Public License v3.0](LICENSE). Use it, share it, change it; if you distribute a modified version, share its source under the same license. It comes with no warranty. Bundled open-source components keep their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-Tapshift is free software under the [GNU Affero General Public License v3.0](LICENSE). You can use it,
-share it and change it; if you distribute a modified version, you must share its source code under the same
-license. It comes with no warranty.
+<br>
 
-It bundles open-source components (Qt, PyMuPDF, Pillow, pillow-heif and others) under their own licenses;
-see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+<img src="docs/readme/footer.svg" width="100%" alt="Tap. Pick. Done.">
