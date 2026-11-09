@@ -708,10 +708,23 @@ def clean_info(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
                  "; also scripts and thumbnails. Pages unchanged.")
 
 
-def two_up(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+# pages per sheet -> (columns, rows, landscape sheet)
+NUP_GRID = {2: (2, 1, True), 4: (2, 2, False), 6: (2, 3, False), 9: (3, 3, False)}
+
+
+def n_up(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """2, 4, 6 or 9 pages on each A4 sheet, in reading order. The pages stay vector,
+    so text stays sharp and searchable."""
     import pymupdf
     from collections import Counter
 
+    try:
+        per = int(str(opts.get("per", "2")).split()[0])
+    except ValueError:
+        per = 2
+    if per not in NUP_GRID:
+        raise ConversionError("Choose 2, 4, 6 or 9 pages per sheet.")
+    cols, rows, landscape = NUP_GRID[per]
     with _open(src) as d:
         n = d.page_count
         words = Counter(w for t in _page_texts(d) for w in _words(t))
@@ -719,20 +732,29 @@ def two_up(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
         # the original file isn't saved) so their values show on the sheets too.
         d.bake(annots=True, widgets=True)
         result = pymupdf.open()
-        W, H, m = 842, 595, 18  # A4 landscape, small margin
-        for i in range(0, n, 2):
+        W, H = (842, 595) if landscape else (595, 842)
+        m, g = 18, 8  # margin, gap between pages
+        cw, ch = (W - 2 * m - (cols - 1) * g) / cols, (H - 2 * m - (rows - 1) * g) / rows
+        for i in range(0, n, per):
             sheet = result.new_page(width=W, height=H)
-            for k, pno in enumerate(range(i, min(n, i + 2))):
-                sheet.show_pdf_page(pymupdf.Rect(m + k * W / 2, m, (k + 1) * W / 2 - m / 2, H - m), d, pno)
+            for k, pno in enumerate(range(i, min(n, i + per))):
+                r, c = divmod(k, cols)
+                x, y = m + c * (cw + g), m + r * (ch + g)
+                sheet.show_pdf_page(pymupdf.Rect(x, y, x + cw, y + ch), d, pno)
         result.save(long_path(out), garbage=3, deflate=True)
         result.close()
+    sheets = (n + per - 1) // per
     with pymupdf.open(long_path(out)) as d:
-        if d.page_count != (n + 1) // 2:
+        if d.page_count != sheets:
             raise VerificationError("wrong number of sheets")
         got = Counter(w for p in d for w in _words(p.get_text()))
         if any(got[w] < c for w, c in words.items()):
             raise VerificationError("some text is missing")
-    notes.append(f"Checked: {n} pages on {(n + 1) // 2} A4 sheets, two side by side.")
+    notes.append(f"Checked: {n} pages on {sheets} A4 sheet{'s' if sheets != 1 else ''}, {per} on each.")
+
+
+def two_up(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    n_up(src, out, {**opts, "per": opts.get("per", "2")}, notes)
 
 
 TOOLS.update({
@@ -745,7 +767,7 @@ TOOLS.update({
     "gray": grayscale,
     "flatten": flatten,
     "clean": clean_info,
-    "nup": two_up,
+    "nup": n_up,
 })
 
 

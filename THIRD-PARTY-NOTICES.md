@@ -25,6 +25,7 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | lxml / libxml2 | XML for pikepdf | BSD-3-Clause / MIT | https://github.com/lxml/lxml |
 | pywin32 | Windows and Office integration | PSF License | https://github.com/mhammond/pywin32 |
 | openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
+| PyYAML / libyaml | Reading and writing YAML | MIT | https://github.com/yaml/pyyaml |
 | pywinrt (winrt-runtime, winrt-Windows.*) | Windows text recognition (OCR) | MIT | https://github.com/pywinrt/pywinrt |
 | PyInstaller bootloader | Starting Tapshift.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
 

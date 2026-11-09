@@ -331,6 +331,10 @@ def kind_of(path: Path) -> str | None:
         return "data"
     if e in toolbox.MARKDOWN_EXTS:
         return "markdown"
+    if e in toolbox.SUBTITLE_EXTS:
+        return "subtitle"
+    if e in toolbox.EBOOK_EXTS:
+        return "ebook"
     return "document" if doc_format(path) else None
 
 
@@ -343,7 +347,7 @@ def pick_group(paths: list[Path]) -> tuple[str | None, list[Path], list[Path]]:
             groups.setdefault(k, []).append(p)
     if not groups:
         return None, [], list(paths)
-    order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4}
+    order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4, "subtitle": 5, "ebook": 6}
     kind = max(groups, key=lambda k: (len(groups[k]), -order[k]))
     chosen = groups[kind]
     return kind, chosen, [p for p in paths if p not in chosen]
@@ -359,7 +363,8 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
     if kind == "image":
         fmts = {p: image_format(p) for p in files}
         convs = _image_offers(files, s)
-        offers = toolbox.image_tools(files, fmts) + convs + toolbox.ocr_offers(files, fmts, pdf=False)
+        offers = (toolbox.image_tools(files, fmts) + convs + toolbox.image_edits(files, fmts)
+                  + toolbox.ocr_offers(files, fmts, pdf=False))
     elif kind == "document":
         groups: dict[str, list[Path]] = {}
         for p in files:
@@ -383,17 +388,20 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         offers = toolbox.markdown_offers(files, office_installed("word"))
     elif kind == "archive":
         offers = toolbox.archive_offers(files)
+    elif kind == "subtitle":
+        offers = toolbox.subtitle_offers(files)
+    elif kind == "ebook":
+        offers = toolbox.ebook_offers(files)
     if paths and kind != "archive":
         offers.append(toolbox.zip_offer(list(paths)))  # any files can be zipped
     return offers, others
 
 
 _COMING = {
-    "e-book": {".epub", ".mobi", ".azw", ".azw3", ".fb2"},
+    "Kindle book": {".azw", ".azw3", ".kfx"},
     "archive": {".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2", ".xz"},
     "font": {".ttf", ".otf", ".woff", ".woff2"},
-    "subtitle file": {".srt", ".vtt", ".ass", ".ssa"},
-    "data file": {".md", ".json", ".xml", ".yaml", ".yml", ".toml"},
+    "subtitle file": {".ass", ".ssa"},
 }
 _APPLE = {".pages": "Pages", ".numbers": "Numbers", ".key": "Keynote"}
 _NEVER = {

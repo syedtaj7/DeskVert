@@ -16,7 +16,12 @@ from .catalog import Offer, Option, Target
 
 ARCHIVE_EXTS = {".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz", ".tbz2", ".xz", ".txz", ".zst", ".cab",
                 ".iso"}
-DATA_EXTS = {".csv": "csv", ".tsv": "tsv", ".json": "json"}
+DATA_EXTS = {".csv": "csv", ".tsv": "tsv", ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".toml": "toml",
+             ".xml": "xml", ".jsonl": "jsonl", ".ndjson": "jsonl"}
+SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt"}
+EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps"}
+# Picture edits work on these (other formats: convert first).
+EDIT_IMAGE_FMTS = {"jpg", "png", "webp", "bmp", "tiff"}
 MARKDOWN_EXTS = {".md", ".markdown", ".mdown", ".mkd"}
 # Raster images Windows OCR can read (after Tapshift decodes them).
 OCR_IMAGE_FMTS = {"jpg", "png", "webp", "heic", "avif", "gif", "bmp", "tiff", "tga", "psd", "raw"}
@@ -119,7 +124,23 @@ PDF_PICTURES = Target("pdf.pictures", "Pictures", "", folder="pictures")
 PDF_GRAY = Target("pdf.gray", "Grayscale", ".pdf", suffix=" (grayscale)")
 PDF_FLATTEN = Target("pdf.flatten", "Flatten", ".pdf", suffix=" (flattened)")
 PDF_CLEAN = Target("pdf.clean", "Clean info", ".pdf", suffix=" (clean)")
-PDF_NUP = Target("pdf.nup", "2 per page", ".pdf", suffix=" (2 per page)")
+PDF_NUP = Target("pdf.nup", "Per sheet", ".pdf", suffix=" (per sheet)", ask=True)
+
+IMG_ROTL = Target("imgedit.rotl", "Turn left", "*", suffix=" (rotated)")
+IMG_ROTR = Target("imgedit.rotr", "Turn right", "*", suffix=" (rotated)")
+IMG_ROT180 = Target("imgedit.rot180", "Upside down", "*", suffix=" (rotated)")
+IMG_FLIP = Target("imgedit.flip", "Mirror", "*", suffix=" (mirrored)")
+IMG_GRAY = Target("imgedit.gray", "Grayscale", "*", suffix=" (grayscale)")
+IMG_RESIZE = Target("imgedit.resize", "Resize", "*", suffix=" (resized)", ask=True)
+IMG_CLEAN = Target("imgedit.clean", "Clean info", "*", suffix=" (no info)")
+IMG_STITCH = Target("imgedit.stitch", "Long image", "*", suffix=" (stitched)", combine=True)
+
+SUB_VTT = Target("subtitle.vtt", "WebVTT", ".vtt")
+SUB_SRT = Target("subtitle.srt", "SRT", ".srt")
+EBOOK_PDF = Target("ebook.pdf", "PDF", ".pdf")
+EBOOK_TXT = Target("ebook.txt", "TXT", ".txt")
+DATA_YAML = Target("data.yaml", "YAML", ".yaml")
+DATA_JSONL = Target("data.jsonl", "JSON Lines", ".jsonl")
 MIXED_PDF = Target("mixed.pdf", "1 PDF", ".pdf", combine=True)
 
 OCR_TXT = Target("ocr.txt", "Read text", ".txt", suffix=" (text)")
@@ -170,6 +191,51 @@ def image_tools(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
     ], [
         Option("format", "Save as", "choice", "JPG", choices=("JPG", "WEBP", "Same as original")),
     ], srcs)]
+
+
+def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
+    """Rotate, mirror, grayscale, resize, remove hidden info; several pictures can be stitched."""
+    srcs = [p for p in images if fmts.get(p) in EDIT_IMAGE_FMTS]
+    if not srcs:
+        return []
+    offers = [
+        _offer(IMG_ROTL, "90° left", ["Turned the way you see it, saved in the same format."], [], srcs),
+        _offer(IMG_ROTR, "90° right", ["Turned the way you see it, saved in the same format."], [], srcs),
+        _offer(IMG_ROT180, "180°", ["Turned the way you see it, saved in the same format."], [], srcs),
+        _offer(IMG_FLIP, "left to right", ["A mirror image, saved in the same format."], [], srcs),
+        _offer(IMG_GRAY, "black and white", ["Transparent areas stay transparent."], [], srcs),
+        _offer(IMG_RESIZE, "smaller", ["Makes a smaller copy; the original isn't changed."], [
+            Option("size", "New size", "choice", "1920 px", choices=("Half size", "1920 px", "1280 px", "1080 px")),
+        ], srcs),
+        _offer(IMG_CLEAN, "location & camera", [
+            "Removes location, camera, date and other hidden details before you share a photo. JPG and PNG "
+            "pictures aren't re-encoded: the picture stays exactly the same."], [], srcs),
+    ]
+    if len(srcs) >= 2:
+        offers.append(_offer(IMG_STITCH, f"{len(srcs)} in one", [
+            "One under the other, in the order selected (like a long screenshot)."], [], srcs))
+    return offers
+
+
+def subtitle_offers(files: list[Path]) -> list[Offer]:
+    kinds = {p: SUBTITLE_EXTS[p.suffix.lower()] for p in files}
+    offers = []
+    srt = [p for p in files if kinds[p] == "srt"]
+    vtt = [p for p in files if kinds[p] == "vtt"]
+    if srt:
+        offers.append(_offer(SUB_VTT, "for web players", ["Every timing kept to the millisecond."], [], srt))
+    if vtt:
+        offers.append(_offer(SUB_SRT, "for TVs and VLC", ["Every timing kept. Web-only styling is left out."], [],
+                             vtt))
+    return offers
+
+
+def ebook_offers(files: list[Path]) -> list[Offer]:
+    return [
+        _offer(EBOOK_PDF, "A5 pages", ["Laid out on A5 pages; pictures included. Locked (DRM) books can't be "
+                                       "opened."], [], files),
+        _offer(EBOOK_TXT, "just the words", ["All the text, without pictures or layout."], [], files),
+    ]
 
 
 def ocr_offers(files: list[Path], fmts: dict[Path, str] | None, pdf: bool) -> list[Offer]:
@@ -254,8 +320,10 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
                    validate="pages"),
         ], unlocked))
         offers.append(_offer(PDF_REVERSE, "last page first", [], [], unlocked))
-        offers.append(_offer(PDF_NUP, "A4 sheets", ["Two pages side by side on each landscape A4 sheet."], [],
-                             unlocked))
+        offers.append(_offer(PDF_NUP, "pages on a sheet", [
+            "Puts several pages on each A4 sheet, in reading order. The pages stay sharp (vector)."], [
+            Option("per", "Pages per sheet", "choice", "2", choices=("2", "4", "6", "9")),
+        ], unlocked))
         offers.append(_offer(PDF_FLATTEN, "lock in form fields", [
             "Form fields and comments become part of the page: they look the same but can't be edited."], [],
             unlocked))
@@ -295,7 +363,21 @@ def data_offers(files: list[Path], excel_installed: bool) -> list[Offer]:
     kinds = {p: DATA_EXTS[p.suffix.lower()] for p in files}
     tables = [p for p in files if kinds[p] in ("csv", "tsv")]
     jsons = [p for p in files if kinds[p] == "json"]
+    other = [p for p in files if kinds[p] in ("yaml", "toml", "xml", "jsonl")]
     offers: list[Offer] = []
+    if other:
+        offers.append(_offer(DATA_JSON, "same data", ["Every value is kept; dates become text like 2026-11-09."],
+                             [], other))
+        not_yaml = [p for p in other if kinds[p] != "yaml"]
+        if not_yaml:
+            offers.append(_offer(DATA_YAML, "easy to read", ["Every value is kept."], [], not_yaml))
+        offers.append(_offer(DATA_CSV, "table", ["Works with a list of records."], [], other))
+        offers.append(_offer(DATA_XLSX, "Excel workbook", ["Works with a list of records."], [], other))
+    if jsons:
+        offers.append(_offer(DATA_YAML, "easy to read", ["Every value is kept, numbers exactly as written."], [],
+                             jsons))
+        offers.append(_offer(DATA_JSONL, "one record per line", ["Works with a list (like a list of records)."],
+                             [], jsons))
     if tables:
         offers.append(_offer(DATA_XLSX, "Excel workbook", [
             "Numbers become real numbers; values like 007 or 1.50 stay exactly as written."], [], tables))
@@ -334,6 +416,8 @@ def output_ext(t: Target, source: Path, options: dict) -> str:
     """The extension for targets whose format is decided per file ("*")."""
     if t.ext != "*":
         return t.ext
+    if t.key == "imgedit.stitch":  # JPG when the pictures are photos, PNG otherwise
+        return ".jpg" if source.suffix.lower() in (".jpg", ".jpeg") else ".png"
     if t.key == "compress.image":
         fmt = str(options.get("format", "JPG"))
         if fmt == "WEBP":

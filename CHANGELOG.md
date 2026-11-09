@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.5.0
+
+### A snappier web
+- **No more waiting.** The picker now follows where your pointer is heading: moving towards an open
+  branch's choices keeps them open (even across other options), and moving anywhere else switches
+  straight away. The 0.35 s pause and the 0.8 s linger are gone.
+
+### New tools
+- **Picture edits** (pictures → Edit): turn left, right or upside down, mirror, grayscale, resize (half
+  size, or 1920 / 1280 / 1080 px), **Clean info** (removes location, camera and date before sharing;
+  JPG and PNG are cleaned without re-encoding), and **Long image** (several pictures stitched one under
+  the other). Camera details and color profiles are kept for the other edits.
+- **PDF pages per sheet:** 2, 4, 6 or 9 pages on each A4 sheet (replaces "2 per page").
+- **E-books:** EPUB, MOBI, FB2, CBZ comics and XPS → PDF (A5 pages) or TXT, with nothing extra to install.
+  Locked (DRM) books can't be converted.
+- **Subtitles:** SRT → WebVTT and WebVTT → SRT, timings kept to the millisecond.
+- **More data formats:** YAML, TOML, XML and JSON Lines → JSON, YAML, CSV or Excel; JSON → YAML or
+  JSON Lines. Numbers keep their exact digits (2.50 stays 2.50).
+
 ## 1.4.1
 
 ### Fixes

@@ -7,6 +7,9 @@
 - csv:    JSON (a list of records, or a list of lists) -> CSV (UTF-8, opens in Excel)
 - tidy / minify: JSON re-flowed. Every value is copied character for character,
           so numbers like 1.10 or 0.1000000000000000055 keep their exact text.
+- YAML, TOML, XML and JSON Lines: -> JSON (and from there to CSV / Excel);
+  JSON / TOML / XML / JSON Lines -> YAML; a JSON list -> JSON Lines.
+  XML becomes {"tag": {"@attribute": ..., "#text": ..., "child": ...}}.
 
 Every output is read back and compared with the source.
 """
@@ -68,6 +71,171 @@ def _load_json(src: Path, notes: list[str]):
         return text, json.loads(text, parse_float=Decimal)
     except json.JSONDecodeError as e:
         raise ConversionError(f"This isn't valid JSON (line {e.lineno}, column {e.colno}: {e.msg}).") from e
+
+
+STRUCTURED = {".yaml", ".yml", ".toml", ".xml", ".jsonl", ".ndjson"}
+
+
+def _plain_data(v):
+    """Values every format can hold: dates become ISO text, Decimals stay exact."""
+    import datetime
+
+    if isinstance(v, dict):
+        return {str(k): _plain_data(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_plain_data(x) for x in v]
+    if isinstance(v, (datetime.date, datetime.time, datetime.datetime)):
+        return v.isoformat()
+    if isinstance(v, float) and (v != v or v in (float("inf"), float("-inf"))):
+        return str(v)  # JSON has no NaN or infinity
+    return v
+
+
+def _xml_value(el):
+    local = el.tag.rsplit("}", 1)[-1] if isinstance(el.tag, str) else str(el.tag)
+    d: dict = {}
+    for k, v in el.attrib.items():
+        d["@" + k.rsplit("}", 1)[-1]] = v
+    for child in el:
+        if not isinstance(child.tag, str):
+            continue  # comments, processing instructions
+        name, value = _xml_value(child)
+        if name in d:
+            if not isinstance(d[name], list) or not getattr(d[name], "_many", False):
+                d[name] = _Many([d[name]])
+            d[name].append(value)
+        else:
+            d[name] = value
+    text = (el.text or "").strip()
+    if not d:
+        return local, text if text else None
+    if text:
+        d["#text"] = text
+    return local, {k: (list(v) if isinstance(v, _Many) else v) for k, v in d.items()}
+
+
+class _Many(list):
+    _many = True
+
+
+def _load_structured(src: Path, notes: list[str]):
+    """(source text, data) for JSON and the other structured formats."""
+    ext = src.suffix.lower()
+    if ext == ".json":
+        return _load_json(src, notes)
+    text = _read_text(src, notes)
+    try:
+        if ext in (".yaml", ".yml"):
+            import yaml
+
+            docs = list(yaml.safe_load_all(text))
+            data = docs[0] if len(docs) == 1 else docs
+            if len(docs) > 1:
+                notes.append(f"The file holds {len(docs)} YAML documents; they became a list.")
+        elif ext == ".toml":
+            import tomllib
+
+            data = tomllib.loads(text)
+        elif ext == ".xml":
+            import xml.etree.ElementTree as ET
+
+            root = ET.fromstring(text.encode("utf-8"))
+            name, value = _xml_value(root)
+            data = {name: value}
+        else:  # JSON Lines: one JSON value per line
+            data = [json.loads(line, parse_float=Decimal) for line in text.splitlines() if line.strip()]
+    except ConversionError:
+        raise
+    except Exception as e:  # noqa: BLE001 - parser errors differ per format
+        raise ConversionError(f"This file couldn't be read as {ext[1:].upper()} ({e}).") from e
+    if data is None:
+        raise ConversionError("The file is empty.")
+    return text, _plain_data(data)
+
+
+def _dumps(data, indent: int | None = 2) -> str:
+    """JSON text where exact numbers (Decimal) are written with their original digits, e.g. 2.50."""
+    exact: list[str] = []
+
+    def mark(v):
+        if isinstance(v, dict):
+            return {k: mark(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [mark(x) for x in v]
+        if isinstance(v, Decimal):
+            exact.append(str(v))
+            return f"\x00{len(exact) - 1}\x00"
+        return v
+
+    text = json.dumps(mark(data), ensure_ascii=False, indent=indent, default=str)
+    return re.sub(r'"\\u0000(\d+)\\u0000"', lambda m: exact[int(m.group(1))], text)
+
+
+def _json_text(data) -> str:
+    return _dumps(data) + "\n"
+
+
+def _norm(v):
+    """For comparing: numbers by value (1.10 == 1.1), everything else as is."""
+    if isinstance(v, dict):
+        return {str(k): _norm(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_norm(x) for x in v]
+    if isinstance(v, bool) or v is None or isinstance(v, str):
+        return v
+    if isinstance(v, (int, float, Decimal)):
+        return Decimal(str(v))
+    return str(v)
+
+
+def _same(a, b) -> bool:
+    return _norm(a) == _norm(b)
+
+
+def structured_to_json(src: Path, out: Path, notes: list[str]) -> None:
+    _text, data = _load_structured(src, notes)
+    Path(long_path(out)).write_text(_json_text(data), encoding="utf-8", newline="\n")
+    back = json.loads(Path(long_path(out)).read_text(encoding="utf-8"), parse_float=Decimal)
+    if not _same(back, data):
+        raise VerificationError("the JSON doesn't match the file")
+    notes.append("Checked: every value is in the JSON.")
+
+
+def _yaml_dump(data) -> str:
+    import yaml
+
+    class Dumper(yaml.SafeDumper):
+        pass
+
+    Dumper.add_representer(Decimal, lambda d, v: d.represent_scalar("tag:yaml.org,2002:float", str(v)))
+    return yaml.dump(data, Dumper=Dumper, allow_unicode=True, sort_keys=False, default_flow_style=False, width=100)
+
+
+def to_yaml(src: Path, out: Path, notes: list[str]) -> None:
+    import yaml
+
+    _text, data = _load_structured(src, notes)
+    Path(long_path(out)).write_text(_yaml_dump(data), encoding="utf-8", newline="\n")
+    back = _plain_data(yaml.safe_load(Path(long_path(out)).read_text(encoding="utf-8")))
+    if not _same(back, data):
+        raise VerificationError("the YAML doesn't match the file")
+    notes.append("Checked: every value is in the YAML.")
+
+
+def to_jsonl(src: Path, out: Path, notes: list[str]) -> None:
+    _text, data = _load_structured(src, notes)
+    if isinstance(data, dict):
+        lists = [v for v in data.values() if isinstance(v, list)]
+        data = lists[0] if len(lists) == 1 else None
+    if not isinstance(data, list):
+        raise ConversionError("JSON Lines needs a list (like a list of records).")
+    lines = [_dumps(item, indent=None) for item in data]
+    Path(long_path(out)).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    back = [json.loads(x, parse_float=Decimal) for x in Path(long_path(out)).read_text(encoding="utf-8").splitlines()
+            if x.strip()]
+    if not _same(back, data):
+        raise VerificationError("the JSON Lines don't match the file")
+    notes.append(f"Checked: {_n(len(lines), 'line')}, one record per line.")
 
 
 def _json_table(data) -> list[list]:
@@ -210,8 +378,8 @@ def _check_xlsx(out: Path, expected: list[list]) -> None:
 
 
 def to_xlsx(src: Path, out: Path, notes: list[str]) -> None:
-    if src.suffix.lower() == ".json":
-        _text, data = _load_json(src, notes)
+    if src.suffix.lower() == ".json" or src.suffix.lower() in STRUCTURED:
+        _text, data = _load_structured(src, notes)
         rows = [[_json_value(v) for v in r] for r in _json_table(data)]
     else:
         rows = [[_csv_value(c) for c in r] for r in _read_table(src, notes)]
@@ -261,7 +429,7 @@ def to_json(src: Path, out: Path, notes: list[str]) -> None:
 
 
 def to_csv(src: Path, out: Path, notes: list[str]) -> None:
-    _text, data = _load_json(src, notes)
+    _text, data = _load_structured(src, notes)
     rows = [[_json_cell_text(v) for v in r] for r in _json_table(data)]
     buf = io.StringIO(newline="")
     csv.writer(buf, lineterminator="\r\n").writerows(rows)
@@ -336,7 +504,11 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     if fmt == "xlsx":
         to_xlsx(src, out, notes)
     elif fmt == "json":
-        to_json(src, out, notes)
+        structured_to_json(src, out, notes) if src.suffix.lower() in STRUCTURED else to_json(src, out, notes)
+    elif fmt == "yaml":
+        to_yaml(src, out, notes)
+    elif fmt == "jsonl":
+        to_jsonl(src, out, notes)
     elif fmt == "csv":
         to_csv(src, out, notes)
     elif fmt in ("tidy", "minify"):
