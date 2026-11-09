@@ -10,7 +10,12 @@ VERSION = re.search(r'__version__ = "([^"]+)"', (ROOT / "app" / "__init__.py").r
 hidden = [
     # engines are imported by name inside worker processes
     "app.engines.image", "app.engines.doc", "app.engines.pdf", "app.engines.officeutil", "app.selftest",
-    "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy",
+    "app.engines.compress", "app.engines.archive", "app.engines.data", "app.engines.textdoc", "app.engines.ocr",
+    "app.toolbox", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
+    # Windows' built-in text recognition (pywinrt projections)
+    "winrt.runtime", "winrt.system", "winrt.windows.foundation", "winrt.windows.foundation.collections",
+    "winrt.windows.globalization", "winrt.windows.graphics.imaging", "winrt.windows.media.ocr",
+    "winrt.windows.storage.streams",
     "win32com", "win32com.client", "win32com.shell", "pythoncom", "pywintypes", "win32clipboard", "win32con",
     "win32gui", "win32process", "PySide6.QtSvg",
 ]

@@ -29,11 +29,17 @@ The new file appears right next to the original.
 
 | You select | You can make |
 |---|---|
-| **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, or several images in one PDF |
+| **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | **Compress** to a size limit (under 20 KB, 50 KB, 100 KB … 1 MB) or a quality, with the quality and size shown before you pick; JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, several images in one PDF; **Read text** (OCR) |
+| **PDF** | **Compress**, **Lock / Unlock** (AES-256 password), keep or remove **Pages**, **Rotate**, page **Numbers**, **Watermark**, merge into one, split into single pages, PNG or JPG pages, text, **Searchable PDF** from scans (OCR) |
 | **Word:** DOCX, DOC, ODT, RTF, TXT, HTML | PDF, DOCX, ODT, RTF, TXT, DOC |
-| **Excel:** XLSX, XLS, ODS, CSV | PDF, XLSX, CSV (first sheet), ODS, XLS |
+| **Excel:** XLSX, XLS, ODS | PDF, XLSX, CSV (first sheet), ODS, XLS |
 | **PowerPoint:** PPTX, PPT, ODP | PDF, PPTX, ODP, PPT, PNG or JPG slides |
-| **PDF** | PNG or JPG pages, text, split into single pages, merge several into one |
+| **Data:** CSV, TSV, JSON | XLSX, JSON, CSV, tidy or minified JSON |
+| **Markdown** | PDF, HTML, DOCX (with Word) |
+| **Archives:** ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO | Extract into a new folder, or repack as ZIP |
+| **Any files** | ZIP the selected files into one archive |
+
+Every tool saves a new file next to the original (for example `photo (compressed).jpg`) and checks it before keeping it. The original is never changed. Text recognition uses the engine built into Windows, so nothing extra is downloaded.
 
 - **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office is opened hidden, read-only and with macros disabled, and it's closed afterwards. Your Office settings are never changed.
 - **Images:**

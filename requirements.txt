@@ -6,3 +6,11 @@ rawpy==0.28.0
 img2pdf==0.6.3
 PyMuPDF==2.1
 numpy==2.5.4
+openpyxl==3.1.5
+winrt-runtime==4.1.0
+winrt-Windows.Foundation==4!10.0.28000.2957
+winrt-Windows.Foundation.Collections==4!10.0.28000.2957
+winrt-Windows.Globalization==4!10.0.28000.2957
+winrt-Windows.Graphics.Imaging==4!10.0.28000.2957
+winrt-Windows.Media.Ocr==4!10.0.28000.2957
+winrt-Windows.Storage.Streams==4!10.0.28000.2957

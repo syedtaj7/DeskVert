@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+### Everyday file tools
+- **Compress images to a size:** pick "under 20 KB", "under 100 KB" and so on, or a quality. Each choice
+  shows the quality and size before you click. Saved as JPG, WEBP or the original format.
+- **PDF tools:** compress, lock and unlock with a password (AES-256), keep or remove pages, rotate, page
+  numbers and watermark.
+- **Text recognition (OCR):** read the text from a picture or a scanned PDF, or make a scanned PDF
+  searchable. Uses the engine built into Windows; sideways scans are detected.
+- **ZIP and extract:** zip the selected files, extract ZIP, 7Z, RAR, TAR, GZ, XZ, CAB and ISO archives, or
+  repack any of them as a ZIP.
+- **Data files:** CSV and TSV to Excel or JSON, JSON to CSV or Excel, tidy or minify JSON. Values like 007,
+  1.50 and long IDs stay exactly as written.
+- **Markdown:** to PDF, HTML or Word.
+- Every tool saves a new file next to the original and checks it before keeping it. All of them run inside
+  the same CPU limit as conversions.
+
 ## 1.0.1
 
 ### New look

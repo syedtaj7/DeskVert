@@ -25,7 +25,7 @@ from PySide6.QtCore import QObject, Signal
 from .catalog import Offer
 from .paths import work_root
 from .settings import Settings
-from .worker import init_worker, progress_file, run_job
+from .worker import estimate_compression, init_worker, progress_file, run_job
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +41,8 @@ class Batch:
 
 
 def build_jobs(offer: Offer, options: dict, settings: Settings) -> list[dict]:
+    from .toolbox import output_ext
+
     t = offer.target
 
     def job(sources: list[Path], stem: str) -> dict:
@@ -48,10 +50,11 @@ def build_jobs(offer: Offer, options: dict, settings: Settings) -> list[dict]:
             "id": uuid.uuid4().hex[:12],
             "sources": [str(s) for s in sources],
             "target": t.key,
-            "ext": t.ext,
+            "ext": output_ext(t, sources[0], options),
             "out_stem": stem,
             "options": options,
-            "keep_modified_date": settings.keep_modified_date,
+            # Tools that make a modified copy get today's date; plain conversions keep the original's date.
+            "keep_modified_date": settings.keep_modified_date and not t.suffix and t.key != "archive.zip",
             "folder": bool(t.folder),
         }
 
@@ -60,8 +63,12 @@ def build_jobs(offer: Offer, options: dict, settings: Settings) -> list[dict]:
     if t.combine:
         first = offer.sources[0]
         stem = first.stem if len(offer.sources) == 1 else f"{first.stem} and {len(offer.sources) - 1} more"
-        return [job(offer.sources, stem)]
-    return [job([s], s.stem) for s in offer.sources]
+        return [job(offer.sources, stem + t.suffix)]
+    return [job([s], s.stem + t.suffix) for s in offer.sources]
+
+
+class _Relay(QObject):
+    done = Signal(object)
 
 
 class JobManager(QObject):
@@ -80,6 +87,7 @@ class JobManager(QObject):
         self._cancel = threading.Event()
         self._busy = threading.Event()
         self._current: tuple[list[str], set[str]] | None = None
+        self._relays: set = set()
         self._thread = threading.Thread(target=self._loop, name="jobs", daemon=True)
         self._thread.start()
 
@@ -108,6 +116,28 @@ class JobManager(QObject):
         """Drop idle workers so the next conversion picks up new settings (CPU limit)."""
         if not self.busy:
             self._kill_pool()
+
+    def estimate(self, path: str, fmt: str, callback) -> None:
+        """Measure compression for one image in a worker (capped like any conversion),
+        then call ``callback(result_dict)`` on the UI thread."""
+        relay = _Relay()
+        relay.done.connect(callback)
+        self._relays.add(relay)
+
+        def finished(fut):
+            try:
+                res = fut.result()
+            except Exception as e:  # noqa: BLE001
+                res = {"ok": False, "error": str(e)}
+            relay.done.emit(res)
+            self._relays.discard(relay)
+
+        try:
+            fut = self._get_pool().submit(estimate_compression, path, fmt)
+            fut.add_done_callback(finished)
+            self._schedule_idle_shutdown()
+        except Exception as e:  # noqa: BLE001
+            relay.done.emit({"ok": False, "error": str(e)})
 
     # ------------------------------------------------------------ internals
 

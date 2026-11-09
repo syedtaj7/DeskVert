@@ -26,6 +26,16 @@ def init_worker(cpu_percent: int = 25) -> None:
         pass
 
 
+def estimate_compression(path: str, fmt: str) -> dict:
+    """Preview for the Compress panel: size and quality for each size limit."""
+    try:
+        from .engines.compress import estimate
+
+        return estimate(Path(path), fmt)
+    except BaseException as e:  # noqa: BLE001
+        return {"ok": False, "error": friendly(e)}
+
+
 def progress_file(job_id: str) -> Path:
     from .paths import work_root
 

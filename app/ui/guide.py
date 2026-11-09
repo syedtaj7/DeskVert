@@ -249,14 +249,23 @@ def build_guide_sections(sections: Sections) -> list[str]:
     a = h1("What converts to what")
     t = table(["You select", "You can make"], [
         ["<b>Images</b>: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, RAW",
-         "JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, or several images in <b>1 PDF</b>"],
+         "<b>Compress</b> to a size (under 20 KB, 100 KB, 1 MB…), JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, "
+         "ICO, TGA, PDF, several images in <b>1 PDF</b>, <b>Read text</b> (OCR)"],
+        ["<b>PDF</b>", "<b>Compress</b>, <b>Lock / Unlock</b> with a password, keep or remove <b>Pages</b>, "
+                       "<b>Rotate</b>, page <b>Numbers</b>, <b>Watermark</b>, merge into <b>1 PDF</b>, Split, "
+                       "PNG / JPG pages, TXT, <b>Searchable</b> PDF from scans (OCR)"],
         ["<b>Word</b>: DOCX, DOC, ODT, RTF, TXT, HTML", "PDF, DOCX, ODT, RTF, TXT, DOC"],
-        ["<b>Excel</b>: XLSX, XLS, ODS, CSV", "PDF, XLSX, CSV (first sheet), ODS, XLS"],
+        ["<b>Excel</b>: XLSX, XLS, ODS", "PDF, XLSX, CSV (first sheet), ODS, XLS"],
         ["<b>PowerPoint</b>: PPTX, PPT, ODP", "PDF, PPTX, ODP, PPT, or PNG / JPG slides in a new folder"],
-        ["<b>PDF</b>", "PNG / JPG pages in a new folder, TXT, Split (one PDF per page), merge several into <b>1 PDF</b>"],
+        ["<b>Data</b>: CSV, TSV, JSON", "XLSX, JSON, CSV, Tidy or Minify JSON"],
+        ["<b>Markdown</b>: MD", "PDF, HTML, DOCX (with Word)"],
+        ["<b>Archives</b>: ZIP, 7Z, RAR, TAR, GZ, XZ, ISO…", "<b>Extract</b> into a folder, or repack as ZIP"],
+        ["<b>Any files</b>", "<b>ZIP</b>: pack the selected files into one zip"],
     ])
     b = para("Word, Excel and PowerPoint conversions use your installed Microsoft Office, so the result looks "
-             "exactly like it does in Office. Audio and video aren't supported.")
+             "exactly like it does in Office. Text recognition uses the one built into Windows. Every tool saves "
+             "a new file next to the original, such as <b>photo (compressed).jpg</b>; the original is never "
+             "changed. Audio and video aren't supported.")
     for w in (a, t, b):
         lay.addWidget(w)
     lay.addStretch(1)
@@ -332,9 +341,11 @@ def build_guide_sections(sections: Sections) -> list[str]:
                                        "Check that the shortcut isn't paused (tray menu)."),
         ("\u201cCan't convert this file\u201d", "The card says why: for example the type isn't supported, or "
                                                 "Word documents need Microsoft Office."),
-        ("Password-protected files", "Remove the password in Office or your PDF app first."),
-        ("A scanned PDF has no text", "Scanned pages are pictures; converting them to text would need OCR, which "
-                                      "Tapshift doesn't do."),
+        ("Password-protected files", "PDFs: use <b>Unlock</b> on the wheel (you need the password). Office "
+                                     "files: remove the password in Office first."),
+        ("A scanned PDF has no text", "Use <b>Read text</b> or <b>Searchable</b> on the wheel. They use Windows' "
+                                      "own text recognition, in the languages installed in Windows (Settings "
+                                      "→ Time & language → Language)."),
         ("Still stuck?", "Tray menu \u2192 Open log folder, and include <b>app.log</b> when reporting an issue on "
                          "GitHub."),
     ])

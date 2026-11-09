@@ -16,20 +16,25 @@ from .settings import Settings
 class Option:
     key: str
     label: str
-    kind: str  # "slider" | "toggle" | "choice"
+    kind: str  # "slider" | "toggle" | "choice" | "text" | "password"
     default: object
     min: int = 0
     max: int = 100
     choices: tuple = ()
+    placeholder: str = ""
+    required: bool = False  # text/password: must not be empty
+    validate: str = ""  # name of a validator in app.toolbox.VALIDATORS
 
 
 @dataclass(frozen=True)
 class Target:
     key: str  # "<engine>.<format>", e.g. "image.webp"
     label: str  # shown on the wheel, e.g. "WEBP"
-    ext: str  # output extension, e.g. ".webp"
+    ext: str  # output extension, e.g. ".webp"; "*" = decided per file (same as source or by options)
     combine: bool = False  # many inputs -> one output file
     folder: str = ""  # non-empty: output is a new folder, named "<file> (<folder>)"
+    suffix: str = ""  # added to the output name, e.g. " (compressed)"
+    ask: bool = False  # open its options first (tools that need input, like a password)
 
     @property
     def engine(self) -> str:
@@ -198,8 +203,7 @@ MEDIA_EXTS = {
 
 WORD_EXTS = {".doc": "doc", ".docx": "docx", ".docm": "docx", ".dot": "doc", ".dotx": "docx", ".odt": "odt",
              ".rtf": "rtf", ".txt": "txt", ".htm": "html", ".html": "html", ".mht": "html", ".wpd": "wpd"}
-EXCEL_EXTS = {".xls": "xls", ".xlsx": "xlsx", ".xlsm": "xlsx", ".xlsb": "xlsb", ".ods": "ods", ".csv": "csv",
-              ".tsv": "tsv"}
+EXCEL_EXTS = {".xls": "xls", ".xlsx": "xlsx", ".xlsm": "xlsx", ".xlsb": "xlsb", ".ods": "ods"}  # CSV/TSV: data tools
 PPT_EXTS = {".ppt": "ppt", ".pptx": "pptx", ".pptm": "pptx", ".pps": "ppt", ".ppsx": "pptx", ".odp": "odp"}
 
 
@@ -316,8 +320,17 @@ def _doc_offers(files: list[Path]) -> list[Offer]:
 
 
 def kind_of(path: Path) -> str | None:
+    from . import toolbox
+
+    e = path.suffix.lower()
     if image_format(path):
         return "image"
+    if e in toolbox.ARCHIVE_EXTS:
+        return "archive"
+    if e in toolbox.DATA_EXTS:
+        return "data"
+    if e in toolbox.MARKDOWN_EXTS:
+        return "markdown"
     return "document" if doc_format(path) else None
 
 
@@ -330,23 +343,49 @@ def pick_group(paths: list[Path]) -> tuple[str | None, list[Path], list[Path]]:
             groups.setdefault(k, []).append(p)
     if not groups:
         return None, [], list(paths)
-    order = {"image": 0, "document": 1}
+    order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4}
     kind = max(groups, key=lambda k: (len(groups[k]), -order[k]))
     chosen = groups[kind]
     return kind, chosen, [p for p in paths if p not in chosen]
 
 
 def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]:
-    """Return (offers, files_left_out) for the selected files."""
-    kind, files, others = pick_group(paths)
-    if kind == "image":
-        return _image_offers(files, s), others
+    """Return (offers, files_left_out) for the selected files. Tools come first
+    (they're the most used), then format conversions, then ZIP."""
+    from . import toolbox
 
-    if kind == "document":
+    kind, files, others = pick_group(paths)
+    offers: list[Offer] = []
+    if kind == "image":
+        fmts = {p: image_format(p) for p in files}
+        convs = _image_offers(files, s)
+        offers = toolbox.image_tools(files, fmts) + convs + toolbox.ocr_offers(files, fmts, pdf=False)
+    elif kind == "document":
+        groups: dict[str, list[Path]] = {}
+        for p in files:
+            groups.setdefault(doc_format(p)[0], []).append(p)
+        main = max(groups, key=lambda k: len(groups[k]))
         offers = _doc_offers(files)
+        if main == "pdf":
+            pdfs = groups["pdf"]
+            tools = toolbox.pdf_tools(pdfs)
+            merge = [o for o in offers if o.target.combine]
+            rest = [o for o in offers if not o.target.combine]
+            offers = tools + merge + rest + toolbox.ocr_offers(pdfs, None, pdf=True)
+        elif main == "word" and not office_installed("word"):
+            simple = [p for p in groups["word"] if p.suffix.lower() in (".txt", ".htm", ".html")]
+            offers = toolbox.text_fallback_offers(simple) if simple else []
         used = {p for o in offers for p in o.sources}
-        return offers, others + [p for p in files if p not in used and not any(p in o.sources for o in offers)]
-    return [], others
+        others = others + [p for p in files if p not in used]
+    elif kind == "data":
+        offers = toolbox.data_offers(files, office_installed("excel"))
+    elif kind == "markdown":
+        offers = toolbox.markdown_offers(files, office_installed("word"))
+    elif kind == "archive":
+        offers = toolbox.archive_offers(files)
+    if paths and kind != "archive":
+        offers.append(toolbox.zip_offer(list(paths)))  # any files can be zipped
+    return offers, others
 
 
 _COMING = {

@@ -24,6 +24,8 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | NumPy (with OpenBLAS) | Image comparisons | BSD-3-Clause | https://github.com/numpy/numpy |
 | lxml / libxml2 | XML for pikepdf | BSD-3-Clause / MIT | https://github.com/lxml/lxml |
 | pywin32 | Windows and Office integration | PSF License | https://github.com/mhammond/pywin32 |
+| openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
+| pywinrt (winrt-runtime, winrt-Windows.*) | Windows text recognition (OCR) | MIT | https://github.com/pywinrt/pywinrt |
 | PyInstaller bootloader | Starting Tapshift.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
 
 Image codecs bundled inside Pillow (libjpeg-turbo, libpng, zlib, libtiff, libwebp, libavif, dav1d, aom, FreeType,

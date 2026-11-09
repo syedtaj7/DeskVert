@@ -13,7 +13,7 @@ import math
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPointF, QPropertyAnimation, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QKeyEvent, QLinearGradient, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+    QAbstractButton, QCheckBox, QComboBox, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel, QLineEdit, QListWidget,
     QListWidgetItem, QPushButton, QSlider, QStackedWidget, QStyle, QStyledItemDelegate, QVBoxLayout, QWidget,
 )
 
@@ -340,25 +340,32 @@ class ListPage(QWidget):
 
 
 class OptionsPage(QWidget):
+    """A small form: quality sliders, choices, and text/password fields for tools.
+    Text fields are checked before anything runs; problems show under the field."""
+
     convert = Signal(object, dict)
     back = Signal()
+
+    VERBS = {"pdf.lock": "Lock PDF", "pdf.unlock": "Unlock", "pdf.pages": "Apply", "pdf.numbers": "Add numbers",
+             "pdf.watermark": "Add watermark", "pdf.rotate": "Rotate", "pdf.compress": "Compress"}
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.lay = QVBoxLayout(self)
         self.lay.setContentsMargins(4, 4, 4, 4)
-        self.lay.setSpacing(10)
+        self.lay.setSpacing(8)
         self.offer: Offer | None = None
-        self.getters: dict = {}
+        self.fields: list = []
 
     def load(self, offer: Offer):
         while self.lay.count():
-            w = self.lay.takeAt(0).widget()
-            if w:
-                w.deleteLater()
+            item = self.lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
         self.offer = offer
-        self.getters = {}
-        title = QLabel(f"{offer.target.label} options")
+        self.fields = []
+        tool = offer.target.ask or bool(offer.target.suffix)
+        title = QLabel(offer.target.label if tool else f"{offer.target.label} options")
         title.setObjectName("title")
         title.setStyleSheet("font-size: 16px;")
         self.lay.addWidget(title)
@@ -367,43 +374,61 @@ class OptionsPage(QWidget):
             sub.setObjectName("sub")
             self.lay.addWidget(sub)
         if not offer.options:
-            none = QLabel("This format has no settings; the best quality is used automatically.")
+            none = QLabel("No settings needed; the best quality is used automatically.")
             none.setObjectName("sub")
             none.setWordWrap(True)
             self.lay.addWidget(none)
+        first_input = None
         for opt in offer.options:
+            err = QLabel()
+            err.setObjectName("error")
+            err.setWordWrap(True)
+            err.hide()
             if opt.kind == "slider":
-                row = QWidget()
-                rl = QVBoxLayout(row)
-                rl.setContentsMargins(0, 0, 0, 0)
-                rl.setSpacing(4)
                 lab = QLabel()
                 s = QSlider(Qt.Orientation.Horizontal)
                 s.setRange(opt.min, opt.max)
                 s.setValue(int(opt.default))
-                upd = lambda v, lab=lab, opt=opt: lab.setText(f"{opt.label}: {v}")  # noqa: E731
+                upd = lambda v, lab=lab, opt=opt: lab.setText(  # noqa: E731
+                    f"{opt.label[:-2]}: {v}%" if opt.label.endswith(" %") else f"{opt.label}: {v}")
                 s.valueChanged.connect(upd)
                 upd(s.value())
-                rl.addWidget(lab)
-                rl.addWidget(s)
-                self.lay.addWidget(row)
-                self.getters[opt.key] = s.value
+                self.lay.addWidget(lab)
+                self.lay.addWidget(s)
+                getter = s.value
             elif opt.kind == "toggle":
                 cb = QCheckBox(opt.label)
                 cb.setChecked(bool(opt.default))
                 self.lay.addWidget(cb)
-                self.getters[opt.key] = cb.isChecked
+                getter = cb.isChecked
             elif opt.kind == "choice":
-                lab = QLabel(opt.label)
+                self.lay.addWidget(QLabel(opt.label))
                 combo = QComboBox()
                 combo.addItems(list(opt.choices))
                 combo.setCurrentText(str(opt.default))
-                self.lay.addWidget(lab)
                 self.lay.addWidget(combo)
-                self.getters[opt.key] = combo.currentText
+                getter = combo.currentText
+            else:  # text / password
+                self.lay.addWidget(QLabel(opt.label))
+                edit = QLineEdit(str(opt.default or ""))
+                edit.setPlaceholderText(opt.placeholder)
+                if opt.kind == "password":
+                    edit.setEchoMode(QLineEdit.EchoMode.Password)
+                edit.returnPressed.connect(self._go)
+                edit.textChanged.connect(lambda _=None, e=err: e.hide())
+                self.lay.addWidget(edit)
+                if opt.kind == "password":
+                    show = QCheckBox("Show password")
+                    show.toggled.connect(lambda on, e=edit: e.setEchoMode(
+                        QLineEdit.EchoMode.Normal if on else QLineEdit.EchoMode.Password))
+                    self.lay.addWidget(show)
+                getter = edit.text
+                first_input = first_input or edit
+            self.lay.addWidget(err)
+            self.fields.append((opt, getter, err))
         for w in offer.warnings:
             lab = QLabel(w)
-            lab.setObjectName("warn")
+            lab.setObjectName("warn" if not tool else "sub")
             lab.setWordWrap(True)
             self.lay.addWidget(lab)
         self.lay.addStretch(1)
@@ -411,7 +436,7 @@ class OptionsPage(QWidget):
         bl = QHBoxLayout(btns)
         bl.setContentsMargins(0, 0, 0, 0)
         back = QPushButton("Back")
-        go = QPushButton("Convert")
+        go = QPushButton(self.VERBS.get(offer.target.key, "Convert"))
         go.setObjectName("primary")
         go.setDefault(True)
         back.clicked.connect(self.back.emit)
@@ -420,10 +445,22 @@ class OptionsPage(QWidget):
         bl.addStretch(1)
         bl.addWidget(go)
         self.lay.addWidget(btns)
-        go.setFocus()
+        (first_input or go).setFocus()
 
     def _go(self):
-        self.convert.emit(self.offer, {k: g() for k, g in self.getters.items()})
+        from ..toolbox import validate
+
+        values, ok = {}, True
+        for opt, getter, err in self.fields:
+            value = getter()
+            problem = validate(opt, value)
+            if problem:
+                err.setText(problem)
+                err.show()
+                ok = False
+            values[opt.key] = value
+        if ok:
+            self.convert.emit(self.offer, values)
 
     def keyPressEvent(self, e):
         if e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
@@ -432,13 +469,238 @@ class OptionsPage(QWidget):
             super().keyPressEvent(e)
 
 
+class CompressRow(QAbstractButton):
+    """One size choice: 'Under 100 KB', the quality it needs, and how much smaller it gets."""
+
+    def __init__(self, title: str, detail: str, right: str, low: bool = False, parent=None):
+        super().__init__(parent)
+        self.title, self.detail, self.right, self.low = title, detail, right, low
+        self.setCheckable(True)
+        self.setAutoExclusive(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedHeight(44)
+        self._hover = False
+
+    def enterEvent(self, e):
+        self._hover = True
+        self.update()
+
+    def leaveEvent(self, e):
+        self._hover = False
+        self.update()
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r = QRectF(self.rect()).adjusted(1, 1, -1, -1)
+        on = self.isChecked()
+        if not self.isEnabled():
+            p.setOpacity(0.45)
+        p.setPen(QPen(theme.ACCENT if on else theme.LINE, 1.5 if on else 1))
+        p.setBrush(theme.ACCENT_SOFT if on else (theme.SURFACE2 if self._hover else theme.SURFACE))
+        p.drawRoundedRect(r, theme.RADIUS_CONTROL, theme.RADIUS_CONTROL)
+        p.setPen(theme.TEXT)
+        p.setFont(_font(13, QFont.Weight.DemiBold))
+        p.drawText(QRectF(12, 4, r.width() - 100, 20), Qt.AlignmentFlag.AlignVCenter, self.title)
+        p.setPen(theme.WARN if self.low else theme.DIM)
+        p.setFont(_font(11))
+        p.drawText(QRectF(12, 22, r.width() - 100, 18), Qt.AlignmentFlag.AlignVCenter, self.detail)
+        p.setPen(theme.ACCENT if on else theme.DIM)
+        p.setFont(_font(12, QFont.Weight.DemiBold))
+        p.drawText(QRectF(r.width() - 92, 0, 82, r.height()),
+                   Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, self.right)
+        p.end()
+
+
+def _quality_word(q: int) -> str:
+    return "excellent" if q >= 85 else "good" if q >= 70 else "fair" if q >= 55 else "low, visible loss"
+
+
+def _saved_text(percent: float) -> str:
+    """'−81%'; never '−100%' (something is always left)."""
+    p = max(0.0, percent)
+    return "−>99%" if p > 99 else f"−{p:.0f}%"
+
+
+class CompressPage(QWidget):
+    """Pick a size limit (with the quality each one needs) or a quality (with its size)."""
+
+    convert = Signal(object, dict)
+    back = Signal()
+
+    def __init__(self, estimator=None, parent=None):
+        super().__init__(parent)
+        self.estimator = estimator
+        self.offer: Offer | None = None
+        self._req = 0
+        self._curve: list = []
+        self._size = 0
+        self.lay = QVBoxLayout(self)
+        self.lay.setContentsMargins(4, 4, 4, 4)
+        self.lay.setSpacing(8)
+
+    def load(self, offer: Offer, fmt: str | None = None):
+        from .fx import Segmented
+
+        while self.lay.count():
+            item = self.lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self.offer = offer
+        self.fmt = fmt or "JPG"
+        self.rows: list[CompressRow] = []
+        src = offer.sources[0]
+        title = QLabel("Compress")
+        title.setObjectName("title")
+        title.setStyleSheet("font-size: 16px;")
+        self.lay.addWidget(title)
+        many = len(offer.sources) > 1
+        self.sub = QLabel(f"{len(offer.sources)} images; each one gets the size you pick." if many
+                          else "Measuring sizes...")
+        self.sub.setObjectName("sub")
+        self.sub.setWordWrap(True)
+        self.lay.addWidget(self.sub)
+        fmt_row = QHBoxLayout()
+        fmt_row.addWidget(QLabel("Save as"))
+        fmt_row.addStretch(1)
+        self.fmt_ctl = Segmented([("JPG", "JPG"), ("WEBP", "WEBP"), ("Same as original", "Same")], self.fmt)
+        self.fmt_ctl.changed.connect(lambda v: self.load(self.offer, v))
+        fmt_row.addWidget(self.fmt_ctl)
+        holder = QWidget()
+        holder.setLayout(fmt_row)
+        self.lay.addWidget(holder)
+        self.rows_box = QVBoxLayout()
+        self.rows_box.setSpacing(6)
+        rows_holder = QWidget()
+        rows_holder.setLayout(self.rows_box)
+        self.lay.addWidget(rows_holder)
+        self.wait = QLabel("Working out the quality for each size...")
+        self.wait.setObjectName("sub")
+        self.rows_box.addWidget(self.wait)
+        self.custom = CompressRow("Pick a quality", "drag the slider", "", parent=self)
+        self.custom.toggled.connect(lambda on: self.slider.setEnabled(True))
+        self.rows.append(self.custom)
+        self.lay.addWidget(self.custom)
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setRange(10, 100)
+        self.slider.setValue(75)
+        self.slider.valueChanged.connect(self._slider_changed)
+        self.lay.addWidget(self.slider)
+        self.lay.addStretch(1)
+        btns = QHBoxLayout()
+        back = QPushButton("Back")
+        back.clicked.connect(self.back.emit)
+        self.go = QPushButton("Compress")
+        self.go.setObjectName("primary")
+        self.go.setEnabled(False)
+        self.go.clicked.connect(self._go)
+        btns.addWidget(back)
+        btns.addStretch(1)
+        btns.addWidget(self.go)
+        bh = QWidget()
+        bh.setLayout(btns)
+        self.lay.addWidget(bh)
+        self._slider_changed(self.slider.value())
+        self._req += 1
+        req = self._req
+        if self.estimator is not None:
+            from ..toolbox import COMPRESS_IMAGE, output_ext
+
+            ext = output_ext(COMPRESS_IMAGE, src, {"format": self.fmt})
+            self.estimator(str(src), ext, lambda res, r=req: self._estimated(r, res))
+
+    def _slider_changed(self, v: int):
+        size = ""
+        if self._curve:
+            pts = sorted(self._curve)
+            near = min(pts, key=lambda qb: abs(qb[0] - v))
+            size = f"about {_human(near[1])}"
+        self.custom.title = f"Quality {v}%"
+        self.custom.detail = _quality_word(v) + (f", {size}" if size else "")
+        if self._size and self._curve:
+            pts = sorted(self._curve)
+            near = min(pts, key=lambda qb: abs(qb[0] - v))
+            self.custom.right = _saved_text(100 - 100 * near[1] / self._size)
+        self.custom.setChecked(True)
+        self.custom.update()
+        self.go.setEnabled(True)
+
+    def _estimated(self, req: int, res: dict):
+        if req != self._req:
+            return  # an older measurement (the format was changed meanwhile)
+        try:
+            import shiboken6
+
+            if not shiboken6.isValid(self.wait):
+                return
+        except Exception:
+            pass
+        self.wait.hide()
+        if not res.get("ok"):
+            self.sub.setText("Couldn't measure this image. You can still pick a quality.")
+            return
+        self._size = res["bytes"]
+        self._curve = res.get("quality_curve", [])
+        if len(self.offer.sources) == 1:
+            self.sub.setText(f"Now {_human(res['bytes'])}, {res['width']}x{res['height']} px. "
+                             "Sizes are estimates; the limit is always respected.")
+        for t in res["targets"]:
+            if t.get("impossible"):
+                row = CompressRow(f"Under {_kb(t['kb'])}", "too small for this picture", "", low=True)
+                row.setEnabled(False)
+            else:
+                detail = f"quality {t['quality']}% ({_quality_word(t['quality'])})"
+                if t["resized"]:
+                    detail += f", {t['width']}x{t['height']}"
+                saved = max(0, 100 - 100 * t["bytes"] / max(1, res["bytes"]))
+                row = CompressRow(f"Under {_kb(t['kb'])}", detail, _saved_text(saved), low=t["quality"] < 55)
+                row.kb = t["kb"]
+                row.toggled.connect(lambda on: self.go.setEnabled(True))
+            self.rows.append(row)
+            self.rows_box.addWidget(row)
+        if not res["targets"]:
+            note = QLabel("This image is already small. Pick a quality below to make it smaller still.")
+            note.setObjectName("sub")
+            note.setWordWrap(True)
+            self.rows_box.addWidget(note)
+        self._slider_changed(self.slider.value())
+        self.custom.setChecked(False)
+        self.go.setEnabled(False)
+        w = self.window()
+        if hasattr(w, "_fit"):
+            w._fit()
+
+    def _go(self):
+        chosen = next((r for r in self.rows if r.isChecked()), None)
+        if chosen is None:
+            return
+        opts = {"format": self.fmt_ctl.value}
+        if chosen is self.custom:
+            opts.update(mode="quality", quality=self.slider.value())
+        else:
+            opts.update(mode="size", target_kb=chosen.kb)
+        self.convert.emit(self.offer, opts)
+
+
+def _human(n: float) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f} MB"
+    if n >= 1000:
+        return f"{n / 1000:.0f} KB"
+    return f"{int(n)} bytes"
+
+
+def _kb(kb: int) -> str:
+    return f"{kb // 1000} MB" if kb >= 1000 else f"{kb} KB"
+
+
 # ====================================================================== popup
 
 
 class Popup(QWidget):
     chosen = Signal(object, dict)  # Offer, options
 
-    def __init__(self, title: str, center_title: str, subtitle: str, offers: list[Offer]):
+    def __init__(self, title: str, center_title: str, subtitle: str, offers: list[Offer], estimator=None):
         super().__init__(
             None,
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
@@ -486,9 +748,11 @@ class Popup(QWidget):
         wl.addStretch(1)
         self.list_page = ListPage(offers)
         self.options = OptionsPage()
+        self.compress = CompressPage(estimator)
         self.stack.addWidget(wheel_holder)
         self.stack.addWidget(self.list_page)
         self.stack.addWidget(self.options)
+        self.stack.addWidget(self.compress)
         lay.addWidget(self.stack)
 
         self.hint = QLabel()
@@ -505,6 +769,8 @@ class Popup(QWidget):
         self.list_page.options_requested.connect(self._show_options)
         self.options.convert.connect(self._choose)
         self.options.back.connect(self._back_from_options)
+        self.compress.convert.connect(self._choose)
+        self.compress.back.connect(self._back_from_options)
         self._options_return = 0
 
     # ------------------------------------------------------------- views
@@ -526,7 +792,8 @@ class Popup(QWidget):
             self.hint.setText("  ".join(item.warnings))
         else:
             self.hint.setStyleSheet("")
-            self.hint.setText(f"{item.target.label}: {item.caption}. No quality loss.")
+            tool = item.target.ask or bool(item.target.suffix) or item.target.engine in ("archive", "ocr", "data")
+            self.hint.setText(f"{item.target.label}: {item.caption}." + ("" if tool else " No quality loss."))
 
     def _wheel_activate(self, i: int):
         item = self.wheel.items[i]
@@ -551,8 +818,12 @@ class Popup(QWidget):
 
     def _show_options(self, offer: Offer):
         self._options_return = self.stack.currentIndex()
-        self.options.load(offer)
-        self.stack.setCurrentIndex(2)
+        if offer.target.key == "compress.image":
+            self.compress.load(offer)
+            self.stack.setCurrentIndex(3)
+        else:
+            self.options.load(offer)
+            self.stack.setCurrentIndex(2)
         self.hint.setText("")
         self._fit()
 
@@ -568,6 +839,9 @@ class Popup(QWidget):
 
     def _choose(self, offer: Offer, opts: dict | None):
         if self._done:
+            return
+        if opts is None and offer.target.ask:
+            self._show_options(offer)  # tools that need input (a password, page numbers...) ask first
             return
         self._done = True
         if opts is None:

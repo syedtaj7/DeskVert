@@ -300,13 +300,18 @@ class Controller(QObject):
             title, msg = explain_unsupported(left_out or files)
             self._show_notice(title, msg)
             return
-        center = f"1 {group[0].suffix.upper().lstrip('.')}" if len(group) == 1 else f"{len(group)} files"
         notes = []
         if where == "clipboard":
             notes.append("From files copied to the clipboard.")
-        if left_out:
-            notes.append(f"{len(left_out)} other file(s) skipped (different type).")
-        self.popup = Popup(describe_selection(group), center, " ".join(notes), offers)
+        if kind is None:
+            # Nothing to convert, but the files can still be zipped: say why ZIP is the only choice.
+            group = files
+            notes.append(explain_unsupported(files)[1].split(". Tapshift")[0] + ". You can still zip it.")
+        elif left_out:
+            notes.append(f"{len(left_out)} other file(s) aren't included (different type); ZIP includes everything.")
+        center = f"1 {group[0].suffix.upper().lstrip('.') or 'file'}" if len(group) == 1 else f"{len(group)} files"
+        self.popup = Popup(describe_selection(group), center, " ".join(notes), offers,
+                           estimator=self.jobs.estimate)
         self.popup.chosen.connect(self.jobs.submit)
         self.popup.destroyed.connect(self._popup_closed)
         self.popup.show_at_cursor()
