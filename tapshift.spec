@@ -11,7 +11,7 @@ hidden = [
     # engines are imported by name inside worker processes
     "app.engines.image", "app.engines.doc", "app.engines.pdf", "app.engines.officeutil", "app.selftest",
     "app.engines.compress", "app.engines.archive", "app.engines.data", "app.engines.textdoc", "app.engines.ocr",
-    "app.toolbox", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
+    "app.toolbox", "app.menu", "app.engines.mixed", "app.ui.customize", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
     # Windows' built-in text recognition (pywinrt projections)
     "winrt.runtime", "winrt.system", "winrt.windows.foundation", "winrt.windows.foundation.collections",
     "winrt.windows.globalization", "winrt.windows.graphics.imaging", "winrt.windows.media.ocr",

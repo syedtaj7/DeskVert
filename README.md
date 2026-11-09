@@ -30,7 +30,7 @@ and the new file appears right next to the original, checked and ready.
 
 1. **Select** one file or many, in File Explorer or on the Desktop.
 2. **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd>: press both, let go. Normal shortcuts like <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> keep working.
-3. **Pick** from the orbit: tools circle on one ring, formats on the other. Point at one and a small card says what it does and what the new file will be called. Right-click for options, or just start typing (`pdf`, `zip`…).
+3. **Pick** from the orbit: tools circle on one ring, formats on the other. Related tools are grouped into a web: point at **Split** and its choices (in half, every N pages, by ranges, every page) fan out around it. A small card says what each one does and what the new file will be called. Right-click for options, or just start typing (`pdf`, `zip`…).
 4. **Done.** `photo.heic` becomes `photo.webp` in the same folder. Nothing is ever overwritten.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
@@ -42,7 +42,7 @@ and the new file appears right next to the original, checked and ready.
 | Tool | What you get |
 |---|---|
 | 🗜️ **Compress images** | Pick **under 20 KB, 50 KB, 100 KB, 200 KB, 500 KB or 1 MB**, or drag a quality slider. Every choice shows the quality % and the new size *before* you click. The limit is always respected. **For forms:** exact-size JPGs for applications: photo (200×230, 20–50 KB), passport photo (35×45 mm), signature (140×60, empty paper trimmed), or your own width × height × KB. |
-| 📄 **PDF toolkit** | **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · keep or remove **Pages** (`1-3, 7, 10-end`) · **Rotate** · page **Numbers** · **Watermark** · **Merge** · **Split** |
+| 📄 **PDF toolkit** | **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB, or your own) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · **Split** in half, every N pages, by ranges or every page · keep or remove **Pages** (`1-3, 7, 10-end`) · **Reorder** or **Reverse** · **Rotate** · page **Numbers** · **2 per page** · **Watermark** · **Flatten** forms · **Clean info** (author, dates, hidden data) · **Grayscale** · save the **Pictures** inside · **Merge** · pictures and PDFs **combined** into one PDF |
 | 🔍 **Read text (OCR)** | Text from photos and scanned PDFs, or a **searchable PDF** that looks exactly like the scan. Uses the engine built into Windows, so nothing extra is downloaded. Sideways scans are turned upright automatically. |
 | 📦 **Zip & extract** | ZIP the selected files · extract **ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO** · repack any archive as a ZIP |
 | 📊 **Data files** | CSV / TSV / JSON → **Excel**, JSON or CSV · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
@@ -145,6 +145,11 @@ Any of these works, and each removes everything (app, settings, logs):
 | Every format | Click **More**, or just start typing |
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
+| Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
+| Many kinds of files at once | Select them all: each kind gets its own branch ("2 pictures", "1 PDF"), plus **Combine** and **ZIP** for everything |
+| Right-click menu | Right-click files → **Convert with Tapshift** (Windows 11: Show more options) |
+| Undo | Click **Undo** on the Saved card: the new files go to the Recycle Bin |
+| Your presets and favourites | Settings → **Customize**: e.g. *WhatsApp photo* or *College PDF under 300 KB*, pinned closest to the centre. Recently used actions move there by themselves |
 | Guide, settings, recent files | Right-click the Tapshift icon in the tray |
 
 <details>

@@ -99,6 +99,8 @@ class SettingsWindow(ChromeWindow):
         clip.toggled.connect(lambda v: self.changed.emit("use_clipboard_fallback", v))
         dates = Toggle(s.keep_modified_date)
         dates.toggled.connect(lambda v: self.changed.emit("keep_modified_date", v))
+        menu = Toggle(s.context_menu)
+        menu.toggled.connect(lambda v: self.changed.emit("context_menu", v))
         tour = PillButton("Show the welcome tour", "ghost", min_width=200)
         tour.clicked.connect(self.show_tour.emit)
         rows = [setting_row("Start with Windows", "Wait in the tray, ready for the shortcut.", auto),
@@ -106,6 +108,8 @@ class SettingsWindow(ChromeWindow):
                             clip),
                 setting_row("Keep the original's date", "Give new files the same 'modified' date as the original.",
                             dates),
+                setting_row("Right-click menu", "Adds “Convert with Tapshift” to files' right-click menu "
+                            "(on Windows 11: Show more options).", menu),
                 setting_row("Welcome tour", "Walk through how Tapshift works again.", tour)]
         lay.addWidget(a)
         for r in rows:
@@ -178,6 +182,15 @@ class SettingsWindow(ChromeWindow):
         lay.addStretch(1)
         self.sections.add(page, [a, b, *rows])
         names.append("Quality")
+
+        # ---- Customize (favourites, recents and presets on the picker's inner ring)
+        from .customize import Customize
+
+        self.customize = Customize(s, self)
+        self.customize.changed.connect(self.changed.emit)
+        self.sections.add(self.customize.page, self.customize.animate)
+        self._customize_index = len(names)
+        names.append("Customize")
 
         # ---- About
         page, lay = section_page()

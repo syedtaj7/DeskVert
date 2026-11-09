@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.4.0
+
+### The picker becomes a web
+- **Grouped tools fan out:** related tools share one node. Point at **Split** and its choices (in half,
+  every N pages, by ranges, every page) open around it, joined by threads; the same for **Pages**,
+  **Protect**, **Convert** and **Text**. The picker stays small however many tools join.
+- **Many kinds of files at once:** select pictures and PDFs together and each kind gets its own branch
+  ("2 pictures", "1 PDF"), plus **Combine** (everything in one PDF, in the order selected) and **ZIP**.
+- **Repeat the last action:** tap Ctrl + Shift twice, quickly.
+- **Your inner ring:** favourites, your own presets and recently used actions sit closest to the centre.
+
+### Customize (new Settings page)
+- **Your presets:** one tap does it all, e.g. *WhatsApp photo* (JPG under 300 KB), *College PDF* (under
+  300 KB) or *Exam photo* (200×230 px under 50 KB). Make your own: a picture under a size, a picture at an
+  exact size, or a PDF under a size.
+- **Favourites:** pin the actions you use most. **Recently used near the centre** can be turned off.
+
+### More PDF tools
+- Split **in half**, **every N pages** or **by ranges** (`1-3, 4-end`) into a folder of parts.
+- **Reorder** pages (`3, 1, 2` or `reverse`), **Reverse**, **2 per page** (A4 landscape),
+  **Grayscale**, **Flatten** (fills form fields and notes into the page), **Clean info** (removes the
+  author, dates and hidden data), and save the **Pictures** inside a PDF.
+- **Compress** accepts any size limit from a preset.
+
+### Also new
+- **Right-click menu:** right-click files → **Convert with Tapshift** (on Windows 11 under Show more
+  options). Turn it off in Settings → General. Removed when you uninstall.
+- **Undo:** the Saved card has an **Undo** button that moves the new files to the Recycle Bin.
+
 ## 1.3.1
 
 ### Fixes and small things

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 
 from .paths import config_dir
 
@@ -27,6 +27,11 @@ class Settings:
     keep_modified_date: bool = True
     max_cpu_percent: int = 25  # hard limit on total CPU used by conversions (5-100)
     max_workers: int = 1  # files converted at the same time; the CPU cap is shared between them
+    context_menu: bool = True  # "Convert with Tapshift" in the right-click menu
+    quick_recents: bool = True  # recently used actions go on the picker's inner ring
+    favourites: list = field(default_factory=list)  # action keys pinned to the inner ring
+    recent_actions: list = field(default_factory=list)  # most recent first
+    presets: list = field(default_factory=list)  # {id, name, kind, key, options, summary}
 
     @property
     def workers(self) -> int:

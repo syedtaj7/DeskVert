@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from ..errors import ConversionError, VerificationError
@@ -284,6 +285,12 @@ def compress_to(src: Path, out: Path, limit_kb: int, notes: list[str]) -> None:
 
 def compress(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
     level = opts.get("level", "Balanced")
+    if opts.get("limit_kb"):  # a saved preset with its own size, e.g. "College PDF under 300 KB"
+        kb = int(opts["limit_kb"])
+        if not 20 <= kb <= 50_000:
+            raise ConversionError("The size limit must be between 20 KB and 50 MB.")
+        compress_to(src, out, kb, notes)
+        return
     if level in SIZE_LIMITS:
         compress_to(src, out, SIZE_LIMITS[level], notes)
         return
@@ -506,6 +513,240 @@ TOOLS = {
     "numbers": numbers,
     "watermark": watermark,
 }
+
+
+
+# --- More page tools ------------------------------------------------------------
+
+def _ordered_pages(text: str, n: int) -> list[int]:
+    """'3, 1, 2, 7-5' -> [2, 0, 1, 6, 5, 4] (zero-based, in the order typed; ranges may run backwards)."""
+    out: list[int] = []
+    for part in (text or "").replace(" ", "").lower().split(","):
+        if not part:
+            continue
+        m = re.fullmatch(r"(\d+|end)(?:-(\d+|end))?", part)
+        if not m:
+            raise ConversionError(f"“{part}” isn't a page or range. Use numbers like 3, 1, 2 or 10-1.")
+        a = n if m.group(1) == "end" else int(m.group(1))
+        b = (n if m.group(2) == "end" else int(m.group(2))) if m.group(2) else a
+        for p in (a, b):
+            if not 1 <= p <= n:
+                raise ConversionError(f"Page {p} doesn't exist: the PDF has {n} page{'s' if n != 1 else ''}.")
+        step = 1 if b >= a else -1
+        for p in range(a, b + step, step):
+            if p - 1 in out:
+                raise ConversionError(f"Page {p} is listed twice.")
+            out.append(p - 1)
+    if not out:
+        raise ConversionError("Type the new order, for example 3, 1, 2.")
+    return out
+
+
+def _write_parts(src: Path, out_dir: Path, parts: list[list[int]], notes: list[str], what: str) -> None:
+    import pymupdf
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with _open(src) as d:
+        texts = _page_texts(d)
+        digits = max(2, len(str(len(parts))))
+        for k, pages in enumerate(parts, 1):
+            part = pymupdf.open()
+            for i in pages:
+                part.insert_pdf(d, from_page=i, to_page=i)
+            span = f"page {pages[0] + 1}" if len(pages) == 1 else f"pages {pages[0] + 1}-{pages[-1] + 1}"
+            part.save(long_path(out_dir / f"{src.stem} - part {str(k).zfill(digits)} ({span}).pdf"),
+                      garbage=3, deflate=True)
+            part.close()
+    files = sorted(out_dir.glob("*.pdf"))
+    if len(files) != len(parts):
+        raise VerificationError(f"{len(files)} files for {len(parts)} parts")
+    for f, pages in zip(files, parts):
+        _check_same(f, [texts[i] for i in pages], what)
+    notes.append(f"Checked: {len(parts)} PDFs ({', '.join(str(len(p)) for p in parts[:6])}"
+                 f"{'…' if len(parts) > 6 else ''} pages), every page copied exactly.")
+
+
+def split_half(src: Path, out_dir: Path, opts: dict, notes: list[str]) -> None:
+    with _open(src) as d:
+        n = d.page_count
+    if n < 2:
+        raise ConversionError("This PDF has only one page, so it can't be split.")
+    mid = (n + 1) // 2
+    _write_parts(src, out_dir, [list(range(0, mid)), list(range(mid, n))], notes, "split in half")
+
+
+def split_every(src: Path, out_dir: Path, opts: dict, notes: list[str]) -> None:
+    try:
+        size = int(str(opts.get("n", "")).strip())
+    except ValueError as e:
+        raise ConversionError("Type how many pages each part should have, like 2.") from e
+    with _open(src) as d:
+        n = d.page_count
+    if size < 1:
+        raise ConversionError("Each part needs at least 1 page.")
+    if size >= n:
+        raise ConversionError(f"The PDF has {n} pages, so parts of {size} would just copy it.")
+    _write_parts(src, out_dir, [list(range(i, min(n, i + size))) for i in range(0, n, size)], notes,
+                 f"split every {size}")
+
+
+def split_ranges(src: Path, out_dir: Path, opts: dict, notes: list[str]) -> None:
+    from ..toolbox import parse_pages
+
+    with _open(src) as d:
+        n = d.page_count
+    parts = []
+    for chunk in str(opts.get("ranges", "")).replace(";", ",").split(","):
+        if chunk.strip():
+            try:
+                parts.append(parse_pages(chunk, n))
+            except ValueError as e:
+                raise ConversionError(str(e)) from e
+    if not parts:
+        raise ConversionError("Type the parts, for example 1-3, 4-10, 11-end.")
+    _write_parts(src, out_dir, parts, notes, "split by ranges")
+
+
+def reorder(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    with _open(src) as d:
+        n = d.page_count
+        texts = _page_texts(d)
+        if str(opts.get("order", "")).strip().lower() == "reverse":
+            order = list(range(n - 1, -1, -1))
+        else:
+            order = _ordered_pages(str(opts.get("order", "")), n)
+            order += [i for i in range(n) if i not in order]  # pages you didn't list keep their place at the end
+        if order == list(range(n)):
+            raise ConversionError("That's the same order as now, so nothing would change.")
+        d.select(order)
+        _save(d, out, garbage=4)
+    _check_same(out, [texts[i] for i in order], "reorder")
+    notes.append(f"Checked: all {n} pages, in the new order." if n > 1 else "Checked.")
+
+
+def reverse(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    with _open(src) as d:
+        if d.page_count < 2:
+            raise ConversionError("This PDF has only one page.")
+    reorder(src, out, {"order": "reverse"}, notes)
+
+
+def pictures(src: Path, out_dir: Path, opts: dict, notes: list[str]) -> None:
+    """Save the pictures inside a PDF exactly as stored (no re-encoding)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    seen: set[int] = set()
+    saved = []
+    with _open(src) as d:
+        smasks = {img[1] for page in d for img in page.get_images(full=True) if img[1]}
+        for pno, page in enumerate(d, 1):
+            for k, img in enumerate(page.get_images(full=True), 1):
+                xref = img[0]
+                if xref in seen or xref in smasks:
+                    continue
+                seen.add(xref)
+                info = d.extract_image(xref)
+                if not info or info.get("width", 0) < 32 or info.get("height", 0) < 32:
+                    continue  # icons and specks
+                ext = {"jpx": "jp2"}.get(info["ext"], info["ext"])
+                f = out_dir / f"Page {pno:02d} - picture {k}.{ext}"
+                Path(long_path(f)).write_bytes(info["image"])
+                saved.append((f, len(info["image"])))
+    if not saved:
+        raise ConversionError("There are no pictures in this PDF to save.")
+    for f, size in saved:
+        if Path(long_path(f)).stat().st_size != size:
+            raise VerificationError(f"{f.name} wasn't saved completely")
+    notes.append(f"Saved {len(saved)} picture{'s' if len(saved) != 1 else ''} exactly as stored in the PDF.")
+
+
+def grayscale(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    with _open(src) as d:
+        texts = _page_texts(d)
+        d.recolor(1)
+        _save(d, out, garbage=4, deflate_images=True)
+    _check_same(out, texts, "grayscale")
+    notes.append("Checked: every page in shades of gray; text unchanged. Good for printing and smaller uploads.")
+
+
+def flatten(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    import pymupdf
+
+    with _open(src) as d:
+        annots = sum(1 for page in d for _ in page.annots())
+        fields = sum(1 for page in d for _ in page.widgets())
+        if not annots and not fields:
+            raise ConversionError("This PDF has no form fields or comments to flatten.")
+        n = d.page_count
+        d.bake(annots=True, widgets=True)
+        _save(d, out, garbage=3)
+    with pymupdf.open(long_path(out)) as d:
+        left = sum(1 for page in d for _ in page.widgets())
+        if d.page_count != n or left:
+            raise VerificationError("the form fields are still editable")
+    what = " and ".join(x for x in (f"{fields} form field{'s' if fields != 1 else ''}" if fields else "",
+                                    f"{annots} comment{'s' if annots != 1 else ''}" if annots else "") if x)
+    notes.append(f"Flattened {what} into the pages: they look the same but can't be edited.")
+
+
+def clean_info(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    import pymupdf
+
+    with _open(src) as d:
+        texts = _page_texts(d)
+        found = [k for k, v in (d.metadata or {}).items() if v and k not in ("format", "encryption")]
+        d.scrub(attached_files=False, embedded_files=False, hidden_text=False, redactions=False, remove_links=False,
+                reset_fields=False, reset_responses=False, javascript=True, metadata=True, thumbnails=True,
+                xml_metadata=True, clean_pages=True)
+        d.set_metadata({})
+        _save(d, out, garbage=4)
+    _check_same(out, texts, "clean")
+    with pymupdf.open(long_path(out)) as d:
+        left = [k for k, v in (d.metadata or {}).items() if v and k not in ("format", "encryption")]
+        if left:
+            raise VerificationError(f"some details are still there ({', '.join(left)})")
+    notes.append("Removed hidden details: " + (", ".join(found) if found else "none were set") +
+                 "; also scripts and thumbnails. Pages unchanged.")
+
+
+def two_up(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    import pymupdf
+    from collections import Counter
+
+    with _open(src) as d:
+        n = d.page_count
+        words = Counter(w for t in _page_texts(d) for w in _words(t))
+        # Form fields and comments aren't part of a page's drawing; bake them in (in memory only,
+        # the original file isn't saved) so their values show on the sheets too.
+        d.bake(annots=True, widgets=True)
+        result = pymupdf.open()
+        W, H, m = 842, 595, 18  # A4 landscape, small margin
+        for i in range(0, n, 2):
+            sheet = result.new_page(width=W, height=H)
+            for k, pno in enumerate(range(i, min(n, i + 2))):
+                sheet.show_pdf_page(pymupdf.Rect(m + k * W / 2, m, (k + 1) * W / 2 - m / 2, H - m), d, pno)
+        result.save(long_path(out), garbage=3, deflate=True)
+        result.close()
+    with pymupdf.open(long_path(out)) as d:
+        if d.page_count != (n + 1) // 2:
+            raise VerificationError("wrong number of sheets")
+        got = Counter(w for p in d for w in _words(p.get_text()))
+        if any(got[w] < c for w, c in words.items()):
+            raise VerificationError("some text is missing")
+    notes.append(f"Checked: {n} pages on {(n + 1) // 2} A4 sheets, two side by side.")
+
+
+TOOLS.update({
+    "splithalf": split_half,
+    "splitevery": split_every,
+    "splitranges": split_ranges,
+    "reorder": reorder,
+    "reverse": reverse,
+    "pictures": pictures,
+    "gray": grayscale,
+    "flatten": flatten,
+    "clean": clean_info,
+    "nup": two_up,
+})
 
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:

@@ -76,10 +76,9 @@ def single_instance(name: str = "Local\\Tapshift.SingleInstance", wait_seconds: 
 SHOW_EVENT = "Local\\Tapshift.Show"
 
 
-def signal_running_instance() -> bool:
-    """Ask the Tapshift that's already running to show its window (used when it's started twice)."""
+def _signal(name: str) -> bool:
     kernel32.OpenEventW.restype = ctypes.c_void_p
-    h = kernel32.OpenEventW(0x0002, False, SHOW_EVENT)  # EVENT_MODIFY_STATE
+    h = kernel32.OpenEventW(0x0002, False, name)  # EVENT_MODIFY_STATE
     if not h:
         return False
     kernel32.SetEvent(ctypes.c_void_p(h))
@@ -87,13 +86,13 @@ def signal_running_instance() -> bool:
     return True
 
 
-def watch_show_requests(callback) -> None:
-    """Call ``callback`` (from a background thread) whenever a second launch asks to show
-    the window. Waiting on a Windows event uses no CPU."""
+def _watch(name: str, callback) -> None:
+    """Call ``callback`` (from a background thread) each time the named event is set.
+    Waiting on a Windows event uses no CPU."""
     import threading
 
     kernel32.CreateEventW.restype = ctypes.c_void_p
-    h = kernel32.CreateEventW(None, False, False, SHOW_EVENT)  # auto-reset
+    h = kernel32.CreateEventW(None, False, False, name)  # auto-reset
     if not h:
         return
 
@@ -104,7 +103,105 @@ def watch_show_requests(callback) -> None:
             except Exception:
                 pass
 
-    threading.Thread(target=run, name="show-requests", daemon=True).start()
+    threading.Thread(target=run, name=f"watch {name}", daemon=True).start()
+
+
+def signal_running_instance() -> bool:
+    """Ask the Tapshift that's already running to show its window (used when it's started twice)."""
+    return _signal(SHOW_EVENT)
+
+
+def watch_show_requests(callback) -> None:
+    _watch(SHOW_EVENT, callback)
+
+
+# ---------------------------------------------------------------- right-click "Convert with Tapshift"
+
+PICK_EVENT = "Local\\Tapshift.Pick"
+MENU_KEY = r"Software\Classes\*\shell\Tapshift"
+
+
+def pick_spool() -> Path:
+    from .paths import _dir
+
+    return _dir("LOCALAPPDATA", "pick")
+
+
+def send_pick(paths: list[str]) -> bool:
+    """Hand files from a right-click to the running Tapshift. Explorer starts one copy per
+    selected file; each drops its file here and the running app gathers them into one picker."""
+    import uuid
+
+    spool = pick_spool()
+    (spool / f"{uuid.uuid4().hex}.txt").write_text("\n".join(paths), encoding="utf-8")
+    return _signal(PICK_EVENT)
+
+
+def take_picks() -> list[str]:
+    paths: list[str] = []
+    for f in sorted(pick_spool().glob("*.txt"), key=lambda q: q.stat().st_mtime):
+        try:
+            paths += [line for line in f.read_text(encoding="utf-8").splitlines() if line.strip()]
+            f.unlink()
+        except OSError:
+            pass
+    seen, out = set(), []
+    for p in paths:
+        if p.lower() not in seen:
+            seen.add(p.lower())
+            out.append(p)
+    return out
+
+
+def watch_picks(callback) -> None:
+    _watch(PICK_EVENT, callback)
+
+
+def context_menu_enabled() -> bool:
+    import winreg
+
+    try:
+        winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CURRENT_USER, MENU_KEY))
+        return True
+    except OSError:
+        return False
+
+
+def set_context_menu(enabled: bool) -> None:
+    """Add (or remove) "Convert with Tapshift" to the right-click menu of every file.
+    Per user, no admin rights. On Windows 11 it's under "Show more options"."""
+    import winreg
+
+    if not enabled:
+        for sub in (MENU_KEY + r"\command", MENU_KEY):
+            try:
+                winreg.DeleteKey(winreg.HKEY_CURRENT_USER, sub)
+            except OSError:
+                pass
+        return
+    exe = sys.executable if getattr(sys, "frozen", False) else str(Path(sys.executable).with_name("pythonw.exe"))
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, MENU_KEY) as k:
+        winreg.SetValueEx(k, None, 0, winreg.REG_SZ, "Convert with Tapshift")
+        winreg.SetValueEx(k, "Icon", 0, winreg.REG_SZ, f'"{exe}",0')
+        winreg.SetValueEx(k, "MultiSelectModel", 0, winreg.REG_SZ, "Player")  # many files at once
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, MENU_KEY + r"\command") as k:
+        winreg.SetValueEx(k, None, 0, winreg.REG_SZ, launch_command('--pick "%1"'))
+
+
+# ---------------------------------------------------------------- recycle bin
+
+def recycle(paths: list[str]) -> int:
+    """Move files or folders to the Recycle Bin (they can be restored). Returns how many were moved."""
+    from win32com.shell import shell, shellcon
+
+    existing = [str(Path(p)) for p in paths if os.path.exists(p)]
+    if not existing:
+        return 0
+    flags = shellcon.FOF_ALLOWUNDO | shellcon.FOF_NOCONFIRMATION | shellcon.FOF_SILENT | shellcon.FOF_NOERRORUI
+    res, aborted = shell.SHFileOperation((0, shellcon.FO_DELETE, "\0".join(existing), None, flags, None, None))
+    if res != 0 or aborted:
+        raise OSError(f"the Recycle Bin refused the files (code {res})")
+    return sum(1 for p in existing if not os.path.exists(p))
 
 
 def launch_command(extra: str = "") -> str:
