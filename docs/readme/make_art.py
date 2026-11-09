@@ -36,7 +36,7 @@ BASE_CSS = f"""
 .fb{{transform-box:fill-box;transform-origin:center}}
 @media (prefers-reduced-motion: reduce){{
 *{{animation:none!important}}
-.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{{opacity:1}}
+.ren,.wm,.pn,.szlast,.zipt,.first,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{{opacity:1}}
 [class*="ink"],.cover{{opacity:0}}
 }}
 """
@@ -86,6 +86,113 @@ def keycap(x, y, label, cls, w=None) -> str:
             f'</g></g>'), w
 
 
+
+# ======================================================================= orbit (the picker)
+
+ORBIT_STEPS = [  # (ring, label, tag, caption, blurb line 1, blurb line 2, new file)
+    ("o", "WEBP", "FORMAT", "quality 92", "Small and sharp,", "made for the web", "IMG_2041.webp"),
+    ("i", "Compress", "TOOL", "under 100 KB", "Pick a size, see", "the quality first", "IMG_2041 (compressed).jpg"),
+    ("o", "PDF", "FORMAT", "1 page", "One page per", "picture", "IMG_2041.pdf"),
+    ("i", "Read text", "TOOL", "OCR", "Copy the words", "out of a scan", "IMG_2041 (text).txt"),
+    ("o", "PNG", "FORMAT", "lossless", "Lossless, keeps", "transparency", "IMG_2041.png"),
+    ("i", "ZIP", "TOOL", "pack", "Pack everything", "into one .zip", "IMG_2041.zip"),
+]
+ORBIT_OUTER = ["JPG", "PNG", "WEBP", "PDF", "HEIC", "AVIF", "ICO", "GIF"]
+ORBIT_INNER = ["Compress", "Read text", "ZIP"]
+
+
+def orbit_picker(cx, cy, R_out, R_in, pr, hub_r, step_s, start, prefix, card_x=None, center="IMG_2041.heic",
+                 label_px=13, spin=(70, 50)):
+    """The Orbit picker: inner ring of tools, outer ring of formats, drifting in opposite
+    directions with labels kept upright; a highlight (plus tether, hub text and side card)
+    steps through ORBIT_STEPS."""
+    n = len(ORBIT_STEPS)
+    total = step_s * n
+    win = 100 / n
+    css = f"""
+.{prefix}ro{{animation:{prefix}spin {spin[0]}s linear infinite}}
+.{prefix}uo{{animation:{prefix}spin {spin[0]}s linear infinite reverse}}
+.{prefix}ri{{animation:{prefix}spin {spin[1]}s linear infinite reverse}}
+.{prefix}ui{{animation:{prefix}spin {spin[1]}s linear infinite}}
+@keyframes {prefix}spin{{to{{transform:rotate(360deg)}}}}
+.{prefix}pop{{animation:{prefix}pop .7s cubic-bezier(.2,1.5,.4,1) both}}
+@keyframes {prefix}pop{{from{{opacity:0;transform:scale(.3)}}to{{opacity:1;transform:none}}}}
+.{prefix}hl{{opacity:0;animation:{prefix}hl {total}s linear infinite}}
+@keyframes {prefix}hl{{0%{{opacity:0}}2%{{opacity:1}}{win - 2:.2f}%{{opacity:1}}{win:.2f}%{{opacity:0}}100%{{opacity:0}}}}
+.{prefix}card{{opacity:0;animation:{prefix}card {total}s cubic-bezier(.2,.9,.2,1) infinite}}
+@keyframes {prefix}card{{0%{{opacity:0;transform:translateX(-10px)}}2.5%{{opacity:1;transform:none}}{win - 2:.2f}%{{opacity:1;transform:none}}{win:.2f}%{{opacity:0}}100%{{opacity:0}}}}
+"""
+    step_of = {(r, lbl): j for j, (r, lbl, *_rest) in enumerate(ORBIT_STEPS)}
+    delay = lambda j: f"animation-delay:{start + j * step_s:.2f}s"  # noqa: E731
+    parts = []
+    # orbits
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="{R_out}" fill="none" stroke="rgba(255,255,255,0.16)" '
+                 f'stroke-width="1.4" stroke-linecap="round" stroke-dasharray="0.1 7"/>')
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="{R_in}" fill="none" stroke="rgba(255,255,255,0.14)" '
+                 f'stroke-width="1.2" stroke-dasharray="4 7"/>')
+    order = 0
+    for ring, labels, R, rot, unrot in (("i", ORBIT_INNER, R_in, "ri", "ui"), ("o", ORBIT_OUTER, R_out, "ro", "uo")):
+        m = len(labels)
+        g = [f'<circle cx="{cx}" cy="{cy}" r="{R + pr + 2}" fill="none"/>']  # keeps the group centred on the hub
+        for k, lbl in enumerate(labels):
+            a = -90 + k * 360 / m + (180 / m if ring == "o" else 0)
+            x, y = polar(cx, cy, R, a + 90)
+            j = step_of.get((ring, lbl))
+            tool = ring == "i"
+            size = label_px if len(lbl) <= 5 else label_px * 0.82
+            dot = (f'<circle cx="0" cy="{-pr * 0.42:.1f}" r="{pr * 0.09:.1f}" fill="{{dc}}"/>' if tool else
+                   f'<circle cx="0" cy="{-pr * 0.42:.1f}" r="{pr * 0.085:.1f}" fill="none" stroke="{{dc}}" stroke-width="1.2"/>')
+            label = (f'<text class="s b" x="0" y="{size * 0.42 + pr * 0.1:.1f}" font-size="{size:.1f}" '
+                     f'text-anchor="middle" fill="{{tc}}">{lbl}</text>')
+            hl = ""
+            tether = ""
+            if j is not None:
+                hl = (f'<g class="{prefix}hl{" first" if j == 0 else ""}" style="{delay(j)}">'
+                      f'<circle r="{pr + 6}" fill="none" stroke="{ACC}" stroke-opacity=".35" stroke-width="2"/>'
+                      f'<circle r="{pr + 1}" fill="{ACC}"/>' + dot.format(dc=ON_ACC) + label.format(tc=ON_ACC) + '</g>')
+                t0, t1 = hub_r + 4, R - pr - 7
+                ax, ay = polar(cx, cy, t0, a + 90)
+                bx, by = polar(cx, cy, t1, a + 90)
+                tether = (f'<g class="{prefix}hl{" first" if j == 0 else ""}" style="{delay(j)}"><line x1="{ax:.1f}" '
+                          f'y1="{ay:.1f}" x2="{bx:.1f}" y2="{by:.1f}" stroke="{ACC}" stroke-width="2.2" '
+                          f'stroke-linecap="round"/></g>')
+            g.append(tether)
+            g.append(f'<g transform="translate({x:.1f},{y:.1f})"><g class="fb {prefix}{unrot}">'
+                     f'<g class="fb {prefix}pop" style="animation-delay:{0.25 + order * 0.05:.2f}s">'
+                     f'<circle r="{pr}" fill="{S2}" stroke="rgba(255,255,255,0.10)"/>' + dot.format(dc=ACC if tool else DIM)
+                     + label.format(tc=TEXT) + hl + '</g></g></g>')
+            order += 1
+        parts.append(f'<g class="fb {prefix}{rot}">{"".join(g)}</g>')
+    # hub
+    parts.append(f'<g class="fb {prefix}pop" style="animation-delay:.1s"><circle cx="{cx}" cy="{cy}" r="{hub_r}" '
+                 f'fill="{S1}" stroke="rgba(255,255,255,0.12)"/>'
+                 f'<text class="s b" x="{cx}" y="{cy - 2}" font-size="{label_px}" text-anchor="middle" fill="{TEXT}">'
+                 f'{center}</text></g>')
+    for j, st in enumerate(ORBIT_STEPS):
+        parts.append(f'<g class="{prefix}hl{" first" if j == 0 else ""}" style="{delay(j)}"><text class="s sb" x="{cx}" '
+                     f'y="{cy + 17}" font-size="{label_px * 0.85:.1f}" text-anchor="middle" fill="{ACC}">→ {st[1]}</text></g>')
+    # side card
+    if card_x is not None:
+        cw, chh = 190, 150
+        y0 = cy - chh / 2
+        for j, (ring, lbl, tag, cap, b1, b2, out) in enumerate(ORBIT_STEPS):
+            capw = chip_w(cap, 11, 9)
+            parts.append(
+                f'<g class="{prefix}card{" first" if j == 0 else ""}" style="{delay(j)}">'
+                f'<rect x="{card_x}" y="{y0}" width="{cw}" height="{chh}" rx="16" fill="{S1}" stroke="{S3}"/>'
+                f'<text class="m b" x="{card_x + 16}" y="{y0 + 26}" font-size="10" letter-spacing="1" '
+                f'fill="{ACC if tag == "TOOL" else DIM}">{tag}</text>'
+                f'<rect x="{card_x + cw - 16 - capw:.1f}" y="{y0 + 12}" width="{capw:.1f}" height="20" rx="10" fill="{S2}"/>'
+                f'<text class="s sb" x="{card_x + cw - 16 - capw / 2:.1f}" y="{y0 + 26}" font-size="11" fill="{DIM}" '
+                f'text-anchor="middle">{cap}</text>'
+                f'<text class="s b" x="{card_x + 16}" y="{y0 + 58}" font-size="22" fill="{TEXT}">{lbl}</text>'
+                f'<text class="s" x="{card_x + 16}" y="{y0 + 82}" font-size="13" fill="{TEXT}" fill-opacity=".82">{b1}</text>'
+                f'<text class="s" x="{card_x + 16}" y="{y0 + 99}" font-size="13" fill="{TEXT}" fill-opacity=".82">{b2}</text>'
+                f'<text class="m" x="{card_x + 16}" y="{y0 + 128}" font-size="11"><tspan fill="{ACC}">→ </tspan>'
+                f'<tspan fill="{DIM}">{out if len(out) <= 22 else out[:20] + "…"}</tspan></text></g>')
+    return "".join(parts), css
+
+
 # ======================================================================= hero
 
 WHEEL = ["Compress", "PNG", "WEBP", "Lock", "Read text", "PDF", "ZIP", "More"]
@@ -133,7 +240,7 @@ def wheel(cx, cy, r0, r1, names, subs, step_s, prefix, label_size=17, sub_size=1
 
 def hero() -> str:
     W, H = 1200, 640
-    cx, cy = 870, 300
+    cx, cy = 752, 300
     css = f"""
 .grid{{animation:drift 18s linear infinite}}
 @keyframes drift{{from{{transform:translate(0,0)}}to{{transform:translate(-32px,-32px)}}}}
@@ -168,7 +275,7 @@ def hero() -> str:
     # --- left column
     body.append(f'<g class="rise" style="animation-delay:.05s"><rect x="80" y="92" width="268" height="36" rx="18" '
                 f'fill="{S1}" stroke="{S3}"/><circle class="dot" cx="102" cy="110" r="5" fill="{ACC}"/>'
-                f'<text class="s sb" x="118" y="116" font-size="15" fill="{TEXT}">v1.1 · free &amp; open source</text></g>')
+                f'<text class="s sb" x="118" y="116" font-size="15" fill="{TEXT}">v1.2 · free &amp; open source</text></g>')
     body.append(f'<g class="rise" style="animation-delay:.15s"><text class="s b" x="76" y="236" font-size="104" '
                 f'fill="{TEXT}" letter-spacing="-3">Tapshift</text></g>')
     body.append(f'<rect class="fb under" x="82" y="258" width="150" height="8" rx="4" fill="{ACC}" '
@@ -188,28 +295,16 @@ def hero() -> str:
         body.append(f'<g class="stat" style="animation-delay:{1.3 + i * .12:.2f}s"><text class="s b" x="{x}" y="574" '
                     f'font-size="30" fill="{TEXT}">{big}</text><text class="s" x="{x}" y="598" font-size="14" '
                     f'fill="{DIM}">{small}</text></g>')
-    # --- right: ripples, orbit, wheel
+    # --- right: ripples behind the picker, then the picker itself (Orbit)
     for i in range(3):
-        body.append(f'<circle class="fb ripple" style="animation-delay:{i * .22:.2f}s" cx="{cx}" cy="{cy}" r="200" '
+        body.append(f'<circle class="fb ripple" style="animation-delay:{i * .22:.2f}s" cx="{cx}" cy="{cy}" r="190" '
                     f'fill="none" stroke="{ACC}" stroke-width="2"/>')
-    body.append(f'<circle class="dash" cx="{cx}" cy="{cy}" r="236" fill="none" stroke="{S3}" stroke-width="1.5" '
-                f'stroke-dasharray="4 10"/>')
-    chips = ["HEIC", "PDF", "CSV", "ZIP", "DOCX", "MD", "PNG", "JSON"]
-    orbit = [f'<circle cx="{cx}" cy="{cy}" r="252" fill="none"/>']
-    for i, c in enumerate(chips):
-        x, y = polar(cx, cy, 236, i * 45 + 22)
-        w = chip_w(c, 13, 11)
-        orbit.append(f'<g transform="translate({x:.1f},{y:.1f})"><g class="fb unspin">'
-                     f'<rect x="{-w / 2:.1f}" y="-15" width="{w:.1f}" height="30" rx="15" fill="{S1}" stroke="{S3}"/>'
-                     f'<text class="m sb" x="0" y="5" font-size="13" fill="{TEXT if i % 3 else ACC}" '
-                     f'text-anchor="middle">{c}</text></g></g>')
-    body.append(f'<g class="fb orbit">{"".join(orbit)}</g>')
-    wh, wcss = wheel(cx, cy, 70, 182, WHEEL, WHEEL_SUB, 1.0, "w")
-    css += wcss
-    body.append(wh)
+    orb, ocss = orbit_picker(cx, cy, 168, 102, 29, 58, 1.6, 1.4, "h", card_x=cx + 168 + 29 + 38)
+    css += ocss
+    body.append(orb)
     # --- toast
     tw = 452
-    body.append(f'<g transform="translate({cx - tw / 2},{H - 78})"><g class="toast">'
+    body.append(f'<g transform="translate({cx + 60 - tw / 2},{H - 74})"><g class="toast">'
                 f'<rect width="{tw}" height="50" rx="25" fill="{S1}" stroke="{S3}"/>'
                 f'<circle cx="25" cy="25" r="14" fill="{ACC}"/>'
                 f'<path class="check" d="M18.5 25.5 l4.5 4.5 l8.5 -9" fill="none" stroke="{ON_ACC}" stroke-width="3" '
@@ -329,9 +424,21 @@ def flow() -> str:
                     f'</text></g></g>')
     # 3: mini wheel
     x = xs[2]
-    mini, mcss = wheel(x, cy, 18, 56, [""] * 8, None, T / 16, "mw", 1, 1, center=("", ""))
-    css += mcss
-    body.append(mini)
+    mini = [f'<circle cx="{x}" cy="{cy}" r="46" fill="none" stroke="rgba(255,255,255,0.16)" stroke-dasharray="0.1 5" '
+            f'stroke-linecap="round" stroke-width="1.3"/>', f'<g class="fb mspin"><circle cx="{x}" cy="{cy}" r="56" fill="none"/>']
+    for k in range(6):
+        px, py = polar(x, cy, 46, k * 60 + 90)
+        mini.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="9" fill="{S2}" stroke="rgba(255,255,255,0.12)"/>'
+                    f'<circle class="mhl" style="animation-delay:{k * 0.5:.1f}s" cx="{px:.1f}" cy="{py:.1f}" r="9.5" fill="{ACC}"/>')
+    mini.append('</g>')
+    mini.append(f'<circle cx="{x}" cy="{cy}" r="17" fill="{S1}" stroke="rgba(255,255,255,0.14)"/>')
+    css += """
+.mspin{animation:mspin 24s linear infinite}
+@keyframes mspin{to{transform:rotate(360deg)}}
+.mhl{opacity:0;animation:mhl 3s linear infinite}
+@keyframes mhl{0%{opacity:0}3%{opacity:1}14%{opacity:1}17%{opacity:0}100%{opacity:0}}
+"""
+    body.append("".join(mini))
     # 4: done
     x = xs[3]
     body.append(f'<path d="M{x - 20},{cy - 32} h26 l14,14 v50 h-40 z" fill="{PAPER}"/>'

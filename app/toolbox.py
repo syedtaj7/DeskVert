@@ -1,4 +1,4 @@
-"""Everyday file tools offered on the wheel: image compression, PDF tools,
+"""Everyday file tools offered in the picker: image compression, PDF tools,
 zip/extract, data files, Markdown/text documents and text recognition (OCR).
 
 Lightweight on purpose (runs in the tray app on every shortcut press): no

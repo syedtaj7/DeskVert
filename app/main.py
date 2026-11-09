@@ -474,6 +474,9 @@ def main() -> int:
     if not QSystemTrayIcon.isSystemTrayAvailable():
         log.error("no system tray available")
     ctl = Controller(app)  # noqa: F841 - keep alive
+    from .ui.orbit import warm_fonts
+
+    QTimer.singleShot(1500, warm_fonts)  # so the picker's first hover doesn't pay for loading fonts
     log.info("started %s %s, shortcut %s", APP_NAME, __version__, ctl.settings.hotkey)
     code = app.exec()
     log.info("stopped")

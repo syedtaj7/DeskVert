@@ -29,7 +29,7 @@ class Option:
 @dataclass(frozen=True)
 class Target:
     key: str  # "<engine>.<format>", e.g. "image.webp"
-    label: str  # shown on the wheel, e.g. "WEBP"
+    label: str  # shown in the picker, e.g. "WEBP"
     ext: str  # output extension, e.g. ".webp"; "*" = decided per file (same as source or by options)
     combine: bool = False  # many inputs -> one output file
     folder: str = ""  # non-empty: output is a new folder, named "<file> (<folder>)"
@@ -78,7 +78,7 @@ IMAGE_EXTS: dict[str, str] = {
     **{e: "raw" for e in RAW_EXTS},
 }
 
-# Ordered by how often people want them; the first seven go on the wheel.
+# Ordered by how often people want them (the picker keeps this order).
 IMAGE_TARGETS = [
     Target("image.jpg", "JPG", ".jpg"),
     Target("image.png", "PNG", ".png"),

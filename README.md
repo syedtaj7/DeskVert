@@ -30,7 +30,7 @@ and the new file appears right next to the original, checked and ready.
 
 1. **Select** one file or many, in File Explorer or on the Desktop.
 2. **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd>: press both, let go. Normal shortcuts like <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> keep working.
-3. **Pick** a format or a tool on the wheel. Right-click a slice for its options, or just start typing (`pdf`, `zip`…).
+3. **Pick** from the orbit: tools circle on one ring, formats on the other. Point at one and a small card says what it does and what the new file will be called. Right-click for options, or just start typing (`pdf`, `zip`…).
 4. **Done.** `photo.heic` becomes `photo.webp` in the same folder. Nothing is ever overwritten.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
@@ -101,7 +101,7 @@ Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/wheel-and-progress.png" alt="The format wheel and the progress card"><br><sub><b>The wheel</b> and the progress card in the corner</sub></td>
+<td width="50%"><img src="docs/images/picker.png" alt="The Orbit picker with its side card"><br><sub><b>The picker</b>: point at an option to see what it does</sub></td>
 <td width="50%"><img src="docs/images/welcome.png" alt="Welcome tour"><br><sub><b>Welcome tour</b>: a minute to get going</sub></td>
 </tr>
 <tr>
@@ -137,9 +137,9 @@ Any of these works, and each removes everything (app, settings, logs):
 | Action | How |
 |---|---|
 | Convert | Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, click a format |
-| Options (quality, pages, password…) | Right-click a format on the wheel; tools ask when you click them |
+| Options (quality, pages, password…) | Right-click an option in the picker; tools ask when you click them |
 | Every format | Click **More**, or just start typing |
-| Close the wheel | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
+| Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
 | Guide, settings, recent files | Right-click the Tapshift icon in the tray |
 
@@ -177,7 +177,7 @@ Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.p
 
 | Folder | What's inside |
 |---|---|
-| `app/` | The tray app: shortcut, wheel, windows |
+| `app/` | The tray app: shortcut, picker, windows |
 | `app/engines/` | The converters and tools, each with its own checks |
 | `app/ui/` | The animated interface |
 | `docs/readme/` | This page's animations (`python docs/readme/make_art.py` regenerates them) |

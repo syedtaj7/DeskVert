@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0
+
+### Orbit: a new picker
+- **Orbit replaces the wheel.** Tools circle on one orbit and formats on the other. Point at one and the
+  orbits stop, the option leans toward your pointer, and a small card on the side says what it does and
+  what the new file will be called.
+- **Room to grow:** shows about 20 options before a "More" button appears, instead of 7.
+- **Smooth on low-end laptops:** everything is pre-drawn, motion is time-based, the animation stops when
+  nothing moves, and the idle drift settles by itself after a few seconds. Windows' "Animation effects"
+  setting turns the motion off.
+- **Fewer warning dots:** only real cautions (like "transparent areas become white") are marked in amber.
+- The welcome tour, the guide and the README show the new picker.
+
 ## 1.1.1
 
 ### Easier to uninstall

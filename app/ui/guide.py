@@ -167,39 +167,19 @@ def keys_html(*ks: str) -> str:
 
 
 def _wheel_demo() -> QWidget:
-    """A live copy of the real format wheel: hover it, use the arrow keys."""
+    """A live copy of the real picker: point at an option, use the arrow keys."""
     from ..catalog import offers_for
     from ..settings import Settings
-    from .popup import Wheel
+    from .orbit import OrbitView
 
     offers, _ = offers_for([Path("C:/Pictures/beach.heic")], Settings())
-    items = list(offers) if len(offers) <= 8 else list(offers[:7]) + [None]
     holder = QWidget()
     row = QHBoxLayout(holder)
     row.setContentsMargins(0, 6, 0, 6)
-    wheel = Wheel(items, "1 HEIC")
-    info = label("Hover a format to see what it does.", 13, dim=True)
-    info.setTextFormat(Qt.TextFormat.RichText)  # the hover text below is formatted
-    info.setMinimumWidth(220)
-
-    def hovered(i: int):
-        if 0 <= i < len(items) and items[i] is not None:
-            o = items[i]
-            warn = "<br><br>".join(f"<span style='color:{theme.rgba(theme.WARN)}'>{w}</span>"
-                                   for w in o.warnings) or "No quality loss."
-            info.setText(f"<b style='color:{theme.rgba(theme.TEXT)}; font-size:16px;'>{o.target.label}</b>"
-                         f"<br><span style='color:{theme.rgba(theme.ACCENT_A)};'>{o.caption}</span><br><br>{warn}")
-        elif 0 <= i < len(items):
-            info.setText("<b>More</b><br>Opens the full, searchable list of every format.")
-        else:
-            info.setText("Hover a format to see what it does.")
-
-    wheel.hovered.connect(hovered)
-    wheel.activated.connect(lambda i: info.setText(
-        info.text() + "<br><br><i>In real use, a click converts right away.</i>"))
-    row.addWidget(wheel)
-    row.addSpacing(16)
-    row.addWidget(info, 1)
+    orbit = OrbitView(offers, "1 HEIC", card_side="right", scale=0.8)
+    row.addStretch(1)
+    row.addWidget(orbit)
+    row.addStretch(1)
     return holder
 
 
@@ -214,8 +194,8 @@ def build_guide_sections(sections: Sections) -> list[str]:
     c = bullets([
         ("Select one or more files", "In File Explorer or on the Desktop. Mixed selections are fine: Tapshift "
                                      "uses the biggest group of same-type files."),
-        ("Tap " + keys_html("Ctrl", "Shift"), "Press both together and let go. The format wheel opens at your "
-                                              "mouse pointer."),
+        ("Tap " + keys_html("Ctrl", "Shift"), "Press both together and let go. The picker opens at your mouse "
+                                              "pointer."),
         ("Pick a format", "The converted file appears next to the original. A card at the bottom-right shows "
                           "progress and the result."),
     ])
@@ -225,24 +205,27 @@ def build_guide_sections(sections: Sections) -> list[str]:
     sections.add(page, [a, b, demo, c])
     names.append("Quick start")
 
-    # 2. The wheel
+    # 2. The picker
     page, lay = section_page()
-    a = h1("The format wheel")
-    b = para("It only offers formats that make sense for the files you selected. Try it below: it's the real one.")
+    a = h1("The picker")
+    b = para("Tools circle on one orbit and formats on the other, and only ones that make sense for your "
+             "files appear. Try it below: it's the real one.")
     wheel = _wheel_demo()
     c = bullets([
-        ("Click a format", "Converts straight away with the best-quality settings."),
-        ("Right-click a format", "Opens its options first: quality, lossless mode, page size and more."),
+        ("Point at one", "The orbits stop and a card on the side says what it does and what the new file is "
+                         "called."),
+        ("Click it", "Converts straight away with the best-quality settings."),
+        ("Right-click it", "Opens its options first: quality, page size, password and more."),
         ("Start typing", "Type <b>webp</b> or <b>pdf</b> to search every format. Enter converts, Tab opens options."),
         ("Yellow dot", "This choice has something to know, for example \u201ctransparent areas become white\u201d. "
-                       "Hover it to read the note."),
+                       "Point at it to read the note."),
         ("Close it", "Press Esc, click anywhere else, or tap the shortcut again."),
     ])
     for w in (a, b, wheel, c):
         lay.addWidget(w)
     lay.addStretch(1)
     sections.add(page, [a, b, wheel, c])
-    names.append("The format wheel")
+    names.append("The picker")
 
     # 3. Formats
     page, lay = section_page()
@@ -341,9 +324,9 @@ def build_guide_sections(sections: Sections) -> list[str]:
                                        "Check that the shortcut isn't paused (tray menu)."),
         ("\u201cCan't convert this file\u201d", "The card says why: for example the type isn't supported, or "
                                                 "Word documents need Microsoft Office."),
-        ("Password-protected files", "PDFs: use <b>Unlock</b> on the wheel (you need the password). Office "
+        ("Password-protected files", "PDFs: use <b>Unlock</b> in the picker (you need the password). Office "
                                      "files: remove the password in Office first."),
-        ("A scanned PDF has no text", "Use <b>Read text</b> or <b>Searchable</b> on the wheel. They use Windows' "
+        ("A scanned PDF has no text", "Use <b>Read text</b> or <b>Searchable</b> in the picker. They use Windows' "
                                       "own text recognition, in the languages installed in Windows (Settings "
                                       "→ Time & language → Language)."),
         ("Still stuck?", "Tray menu \u2192 Open log folder, and include <b>app.log</b> when reporting an issue on "

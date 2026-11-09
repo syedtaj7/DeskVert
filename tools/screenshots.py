@@ -10,7 +10,6 @@ sys.path.insert(0, str(ROOT))
 os.environ["TAPSHIFT_THEME"] = sys.argv[1] if len(sys.argv) > 1 else "dark"
 
 from PySide6.QtCore import QEventLoop, QTimer  # noqa: E402
-from PySide6.QtGui import QColor, QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 app = QApplication([])
@@ -19,7 +18,6 @@ from app.settings import Settings  # noqa: E402
 from app.ui import theme  # noqa: E402
 from app.ui.guide import GuideWindow  # noqa: E402
 from app.ui.onboarding import TourWindow  # noqa: E402
-from app.ui.panels import ProgressPanel  # noqa: E402
 from app.ui.popup import Popup  # noqa: E402
 from app.ui.settings_ui import SettingsWindow  # noqa: E402
 
@@ -50,31 +48,14 @@ tour.hide()
 
 files = [Path("C:/Pictures/beach.heic")]
 offers, _ = offers_for(files, Settings())
-pop = Popup(describe_selection(files), "1 HEIC", "", offers)
+pop = Popup(describe_selection(files), "beach.heic", "", offers)
 pop.show()
-wait(200)
-idx = next(i for i, o in enumerate(pop.wheel.items) if o is not None and o.target.label == "WEBP")
-pop.wheel.set_hover(idx)
-pop._wheel_hover(idx)
-wait(100)
-wheel = pop.grab()
+wait(900)  # let the orbit finish opening
+idx = next(i for i, o in enumerate(pop.orbit.items) if o is not None and o.target.label == "WEBP")
+pop.orbit.set_hover(idx)
+wait(700)  # the drift stops and the side card slides in
+save(pop, "picker")
 pop.hide()
-
-panel = ProgressPanel()
-panel.start("WEBP", 1)
-panel.set_file("beach.heic", 1, 1)
-panel.finish("success", "Saved beach.webp", "Checked against the original: everything matches.", "C:/x/beach.webp")
-wait(300)
-card = panel.grab()
-panel.hide()
-
-sheet = QPixmap(wheel.width() + card.width() + 30, max(wheel.height(), card.height()) + 20)
-sheet.fill(QColor(0, 0, 0, 0))
-p = QPainter(sheet)
-p.drawPixmap(10, 10, wheel)
-p.drawPixmap(wheel.width() + 20, sheet.height() - card.height() - 10, card)
-p.end()
-sheet.save(str(OUT / "wheel-and-progress.png"))
 
 g = GuideWindow()
 g.present()

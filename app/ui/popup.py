@@ -1,27 +1,26 @@
 """The popup shown when the hotkey is pressed.
 
-Three views share one card:
-- Wheel: up to 8 formats in a ring around the selection (mouse or arrow keys).
+Views sharing one card:
+- Orbit: tools and formats circling the selection, with a side card that
+  explains the one you point at (mouse or arrow keys). See orbit.py.
 - List: every format, with search. Start typing anywhere to open it.
-- Options: quality and other settings (right-click a format, or Tab in the list).
+- Options: quality and other settings (right-click an option, or Tab in the list).
 """
 
 from __future__ import annotations
 
-import math
 
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPointF, QPropertyAnimation, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QKeyEvent, QLinearGradient, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QKeyEvent, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
-    QAbstractButton, QCheckBox, QComboBox, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+    QAbstractButton, QCheckBox, QComboBox, QFrame, QHBoxLayout, QSizePolicy, QLabel, QLineEdit, QListWidget,
     QListWidgetItem, QPushButton, QSlider, QStackedWidget, QStyle, QStyledItemDelegate, QVBoxLayout, QWidget,
 )
 
 from ..catalog import Offer
 from ..winutil import force_foreground
 from . import theme
-
-WHEEL_MAX = 8
+from .orbit import OrbitView, real_warning
 
 
 def _font(px: float, weight: QFont.Weight = QFont.Weight.Normal) -> QFont:
@@ -37,163 +36,7 @@ def with_a(c: QColor, a: float) -> QColor:
     return out
 
 
-# ====================================================================== wheel
-
-
-class Wheel(QWidget):
-    activated = Signal(int)
-    options_requested = Signal(int)
-    hovered = Signal(int)  # -1 = none
-
-    def __init__(self, items: list[Offer | None], center_title: str, parent=None):
-        super().__init__(parent)
-        self.items = items  # None = "More..."
-        self.center_title = center_title
-        self.hover = -1
-        self.setMouseTracking(True)
-        self.setFixedSize(QSize(300, 300))
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.R, self.r = 146.0, 60.0
-
-    # geometry ----------------------------------------------------------
-    @property
-    def span(self) -> float:
-        return 360.0 / max(1, len(self.items))
-
-    def _center(self) -> QPointF:
-        return QPointF(self.width() / 2, self.height() / 2)
-
-    def _mid_angle(self, i: int) -> float:
-        return 90.0 - i * self.span
-
-    def _index_at(self, pos: QPointF) -> int:
-        c = self._center()
-        dx, dy = pos.x() - c.x(), pos.y() - c.y()
-        dist = math.hypot(dx, dy)
-        if dist < self.r or dist > self.R + 6:
-            return -1
-        ang = math.degrees(math.atan2(-dy, dx))
-        offset = (90.0 - ang) % 360.0
-        return int((offset + self.span / 2) // self.span) % len(self.items)
-
-    def _slice_path(self, i: int) -> QPainterPath:
-        c = self._center()
-        outer = QRectF(c.x() - self.R, c.y() - self.R, 2 * self.R, 2 * self.R)
-        inner = QRectF(c.x() - self.r, c.y() - self.r, 2 * self.r, 2 * self.r)
-        start = self._mid_angle(i) + self.span / 2
-        path = QPainterPath()
-        path.arcMoveTo(outer, start)
-        path.arcTo(outer, start, -self.span)
-        path.arcTo(inner, start - self.span, self.span)
-        path.closeSubpath()
-        return path
-
-    # painting ----------------------------------------------------------
-    def paintEvent(self, _):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        c = self._center()
-        edge = QPen(theme.SLICE_EDGE, 3)
-
-        for i, item in enumerate(self.items):
-            path = self._slice_path(i)
-            if i == self.hover:
-                g = QLinearGradient(c.x() - self.R, c.y() - self.R, c.x() + self.R, c.y() + self.R)
-                g.setColorAt(0, theme.ACCENT_A)
-                g.setColorAt(1, theme.ACCENT_B)
-                p.fillPath(path, QBrush(g))
-            else:
-                p.fillPath(path, theme.SLICE)
-            p.setPen(edge)
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawPath(path)
-
-            mid = self._mid_angle(i)
-            pos = theme.polar(c, (self.r + self.R) / 2 + 3, mid)
-            label = "More" if item is None else item.target.label
-            caption = "all formats" if item is None else item.caption
-            f1 = _font(15 if len(label) <= 4 else 13, QFont.Weight.Bold)
-            f2 = _font(9.5)
-            p.setFont(f1)
-            p.setPen(theme.ON_ACCENT if i == self.hover else theme.TEXT)
-            fm1 = QFontMetrics(f1)
-            w1 = fm1.horizontalAdvance(label)
-            p.drawText(QPointF(pos.x() - w1 / 2, pos.y() + 2), label)
-            if caption:
-                p.setFont(f2)
-                fm2 = QFontMetrics(f2)
-                cap = fm2.elidedText(caption, Qt.TextElideMode.ElideRight, 70)
-                p.setPen(with_a(theme.ON_ACCENT, 0.75) if i == self.hover else theme.DIM)
-                p.drawText(QPointF(pos.x() - fm2.horizontalAdvance(cap) / 2, pos.y() + 16), cap)
-            if item is not None and _has_real_warning(item):
-                p.setPen(Qt.PenStyle.NoPen)
-                p.setBrush(theme.WARN)
-                p.drawEllipse(QPointF(pos.x() + w1 / 2 + 6, pos.y() - 9), 3, 3)
-
-        # center
-        p.setPen(QPen(theme.LINE, 1.5))
-        p.setBrush(theme.CENTER)
-        p.drawEllipse(c, self.r - 7, self.r - 7)
-        p.setPen(theme.TEXT)
-        f = _font(14, QFont.Weight.Bold)
-        p.setFont(f)
-        fm = QFontMetrics(f)
-        title = fm.elidedText(self.center_title, Qt.TextElideMode.ElideMiddle, int(2 * self.r - 22))
-        p.drawText(QPointF(c.x() - fm.horizontalAdvance(title) / 2, c.y() - 2), title)
-        f = _font(10.5, QFont.Weight.DemiBold)
-        p.setFont(f)
-        fm = QFontMetrics(f)
-        if 0 <= self.hover < len(self.items):
-            item = self.items[self.hover]
-            sub = "all formats" if item is None else f"→ {item.target.label}"
-            p.setPen(theme.ACCENT_A)
-        else:
-            sub = "convert to"
-            p.setPen(theme.DIM)
-        p.drawText(QPointF(c.x() - fm.horizontalAdvance(sub) / 2, c.y() + 15), sub)
-        p.end()
-
-    # interaction -------------------------------------------------------
-    def set_hover(self, i: int) -> None:
-        if i != self.hover:
-            self.hover = i
-            self.hovered.emit(i)
-            self.update()
-
-    def mouseMoveEvent(self, e):
-        self.set_hover(self._index_at(e.position()))
-
-    def leaveEvent(self, _):
-        self.set_hover(-1)
-
-    def mouseReleaseEvent(self, e):
-        i = self._index_at(e.position())
-        if i < 0:
-            return
-        if e.button() == Qt.MouseButton.RightButton:
-            self.options_requested.emit(i)
-        elif e.button() == Qt.MouseButton.LeftButton:
-            self.activated.emit(i)
-
-    def keyPressEvent(self, e: QKeyEvent):
-        n = len(self.items)
-        k = e.key()
-        if k in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-            self.set_hover((self.hover + 1) % n if self.hover >= 0 else 0)
-        elif k in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-            self.set_hover((self.hover - 1) % n if self.hover >= 0 else n - 1)
-        elif k in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space) and self.hover >= 0:
-            self.activated.emit(self.hover)
-        elif k == Qt.Key.Key_Menu and self.hover >= 0:
-            self.options_requested.emit(self.hover)
-        else:
-            e.ignore()
-
-
-def _has_real_warning(o: Offer) -> bool:
-    """Lossy-quality notes are shown in the caption; the dot marks anything else."""
-    return any("lossy" not in w.lower() for w in o.warnings)
+# ====================================================================== list helpers
 
 
 # ====================================================================== list
@@ -202,7 +45,7 @@ def _has_real_warning(o: Offer) -> bool:
 class OfferDelegate(QStyledItemDelegate):
     def sizeHint(self, option, index):
         o: Offer = index.data(Qt.ItemDataRole.UserRole)
-        return QSize(300, 52 if o.warnings else 36)
+        return QSize(0, 52 if o.warnings else 36)  # rows take the list's width
 
     def paint(self, p: QPainter, option, index):
         o: Offer = index.data(Qt.ItemDataRole.UserRole)
@@ -231,9 +74,10 @@ class OfferDelegate(QStyledItemDelegate):
         p.setPen(with_a(theme.ON_ACCENT, 0.75) if selected else theme.DIM)
         p.drawText(QPointF(x + w1 + 10, top), o.caption)
         if o.warnings:
+            caution = real_warning(o)  # amber only for real cautions; other notes stay quiet
             fm = QFontMetrics(f2)
-            text = fm.elidedText(o.warnings[0], Qt.TextElideMode.ElideRight, r.width() - 24)
-            p.setPen(with_a(theme.ON_ACCENT, 0.85) if selected else theme.WARN)
+            text = fm.elidedText(caution or o.warnings[0], Qt.TextElideMode.ElideRight, r.width() - 24)
+            p.setPen(with_a(theme.ON_ACCENT, 0.85) if selected else (theme.WARN if caution else theme.DIM))
             p.drawText(QPointF(x, top + 18), text)
         p.restore()
 
@@ -245,6 +89,7 @@ class ListPage(QWidget):
 
     def __init__(self, offers: list[Offer], parent=None):
         super().__init__(parent)
+        self.setMinimumWidth(420)
         self.offers = offers
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -255,6 +100,7 @@ class ListPage(QWidget):
         self.list.setItemDelegate(OfferDelegate(self.list))
         self.list.setMouseTracking(True)
         self.list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setFixedHeight(300)
         self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         lay.addWidget(self.search)
@@ -351,6 +197,7 @@ class OptionsPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setMinimumWidth(320)
         self.lay = QVBoxLayout(self)
         self.lay.setContentsMargins(4, 4, 4, 4)
         self.lay.setSpacing(8)
@@ -530,6 +377,7 @@ class CompressPage(QWidget):
 
     def __init__(self, estimator=None, parent=None):
         super().__init__(parent)
+        self.setMinimumWidth(340)
         self.estimator = estimator
         self.offer: Offer | None = None
         self._req = 0
@@ -716,11 +564,11 @@ class Popup(QWidget):
         card = QFrame()
         card.setObjectName("card")
         card.setStyleSheet(theme.CARD_QSS)
-        shadow = QGraphicsDropShadowEffect(card)
-        shadow.setBlurRadius(32)
-        shadow.setOffset(0, 8)
-        shadow.setColor(theme.SHADOW)
-        card.setGraphicsEffect(shadow)
+        # The shadow is a pre-drawn image (see paintEvent), not a QGraphicsDropShadowEffect:
+        # an effect re-blurs the whole card on every frame of the orbit's animation.
+        self._card = card
+        self._shadow: QPixmap | None = None
+        self._shadow_key = None
         outer.addWidget(card)
 
         lay = QVBoxLayout(card)
@@ -738,8 +586,11 @@ class Popup(QWidget):
             lay.addWidget(sub)
 
         self.stack = QStackedWidget()
-        wheel_items: list[Offer | None] = list(offers) if len(offers) <= WHEEL_MAX else list(offers[: WHEEL_MAX - 1]) + [None]
-        self.wheel = Wheel(wheel_items, center_title)
+        # The side card goes where there's room: left of the orbit near the screen's right edge.
+        screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
+        area = screen.availableGeometry()
+        side = "left" if QCursor.pos().x() > area.left() + area.width() * 0.6 else "right"
+        self.wheel = self.orbit = OrbitView(offers, center_title, card_side=side)
         wheel_holder = QWidget()
         wl = QHBoxLayout(wheel_holder)
         wl.setContentsMargins(0, 0, 0, 0)
@@ -757,14 +608,13 @@ class Popup(QWidget):
 
         self.hint = QLabel()
         self.hint.setWordWrap(True)
-        self.hint.setMinimumHeight(30)
-        self.hint.setFixedWidth(300)
+        self.hint.setMinimumHeight(22)
+        self.hint.setMaximumWidth(460)
         lay.addWidget(self.hint)
         self._default_hint()
 
         self.wheel.activated.connect(self._wheel_activate)
         self.wheel.options_requested.connect(self._wheel_options)
-        self.wheel.hovered.connect(self._wheel_hover)
         self.list_page.activated.connect(lambda o: self._choose(o, None))
         self.list_page.options_requested.connect(self._show_options)
         self.options.convert.connect(self._choose)
@@ -777,23 +627,7 @@ class Popup(QWidget):
     def _default_hint(self):
         self.hint.setObjectName("hint")
         self.hint.setStyleSheet("")
-        self.hint.setText("Right-click a format for its options, or start typing to search.")
-
-    def _wheel_hover(self, i: int):
-        item = self.wheel.items[i] if 0 <= i < len(self.wheel.items) else None
-        if i < 0 or item is None:
-            self._default_hint()
-            if item is None and i >= 0:
-                self.hint.setText(f"Show all {len(self.offers)} formats")
-            return
-        if item.warnings:
-            self.hint.setObjectName("warn")
-            self.hint.setStyleSheet(f"color: {theme.rgba(theme.WARN)};")
-            self.hint.setText("  ".join(item.warnings))
-        else:
-            self.hint.setStyleSheet("")
-            tool = item.target.ask or bool(item.target.suffix) or item.target.engine in ("archive", "ocr", "data")
-            self.hint.setText(f"{item.target.label}: {item.caption}." + ("" if tool else " No quality loss."))
+        self.hint.setText("Right-click an option for its settings, or start typing to search.")
 
     def _wheel_activate(self, i: int):
         item = self.wheel.items[i]
@@ -834,7 +668,24 @@ class Popup(QWidget):
         self._fit()
 
     def _fit(self):
+        """Size the window to the page that's showing (the orbit is much wider than
+        the list or the options), keeping it centered where it was."""
+        center = self.geometry().center()
+        current = self.stack.currentIndex()
+        for k in range(self.stack.count()):
+            w = self.stack.widget(k)
+            pol = QSizePolicy.Policy.Preferred if k == current else QSizePolicy.Policy.Ignored
+            w.setSizePolicy(pol, pol)
+            w.updateGeometry()
+        # Layouts cache size hints; drop them so the window can shrink as well as grow.
+        self.stack.updateGeometry()
+        self._card.updateGeometry()
+        self.setMinimumSize(0, 0)  # the layout had pinned the window's minimum to the orbit's size
+        self._card.layout().invalidate()
+        self.layout().invalidate()
+        self.layout().activate()
         self.adjustSize()
+        self.move(center.x() - self.width() // 2, center.y() - self.height() // 2)
         _clamp_to_screen(self)
 
     def _choose(self, offer: Offer, opts: dict | None):
@@ -846,8 +697,28 @@ class Popup(QWidget):
         self._done = True
         if opts is None:
             opts = {o.key: o.default for o in offer.options}
-        self.chosen.emit(offer, opts)
-        self.close()
+        self.chosen.emit(offer, opts)  # the conversion starts now; the exit motion runs alongside
+        if self.stack.currentIndex() == 0 and offer in self.orbit.items and self.orbit.motion:
+            fade = QPropertyAnimation(self, b"windowOpacity", self)
+            fade.setDuration(200)
+            fade.setStartValue(self.windowOpacity())
+            fade.setEndValue(0.0)
+            fade.setEasingCurve(QEasingCurve.Type.InCubic)
+            fade.start()
+            self.orbit.play_exit(self.orbit.items.index(offer), self.close)
+        else:
+            self.close()
+
+    def paintEvent(self, _):
+        """The card's soft shadow, drawn once per size and then reused."""
+        r = self._card.geometry()
+        key = (r.width(), r.height(), self.devicePixelRatioF())
+        if key != self._shadow_key:
+            self._shadow_key = key
+            self._shadow = _shadow_pixmap(r.width(), r.height(), self.devicePixelRatioF())
+        p = QPainter(self)
+        p.drawPixmap(QPoint(r.x() - SHADOW_PAD, r.y() - SHADOW_PAD + 6), self._shadow)
+        p.end()
 
     # ------------------------------------------------------------- window
     def show_at_cursor(self):
@@ -856,8 +727,8 @@ class Popup(QWidget):
         self.setWindowOpacity(0.0)
         self.move(pos - QPoint(self.width() // 2, self.height() // 2))
         self.show()  # invisible (opacity 0) until positioned
-        # Child positions are only final once shown; center the wheel on the cursor.
-        wheel_center = self.wheel.mapTo(self, QPoint(self.wheel.width() // 2, self.wheel.height() // 2))
+        # Child positions are only final once shown; center the orbit on the cursor.
+        wheel_center = self.orbit.mapTo(self, self.orbit.orbit_center().toPoint())
         self.move(pos - wheel_center)
         _clamp_to_screen(self)
         self.raise_()
@@ -917,6 +788,30 @@ class Popup(QWidget):
                 self._show_list(text)
                 return
         super().keyPressEvent(e)
+
+
+SHADOW_PAD = 20
+
+
+def _shadow_pixmap(w: int, h: int, dpr: float) -> QPixmap:
+    """A soft shadow for a rounded card: stacked translucent rounded rects (cheap, no blur pass)."""
+    pm = QPixmap(int((w + 2 * SHADOW_PAD) * dpr), int((h + 2 * SHADOW_PAD) * dpr))
+    pm.setDevicePixelRatio(dpr)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(Qt.PenStyle.NoPen)
+    steps = SHADOW_PAD
+    base = theme.SHADOW.alphaF()
+    for k in range(steps):
+        grow = steps - k
+        c = QColor(theme.SHADOW)
+        c.setAlphaF(base * 0.11 * (k + 1) / steps)
+        p.setBrush(c)
+        p.drawRoundedRect(QRectF(SHADOW_PAD - grow, SHADOW_PAD - grow, w + 2 * grow, h + 2 * grow),
+                          theme.RADIUS_CARD + grow, theme.RADIUS_CARD + grow)
+    p.end()
+    return pm
 
 
 def _clamp_to_screen(w: QWidget) -> None:

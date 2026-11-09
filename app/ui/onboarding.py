@@ -222,16 +222,16 @@ def _heading(title: str, sub: str) -> tuple[QWidget, QWidget]:
 
 
 class WheelHero(Clock):
-    """The real format wheel, stepping through formats: shows the product, not decoration."""
+    """The picker (Orbit), drifting and stepping through options: shows the product, not decoration."""
 
-    SEQUENCE = ["WEBP", "PDF", "PNG", "JPG", "AVIF", "HEIC"]
+    SEQUENCE = ["WEBP", "Compress", "PDF", "PNG", "Read text", "AVIF", "JPG", "HEIC"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(QSize(330, 330))
 
     def paintEvent(self, _):
-        from .demo import paint_wheel
+        from .demo import paint_orbit
 
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -239,7 +239,8 @@ class WheelHero(Clock):
         appear = ease_back(phase(t, 0.15, 0.75), 1.2)
         step = int(max(0.0, t - 0.9) / 1.4)
         selected = None if t < 0.9 else self.SEQUENCE[step % len(self.SEQUENCE)]
-        paint_wheel(p, QPointF(self.width() / 2, self.height() / 2), 138 * appear, clamp(appear), selected)
+        paint_orbit(p, QPointF(self.width() / 2, self.height() / 2 - 4), 116 * appear, clamp(appear), selected,
+                    spin=t * 7)
         p.end()
 
 

@@ -163,7 +163,7 @@ class SettingsWindow(ChromeWindow):
         page, lay = section_page()
         a = h1("Quality")
         b = para("Default quality for lossy image formats (higher is better and bigger). You can also change it "
-                 "for one conversion by right-clicking the format on the wheel. Lossless formats (PNG, TIFF, "
+                 "for one conversion by right-clicking the format in the picker. Lossless formats (PNG, TIFF, "
                  "lossless WEBP) are always exact.")
         rows = [setting_row(name, desc, quality_slider(getattr(s, key), lambda v, k=key: self.changed.emit(k, v)))
                 for name, desc, key in (("JPG", "92 is visually lossless for photos.", "jpeg_quality"),

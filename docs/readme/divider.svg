@@ -6,7 +6,7 @@
 .fb{transform-box:fill-box;transform-origin:center}
 @media (prefers-reduced-motion: reduce){
 *{animation:none!important}
-.ren,.wm,.pn,.szlast,.zipt,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
+.ren,.wm,.pn,.szlast,.zipt,.first,[class*="txt"],.line:first-of-type,.line:first-of-type .ok{opacity:1}
 [class*="ink"],.cover{opacity:0}
 }
 

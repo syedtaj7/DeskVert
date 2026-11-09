@@ -7,7 +7,7 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QLinearGradient, QPainter, QPainterPath, QPen
 
 from . import theme
 from .fx import (Clock, accent_gradient, clamp, ease_back, ease_in_out, ease_out, font, mix, paint_check,
@@ -18,9 +18,17 @@ LOOP = 10.0
 CAPTIONS = [
     (0.0, "1", "Select a file in File Explorer"),
     (1.7, "2", "Tap Ctrl + Shift together"),
-    (3.0, "3", "Pick a format on the wheel"),
+    (3.0, "3", "Pick a format in the picker"),
     (5.0, "4", "Done: saved right next to the original"),
 ]
+
+
+ORBIT_C, ORBIT_R = QPointF(456, 132), 98
+
+
+def _spin(t: float) -> float:
+    """Orbit drift in the demo: turns while the pointer travels, stops once it arrives (t = 3.6)."""
+    return 14 * (min(t, 3.6) - 2.65)
 
 
 class DemoScene(Clock):
@@ -106,11 +114,11 @@ class DemoScene(Clock):
             paint_keycap(p, QRectF(230, 186, 96, 48), "Shift", press, press)
             p.restore()
 
-        # ---------------- wheel
+        # ---------------- orbit (drifts, then stops when the pointer arrives, like the real one)
         wheel_in = ease_back(phase(t, 2.65, 3.05), 1.3) * (1 - ease_in_out(phase(t, 4.55, 4.85)))
         hover = phase(t, 3.75, 3.85) > 0
         if wheel_in > 0.01:
-            self._wheel(p, QPointF(452, 130), 108 * wheel_in, wheel_in, hover, phase(t, 4.35, 4.55))
+            paint_orbit(p, ORBIT_C, ORBIT_R * wheel_in, wheel_in, "WEBP" if hover else None, _spin(t))
 
         # ---------------- progress card
         card_in = ease_out(phase(t, 4.9, 5.3)) * (1 - ease_in_out(phase(t, 8.7, 9.2)))
@@ -133,8 +141,10 @@ class DemoScene(Clock):
 
     # ------------------------------------------------------------- pieces
     def _cursor_pos(self, t: float) -> QPointF:
+        webp = orbit_layout(ORBIT_C, ORBIT_R, _spin(3.75))["WEBP"][0]  # land exactly on WEBP
+        target = (webp.x() + 4, webp.y() + 2)
         path = [(0.0, (330, 300)), (0.4, (330, 300)), (1.05, (70, 110)), (2.9, (70, 110)),
-                (3.75, (518, 166)), (4.6, (518, 166)), (5.6, (560, 300)), (LOOP, (560, 300))]
+                (3.75, target), (4.6, target), (5.6, (560, 300)), (LOOP, (560, 300))]
         for (t0, a), (t1, b) in zip(path, path[1:]):
             if t <= t1:
                 k = ease_in_out(phase(t, t0, t1))
@@ -145,9 +155,6 @@ class DemoScene(Clock):
     def _ripple(t: float, at: float) -> float:
         k = phase(t, at, at + 0.45)
         return k if 0 < k < 1 else 0.0
-
-    def _wheel(self, p: QPainter, c: QPointF, R: float, alpha: float, hover: bool, chosen: float):
-        paint_wheel(p, c, R, alpha, "WEBP" if hover else None)
 
 
     def _card(self, p: QPainter, appear: float, prog: float, done: float):
@@ -227,55 +234,103 @@ class DemoScene(Clock):
         p.restore()
 
 
-def paint_wheel(p: QPainter, c: QPointF, R: float, alpha: float = 1.0, selected: str | None = None,
-                labels: tuple = ("JPG", "PNG", "WEBP", "PDF", "HEIC", "AVIF"), center: str = "1 HEIC"):
-    """A picture of the format wheel with one format highlighted (used by the demo and the welcome page)."""
-    hover = selected is not None
-    if True:
+ORBIT_TOOLS = ("Compress", "Read text")
+ORBIT_FORMATS = ("JPG", "PNG", "WEBP", "PDF", "HEIC", "AVIF")
+
+
+def orbit_layout(c: QPointF, R: float, spin: float = 0.0, tools=ORBIT_TOOLS, formats=ORBIT_FORMATS):
+    """Planet centres of the painted orbit: {label: (point, radius, is_tool)}.
+    R is the outer orbit's radius; the inner orbit turns the other way."""
+    pr = R * 0.19
+    hub = R * 0.29
+    ri = hub + pr + R * 0.04
+    out = {}
+    for rr, labels, turn, tool in ((ri, tools, -1.4 * spin, True), (R, formats, spin, False)):
         n = len(labels)
-        span = 360 / n
-        r = R * 0.42
-        p.save()
-        p.setOpacity(p.opacity() * clamp(alpha))
-        glow = QRectF(c.x() - R - 14, c.y() - R - 14, 2 * R + 28, 2 * R + 28)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(with_alpha(theme.SHADOW, 0.5))
-        p.drawEllipse(glow.adjusted(4, 10, 4, 10))
-        p.setBrush(theme.BG)
-        p.setPen(QPen(theme.LINE, 1))
-        p.drawEllipse(c, R + 8, R + 8)
-        outer = QRectF(c.x() - R, c.y() - R, 2 * R, 2 * R)
-        inner = QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r)
-        for i, lbl in enumerate(labels):
-            mid = 90 - i * span
-            start = mid + span / 2
-            path = QPainterPath()
-            path.arcMoveTo(outer, start)
-            path.arcTo(outer, start, -span)
-            path.arcTo(inner, start - span, span)
-            path.closeSubpath()
-            on = lbl == selected
-            if on:
-                p.fillPath(path, theme.ACCENT)
-            else:
-                p.fillPath(path, theme.SLICE)
-            p.setPen(QPen(theme.SLICE_EDGE, 2.5))
+        for k, lbl in enumerate(labels):
+            a = math.radians(-90 + k * 360 / n + (180 / n if not tool else 0) + turn)
+            out[lbl] = (QPointF(c.x() + rr * math.cos(a), c.y() + rr * math.sin(a)), pr, tool)
+    return out
+
+
+def paint_orbit(p: QPainter, c: QPointF, R: float, alpha: float = 1.0, selected: str | None = None,
+                spin: float = 0.0, center: str = "1 HEIC"):
+    """A picture of the Orbit picker with one option highlighted (used by the demo and the welcome page)."""
+    if R < 4:
+        return
+    p.save()
+    p.setOpacity(p.opacity() * clamp(alpha))
+    planets = orbit_layout(c, R, spin)
+    pr = R * 0.19
+    hub = R * 0.29
+    ri = hub + pr + R * 0.04
+    # backing disc, so the orbit reads as one object over whatever is behind it
+    edge = R + pr * 1.3 + R * 0.05
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(with_alpha(theme.SHADOW, 0.45))
+    p.drawEllipse(QPointF(c.x() + 3, c.y() + 9), edge + 3, edge + 3)
+    p.setPen(QPen(theme.LINE, 1))
+    p.setBrush(theme.BG)
+    p.drawEllipse(c, edge, edge)
+    # orbits
+    for rr, dash in ((ri, [3, 6]), (R, [0.1, 5.5])):
+        pen = QPen(with_alpha(theme.TEXT, 0.18), 1.2)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setDashPattern(dash)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawEllipse(c, rr, rr)
+    # tether to the highlighted option
+    if selected in planets:
+        pt, r, _ = planets[selected]
+        ang = math.atan2(pt.y() - c.y(), pt.x() - c.x())
+        d = math.hypot(pt.x() - c.x(), pt.y() - c.y())
+        p.setPen(QPen(with_alpha(theme.ACCENT, 0.85), max(1.2, R * 0.016)))
+        p.drawLine(QPointF(c.x() + math.cos(ang) * (hub + 2), c.y() + math.sin(ang) * (hub + 2)),
+                   QPointF(c.x() + math.cos(ang) * (d - r * 1.1), c.y() + math.sin(ang) * (d - r * 1.1)))
+    # planets
+    for lbl, (pt, r, tool) in planets.items():
+        on = lbl == selected
+        rr = r * (1.12 if on else 1.0)
+        if on:
+            p.setPen(QPen(with_alpha(theme.ACCENT, 0.3), max(1.5, R * 0.02)))
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawPath(path)
-            a = math.radians(mid)
-            rr = (r + R) / 2
-            pos = QPointF(c.x() + rr * math.cos(a), c.y() - rr * math.sin(a))
-            p.setPen(theme.ON_ACCENT if on else theme.TEXT)
-            p.setFont(font(max(7, R * 0.12), QFont.Weight.Bold))
-            p.drawText(QRectF(pos.x() - 30, pos.y() - 10, 60, 20), Qt.AlignmentFlag.AlignCenter, lbl)
-        p.setPen(QPen(theme.LINE, 1.2))
-        p.setBrush(theme.CENTER)
-        p.drawEllipse(c, r - 5, r - 5)
-        p.setPen(theme.TEXT)
-        p.setFont(font(max(7, R * 0.11), QFont.Weight.Bold))
-        p.drawText(QRectF(c.x() - r, c.y() - 14, 2 * r, 16), Qt.AlignmentFlag.AlignCenter, center)
-        p.setPen(theme.ACCENT if hover else theme.DIM)
-        p.setFont(font(max(6, R * 0.085), QFont.Weight.DemiBold))
-        p.drawText(QRectF(c.x() - r, c.y() + 1, 2 * r, 14), Qt.AlignmentFlag.AlignCenter,
-                   f"→ {selected}" if hover else "convert to")
-        p.restore()
+            p.drawEllipse(pt, rr + R * 0.04, rr + R * 0.04)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(theme.ACCENT)
+        else:
+            p.setPen(QPen(theme.LINE, 1))
+            p.setBrush(theme.SURFACE2)
+        p.drawEllipse(pt, rr, rr)
+        f = font(max(6.0, r * 0.44), QFont.Weight.Bold, display=True)
+        fm = QFontMetrics(f)
+        w = fm.horizontalAdvance(lbl)
+        if w > rr * 1.72:  # shrink long labels to fit inside the planet
+            f = font(max(5.0, r * 0.44 * rr * 1.72 / w), QFont.Weight.Bold, display=True)
+        p.setFont(f)
+        p.setPen(theme.ON_ACCENT if on else (theme.TEXT if selected is None else with_alpha(theme.TEXT, 0.7)))
+        p.drawText(QRectF(pt.x() - rr, pt.y() - rr * 0.36, 2 * rr, rr), Qt.AlignmentFlag.AlignCenter, lbl)
+        dot = QPointF(pt.x(), pt.y() - rr * 0.48)
+        if tool:
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(theme.ON_ACCENT if on else theme.ACCENT)
+            p.drawEllipse(dot, max(1.4, r * 0.09), max(1.4, r * 0.09))
+        else:
+            p.setPen(QPen(theme.ON_ACCENT if on else theme.DIM, 1))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(dot, max(1.3, r * 0.08), max(1.3, r * 0.08))
+    # hub
+    p.setPen(QPen(theme.LINE, 1.2))
+    p.setBrush(theme.SURFACE)
+    p.drawEllipse(c, hub, hub)
+    p.setPen(theme.TEXT)
+    p.setFont(font(max(7, R * 0.105), QFont.Weight.Bold, display=True))
+    p.drawText(QRectF(c.x() - hub, c.y() - R * 0.13, 2 * hub, R * 0.13), Qt.AlignmentFlag.AlignCenter, center)
+    p.setPen(theme.ACCENT if selected else theme.DIM)
+    p.setFont(font(max(6, R * 0.08), QFont.Weight.DemiBold))
+    p.drawText(QRectF(c.x() - hub, c.y() + R * 0.01, 2 * hub, R * 0.12), Qt.AlignmentFlag.AlignCenter,
+               f"→ {selected}" if selected else "pick one")
+    p.restore()
+
+
+paint_wheel = paint_orbit  # older name
