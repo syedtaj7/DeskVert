@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.1
+
+### Fixes
+- **Settings → Shortcut and look works right away.** Appearance (auto, dark, light) and the accent color
+  apply the moment you pick them: no restart, and Settings stays on the same page. Changing the shortcut
+  shows a confirmation with the new keys.
+- **Far choices in the web are easy to reach.** An open branch now stays out while you move to any of its
+  choices, even the farthest one: crossing a neighbouring option on the way no longer closes it, and the
+  fan waits a moment (0.8 s) after the pointer leaves before folding away. To switch to another option
+  while a branch is open, rest on it briefly.
+- **Everything is fully readable.** Options are never faded or see-through; a branch's choices are drawn
+  nearly full size on the picker's own solid disc instead of over the desktop, and the side card's text is
+  solid.
+- **Fits small screens:** on small laptop screens or with a big Windows zoom, the picker shrinks to fit
+  instead of being cut off.
+
 ## 1.4.0
 
 ### The picker becomes a web

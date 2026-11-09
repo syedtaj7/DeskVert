@@ -73,10 +73,7 @@ class Controller(QObject):
         self.jobs.progress.connect(lambda *_: self._poll_progress())
         self.jobs.finished.connect(self._on_finished)
 
-        self.panel = ProgressPanel()
-        self.panel.cancel_requested.connect(self.jobs.cancel)
-        self.panel.show_folder.connect(winutil.show_in_explorer)
-        self.panel.undo_requested.connect(self.undo)
+        self._new_panel()
 
         self.tray = QSystemTrayIcon(theme.app_icon(), self)
         self.tray.activated.connect(self._tray_activated)
@@ -141,6 +138,43 @@ class Controller(QObject):
         if hasattr(self, "head_action"):
             self.head_action.setText(f"{APP_NAME} {__version__}  ·  {self.key_label}")
         return ok, err
+
+    def _new_panel(self) -> None:
+        old = getattr(self, "panel", None)
+        self.panel = ProgressPanel()
+        self.panel.cancel_requested.connect(self.jobs.cancel)
+        self.panel.show_folder.connect(winutil.show_in_explorer)
+        self.panel.undo_requested.connect(self.undo)
+        if old is not None:
+            old.hide()
+            old.deleteLater()
+
+    def _restyle(self) -> None:
+        """Apply a new look (Settings > Shortcut and look) right away, without restarting."""
+        theme.refresh(self.settings.theme, self.settings.palette)
+        icon = theme.app_icon()
+        self.app.setWindowIcon(icon)
+        self.tray.setIcon(icon)
+        if self.tray.contextMenu() is not None:
+            self.tray.contextMenu().setStyleSheet(theme.MENU_QSS)
+        self.recent_menu.setStyleSheet(theme.MENU_QSS)
+        if not self.jobs.busy:
+            self._new_panel()  # the progress card is rebuilt; while converting it keeps the old look
+        if _alive(self.notice):
+            self.notice.close()
+        reopen = {}
+        for key in ("settings", "guide"):
+            w = self.windows.get(key)
+            if _alive(w):
+                section = w.sections.currentIndex() if key == "settings" else 0
+                geo = w.geometry()
+                reopen[key] = (section, geo)
+                w.close()
+        for key, (section, geo) in reopen.items():
+            (self.show_settings(section) if key == "settings" else self.show_guide())
+            w = self.windows.get(key)
+            if _alive(w):
+                w.setGeometry(geo)
 
     # ------------------------------------------------------------ tray menu
     def _build_menu(self) -> None:
@@ -223,8 +257,8 @@ class Controller(QObject):
         self.settings.theme = choices["theme"]
         self.settings.save()
         if theme_changed:
-            QTimer.singleShot(400, self.restart)
-        elif first:
+            QTimer.singleShot(0, self._restyle)
+        if first:
             how = "Tap" if is_modifier_tap(self.settings.hotkey) else "Press"
             self.panel.message("success", "Tapshift is ready",
                                f"{how} {self.key_label} with a file selected in File Explorer.", 5000)
@@ -291,7 +325,7 @@ class Controller(QObject):
         if key in ("theme", "palette"):
             setattr(self.settings, key, value)
             self.settings.save()
-            self.panel.message("info", "Appearance saved", "The new look applies the next time Tapshift starts.", 4500)
+            QTimer.singleShot(0, self._restyle)  # after the click that changed it has finished
             return
         setattr(self.settings, key, value)
         if save:
@@ -300,6 +334,11 @@ class Controller(QObject):
             ok, err = self._start_hotkey()
             if not ok:
                 self.panel.message("error", "That shortcut couldn't be used", str(err), 8000)
+            else:
+                how = "Tap" if is_modifier_tap(self.settings.hotkey) else "Press"
+                self.panel.message("success", "Shortcut changed", f"{how} {self.key_label} with files selected.",
+                                   4500)
+            log.info("shortcut set to %s (%s)", self.settings.hotkey, "ok" if ok else err)
         if key == "max_cpu_percent" and not self.jobs.busy:
             self.jobs.reset_pool()  # the next conversion starts with the new limit
 
@@ -584,6 +623,7 @@ def main() -> int:
                    "checksum": bool(rel.setup and rel.setup.sha256)}
         except Exception as e:  # noqa: BLE001
             res = {"ok": False, "error": str(e)}
+        log.info("update check: %s", res)
         (target / "update-check.json").write_text(json.dumps(res, indent=2), encoding="utf-8")
         return 0 if res["ok"] else 1
     if "--selftest" in sys.argv:
