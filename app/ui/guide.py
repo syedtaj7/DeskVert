@@ -1,0 +1,365 @@
+"""The "How to use Tapshift" guide window, plus the sidebar navigation and
+section stack shared with the Settings window."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QRectF, QSize, Qt, QVariantAnimation, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter
+from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QScrollArea, QStackedWidget, QVBoxLayout,
+                               QWidget)
+
+from . import theme
+from .chrome import ChromeWindow, label
+from .demo import DemoScene
+from .fx import accent_gradient, clamp, fade_in, font, mix, with_alpha
+
+# ====================================================================== shared navigation
+
+
+class NavRail(QWidget):
+    """Vertical list of sections; the highlight glides to the chosen one."""
+
+    selected = Signal(int)
+    ROW = 40
+
+    def __init__(self, items: list[str], parent=None):
+        super().__init__(parent)
+        self.items = items
+        self.index = 0
+        self._y = 0.0
+        self._hover = -1
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedWidth(196)
+        self.setMinimumHeight(len(items) * self.ROW + 8)
+        self._anim = QVariantAnimation(self, duration=260, easingCurve=QEasingCurve.Type.OutCubic)
+        self._anim.valueChanged.connect(lambda v: (setattr(self, "_y", float(v)), self.update()))
+
+    def select(self, i: int, emit: bool = True):
+        if not 0 <= i < len(self.items):
+            return
+        self.index = i
+        self._anim.stop()
+        self._anim.setStartValue(self._y)
+        self._anim.setEndValue(float(i * self.ROW))
+        self._anim.start()
+        if emit:
+            self.selected.emit(i)
+
+    def mouseMoveEvent(self, e):
+        h = int(e.position().y() // self.ROW)
+        h = h if 0 <= h < len(self.items) else -1
+        if h != self._hover:
+            self._hover = h
+            self.update()
+
+    def leaveEvent(self, e):
+        self._hover = -1
+        self.update()
+
+    def mousePressEvent(self, e):
+        i = int(e.position().y() // self.ROW)
+        if 0 <= i < len(self.items) and i != self.index:
+            self.select(i)
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        hl = QRectF(4, self._y + 3, self.width() - 8, self.ROW - 6)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(with_alpha(theme.ACCENT_B, 0.16 if theme.DARK else 0.10))
+        p.drawRoundedRect(hl, 10, 10)
+        bar = QRectF(4, self._y + 11, 3.5, self.ROW - 22)
+        p.setBrush(QBrush(accent_gradient(0, bar.top(), 0, bar.bottom())))
+        p.drawRoundedRect(bar, 2, 2)
+        for i, text in enumerate(self.items):
+            r = QRectF(20, i * self.ROW, self.width() - 24, self.ROW)
+            if i == self._hover and i != self.index:
+                p.setBrush(theme.HOVER)
+                p.drawRoundedRect(QRectF(4, i * self.ROW + 3, self.width() - 8, self.ROW - 6), 10, 10)
+            near = clamp(1 - abs(self._y / self.ROW - i))
+            p.setPen(mix(theme.DIM, theme.TEXT, near))
+            p.setFont(font(13, QFont.Weight.DemiBold if near > 0.5 else QFont.Weight.Normal))
+            p.drawText(r, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, text)
+        p.end()
+
+
+class Sections(QStackedWidget):
+    """Section pages that cross-fade, with their items rising in."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("background: transparent;")
+        self.items: list[list[QWidget]] = []
+
+    def add(self, page: QWidget, animate: list[QWidget]):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet(theme.CARD_QSS + "QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        page.setStyleSheet("background: transparent;")
+        scroll.setWidget(page)
+        self.addWidget(scroll)
+        self.items.append(animate)
+
+    def show_section(self, i: int):
+        self.setCurrentIndex(i)
+        w = self.currentWidget()
+        eff = QGraphicsOpacityEffect(w)
+        w.setGraphicsEffect(eff)
+        a = QPropertyAnimation(eff, b"opacity", w)
+        a.setDuration(260)
+        a.setStartValue(0.0)
+        a.setEndValue(1.0)
+        a.setEasingCurve(QEasingCurve.Type.OutCubic)
+        a.finished.connect(lambda: w.setGraphicsEffect(None))
+        a.start()
+        for k, item in enumerate(self.items[i]):
+            fade_in(item, delay_ms=80 + k * 70, rise=10)
+
+
+def section_page() -> tuple[QWidget, QVBoxLayout]:
+    page = QWidget()
+    lay = QVBoxLayout(page)
+    lay.setContentsMargins(8, 4, 18, 16)
+    lay.setSpacing(10)
+    return page, lay
+
+
+def h1(text: str) -> QWidget:
+    return label(text, 24, QFont.Weight.Bold, display=True)
+
+
+def para(text: str) -> QWidget:
+    w = label(text, 13.5, dim=True)
+    w.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+    return w
+
+
+def bullets(rows: list[tuple[str, str]]) -> QWidget:
+    html = "".join(
+        f"<tr><td style='padding:4px 10px 8px 0; color:{theme.rgba(theme.ACCENT_A)}; font-size:15px;'>\u25cf</td>"
+        f"<td style='padding:2px 0 8px 0;'><b style='color:{theme.rgba(theme.TEXT)};'>{a}</b><br>"
+        f"<span style='color:{theme.rgba(theme.DIM)};'>{b}</span></td></tr>" for a, b in rows)
+    return label(f"<table cellspacing='0'>{html}</table>", 13.5)
+
+
+def table(head: list[str], rows: list[list[str]]) -> QWidget:
+    line = theme.rgba(theme.LINE)
+    th = "".join(f"<th align='left' style='padding:8px 14px; color:{theme.rgba(theme.DIM)}; font-weight:600;"
+                 f" border-bottom:1px solid {line};'>{h}</th>" for h in head)
+    body = "".join("<tr>" + "".join(
+        f"<td style='padding:8px 14px; border-bottom:1px solid {line}; color:{theme.rgba(theme.TEXT)};'>{c}</td>"
+        for c in r) + "</tr>" for r in rows)
+    return label(f"<table cellspacing='0' width='100%'><tr>{th}</tr>{body}</table>", 13)
+
+
+def keys_html(*ks: str) -> str:
+    style = (f"background:{theme.rgba(theme.SURFACE)}; border:1px solid {theme.rgba(theme.LINE)}; "
+             f"border-radius:6px; padding:2px 8px; font-weight:600; color:{theme.rgba(theme.TEXT)};")
+    return " + ".join(f"<span style='{style}'>&nbsp;{k}&nbsp;</span>" for k in ks)
+
+
+# ====================================================================== guide content
+
+
+def _wheel_demo() -> QWidget:
+    """A live copy of the real format wheel: hover it, use the arrow keys."""
+    from ..catalog import offers_for
+    from ..settings import Settings
+    from .popup import Wheel
+
+    offers, _ = offers_for([Path("C:/Pictures/beach.heic")], Settings())
+    items = list(offers) if len(offers) <= 8 else list(offers[:7]) + [None]
+    holder = QWidget()
+    row = QHBoxLayout(holder)
+    row.setContentsMargins(0, 6, 0, 6)
+    wheel = Wheel(items, "1 HEIC")
+    info = label("Hover a format to see what it does.", 13, dim=True)
+    info.setMinimumWidth(220)
+
+    def hovered(i: int):
+        if 0 <= i < len(items) and items[i] is not None:
+            o = items[i]
+            warn = "<br>".join(f"\u26a0 {w}" for w in o.warnings) or "No quality loss."
+            info.setText(f"<b style='color:{theme.rgba(theme.TEXT)}; font-size:16px;'>{o.target.label}</b>"
+                         f"<br><span style='color:{theme.rgba(theme.ACCENT_A)};'>{o.caption}</span><br><br>{warn}")
+        elif 0 <= i < len(items):
+            info.setText("<b>More</b><br>Opens the full, searchable list of every format.")
+        else:
+            info.setText("Hover a format to see what it does.")
+
+    wheel.hovered.connect(hovered)
+    wheel.activated.connect(lambda i: info.setText(
+        info.text() + "<br><br><i>In real use, a click converts right away.</i>"))
+    row.addWidget(wheel)
+    row.addSpacing(16)
+    row.addWidget(info, 1)
+    return holder
+
+
+def build_guide_sections(sections: Sections) -> list[str]:
+    names = []
+
+    # 1. Quick start
+    page, lay = section_page()
+    a = h1("Quick start")
+    b = para("Tapshift converts files right where they are, with one shortcut.")
+    demo = DemoScene(width=560, height=308)
+    c = bullets([
+        ("Select one or more files", "In File Explorer or on the Desktop. Mixed selections are fine: Tapshift "
+                                     "uses the biggest group of same-type files."),
+        ("Tap " + keys_html("Ctrl", "Shift"), "Press both together and let go. The format wheel opens at your "
+                                              "mouse pointer."),
+        ("Pick a format", "The converted file appears next to the original. A card at the bottom-right shows "
+                          "progress and the result."),
+    ])
+    for w in (a, b, demo, c):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b, demo, c])
+    names.append("Quick start")
+
+    # 2. The wheel
+    page, lay = section_page()
+    a = h1("The format wheel")
+    b = para("It only offers formats that make sense for the files you selected. Try it below: it's the real one.")
+    wheel = _wheel_demo()
+    c = bullets([
+        ("Click a format", "Converts straight away with the best-quality settings."),
+        ("Right-click a format", "Opens its options first: quality, lossless mode, page size and more."),
+        ("Start typing", "Type <b>webp</b> or <b>pdf</b> to search every format. Enter converts, Tab opens options."),
+        ("Yellow dot", "This choice has something to know, for example \u201ctransparent areas become white\u201d. "
+                       "Hover it to read the note."),
+        ("Close it", "Press Esc, click anywhere else, or tap the shortcut again."),
+    ])
+    for w in (a, b, wheel, c):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b, wheel, c])
+    names.append("The format wheel")
+
+    # 3. Formats
+    page, lay = section_page()
+    a = h1("What converts to what")
+    t = table(["You select", "You can make"], [
+        ["<b>Images</b>: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, RAW",
+         "JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, or several images in <b>1 PDF</b>"],
+        ["<b>Word</b>: DOCX, DOC, ODT, RTF, TXT, HTML", "PDF, DOCX, ODT, RTF, TXT, DOC"],
+        ["<b>Excel</b>: XLSX, XLS, ODS, CSV", "PDF, XLSX, CSV (first sheet), ODS, XLS"],
+        ["<b>PowerPoint</b>: PPTX, PPT, ODP", "PDF, PPTX, ODP, PPT, or PNG / JPG slides in a new folder"],
+        ["<b>PDF</b>", "PNG / JPG pages in a new folder, TXT, Split (one PDF per page), merge several into <b>1 PDF</b>"],
+    ])
+    b = para("Word, Excel and PowerPoint conversions use your installed Microsoft Office, so the result looks "
+             "exactly like it does in Office. Audio and video aren't supported.")
+    for w in (a, t, b):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, t, b])
+    names.append("Formats")
+
+    # 4. Progress & results
+    page, lay = section_page()
+    a = h1("Progress and results")
+    b = bullets([
+        ("Progress card", "Bottom-right of your screen: which file, how far along, and a Cancel button. "
+                          "It never takes focus from what you're doing."),
+        ("Saved next to the original", "<b>photo.heic</b> becomes <b>photo.webp</b> in the same folder. If that "
+                                       "name exists, you get <b>photo (1).webp</b>. Nothing is ever overwritten."),
+        ("New folders for many files", "Slides or PDF pages as images, and split PDFs, go into a new folder "
+                                       "such as <b>Report (pages PNG)</b>."),
+        ("Show in folder", "Click it on the card, or click the tray icon to jump to your latest conversion."),
+        ("If something fails", "The card turns red and says why, in plain words. Your original is untouched."),
+    ])
+    for w in (a, b):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b])
+    names.append("Progress & results")
+
+    # 5. Safety
+    page, lay = section_page()
+    a = h1("Your files are safe")
+    b = bullets([
+        ("Originals are only read", "Tapshift never edits, moves or deletes the file you converted."),
+        ("Built privately, then checked", "Each result is created in a private work folder, opened again and "
+                                          "compared with the original: pixels for lossless images, quality for "
+                                          "lossy ones, page and slide counts, the text of documents, every cell "
+                                          "of spreadsheets. Only then is it moved into place."),
+        ("Camera details kept", "Photo rotation is applied, and camera details, GPS, color profile and dates "
+                                "are kept when the new format supports them."),
+        ("Office runs locked down", "Documents are opened read-only with macros disabled, in a hidden copy of "
+                                    "Office that closes when done. Your Office settings are never changed."),
+        ("Nothing leaves your computer", "No uploads, no account, no internet needed."),
+    ])
+    for w in (a, b):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b])
+    names.append("Your files are safe")
+
+    # 6. Shortcut & settings
+    page, lay = section_page()
+    a = h1("Shortcut and settings")
+    b = bullets([
+        ("The tap", f"{keys_html('Ctrl', 'Shift')}: press both, let go. It's ignored if you press another key or "
+                    "click while holding them (so Ctrl+Shift+T or Ctrl+Shift+click work as usual), and in apps "
+                    "other than File Explorer and the Desktop."),
+        ("Keyboard layouts", "If Ctrl + Shift also switches your keyboard layout, choose "
+                             f"{keys_html('Ctrl', 'Shift', 'Space')} in Settings instead."),
+        ("Tray menu", "Right-click the Tapshift icon by the clock: recent conversions, cancel, pause the shortcut, "
+                      "this guide, Settings and Quit."),
+        ("Performance", "Gentle, Balanced or Faster: how much of the processor conversions may use (15%, 25% or "
+                        "50%). Windows enforces the limit."),
+        ("Copied files", "If nothing is selected, Tapshift uses files you copied with Ctrl + C."),
+    ])
+    for w in (a, b):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b])
+    names.append("Shortcut & settings")
+
+    # 7. Troubleshooting
+    page, lay = section_page()
+    a = h1("Troubleshooting")
+    b = bullets([
+        ("Nothing happens when I tap", "Make sure a file is selected and File Explorer is the active window. "
+                                       "Check that the shortcut isn't paused (tray menu)."),
+        ("\u201cCan't convert this file\u201d", "The card says why: for example the type isn't supported, or "
+                                                "Word documents need Microsoft Office."),
+        ("Password-protected files", "Remove the password in Office or your PDF app first."),
+        ("A scanned PDF has no text", "Scanned pages are pictures; converting them to text would need OCR, which "
+                                      "Tapshift doesn't do."),
+        ("Still stuck?", "Tray menu \u2192 Open log folder, and include <b>app.log</b> when reporting an issue on "
+                         "GitHub."),
+    ])
+    for w in (a, b):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b])
+    names.append("Troubleshooting")
+    return names
+
+
+class GuideWindow(ChromeWindow):
+    def __init__(self):
+        super().__init__("How to use Tapshift", QSize(940, 640))
+        row = QHBoxLayout(self.body)
+        row.setContentsMargins(0, 6, 0, 0)
+        row.setSpacing(18)
+        self.sections = Sections()
+        names = build_guide_sections(self.sections)
+        self.nav = NavRail(names)
+        col = QVBoxLayout()
+        col.addWidget(self.nav)
+        col.addStretch(1)
+        row.addLayout(col)
+        row.addWidget(self.sections, 1)
+        self.nav.selected.connect(self.sections.show_section)
+
+    def present(self):
+        super().present()
+        self.sections.show_section(0)

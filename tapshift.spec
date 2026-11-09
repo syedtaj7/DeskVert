@@ -1,0 +1,44 @@
+# PyInstaller recipe for Tapshift (one-folder, windowed).
+# Build with:  tools\build_release.ps1   (or: pyinstaller tapshift.spec --noconfirm)
+
+import re
+from pathlib import Path
+
+ROOT = Path(SPECPATH)
+VERSION = re.search(r'__version__ = "([^"]+)"', (ROOT / "app" / "__init__.py").read_text()).group(1)
+
+hidden = [
+    # engines are imported by name inside worker processes
+    "app.engines.image", "app.engines.doc", "app.engines.pdf", "app.engines.officeutil", "app.selftest",
+    "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy",
+    "win32com", "win32com.client", "win32com.shell", "pythoncom", "pywintypes", "win32clipboard", "win32con",
+    "win32gui", "win32process", "PySide6.QtSvg",
+]
+
+a = Analysis(
+    ["run.pyw"],
+    pathex=[str(ROOT)],
+    datas=[(str(ROOT / "assets" / "tapshift.ico"), "assets")],
+    hiddenimports=hidden,
+    excludes=["tkinter", "pytest", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
+              "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf"],
+    noarchive=False,
+)
+# Not needed: Qt's software OpenGL fallback (Tapshift only draws 2D) and Qt's UI translations (English UI).
+a.binaries = [b for b in a.binaries if not b[0].lower().endswith("opengl32sw.dll")]
+a.datas = [d for d in a.datas if not (d[0].replace("\\", "/").find("/translations/") >= 0 and d[0].endswith(".qm"))]
+
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name="Tapshift",
+    icon=str(ROOT / "assets" / "tapshift.ico"),
+    console=False,
+    version=str(ROOT / "tools" / "version_info.txt"),
+    upx=False,
+)
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Tapshift")
