@@ -61,6 +61,8 @@ Type: filesandordirs; Name: "{app}"
 
 [Run]
 Filename: "{app}\Tapshift.exe"; Description: "Start Tapshift now"; Flags: nowait postinstall skipifsilent
+; In-app updates run Setup quietly with /RELAUNCH: open the new version when it's done.
+Filename: "{app}\Tapshift.exe"; Flags: nowait runasoriginaluser; Check: RelaunchAfterUpdate
 
 [Code]
 // Close Tapshift (the tray app and any conversion workers) so its files can be replaced or removed.
@@ -76,6 +78,11 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   StopTapshift();
   Result := '';
+end;
+
+function RelaunchAfterUpdate(): Boolean;
+begin
+  Result := WizardSilent() and (Pos('/RELAUNCH', Uppercase(GetCmdTail())) > 0);
 end;
 
 function InitializeUninstall(): Boolean;

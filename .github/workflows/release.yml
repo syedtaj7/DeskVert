@@ -36,9 +36,23 @@ jobs:
           name: tapshift-release
           path: release/*
 
+      - name: Release notes from CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart("v")
+          $lines = Get-Content CHANGELOG.md
+          $start = [array]::IndexOf($lines, "## $ver")
+          $notes = @()
+          if ($start -ge 0) {
+            for ($i = $start + 1; $i -lt $lines.Count -and -not $lines[$i].StartsWith("## "); $i++) { $notes += $lines[$i] }
+          }
+          if (-not $notes) { $notes = @("Tapshift $ver") }
+          $notes | Set-Content -Encoding utf8 release_notes.md
+
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: release/*
-          generate_release_notes: true
+          body_path: release_notes.md

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.0
+
+### Ready for upload forms
+- **Compress → For forms:** exact-size JPGs for exam, job and ID applications: form photo (200×230 px,
+  20–50 KB), passport photo (35×45 mm at 300 dpi), signature (140×60 px, 10–20 KB, empty paper trimmed),
+  or your own width × height × size limit. Saved as "photo (form photo).jpg" next to the original.
+- **PDF Compress to a size:** pick under 200 KB, 500 KB, 1 MB or 2 MB and get the best quality that fits.
+  The search runs on a sample of pages first, so long PDFs stay quick on slow laptops.
+
+### Updates from inside the app
+- **Check for updates** (Settings → About, or the tray menu) asks GitHub for the latest version and shows
+  what's new. **Download** fetches the installer with a progress bar and checks it against GitHub's SHA-256
+  checksum; **Install and restart** closes Tapshift, installs the update and opens the new version.
+- Tapshift only goes online when you click Check for updates. Your files are never sent anywhere.
+
 ## 1.2.1
 
 ### Orbit, floating

@@ -78,6 +78,8 @@ def run(folder: Path) -> int:
         for name, label in plan:
             case([samples / name], label)
         case([samples / "Mountains.jpg"], "Compress", {"format": "JPG", "mode": "size", "target_kb": 50})
+        case([samples / "Mountains.jpg"], "Compress", {"format": "JPG", "mode": "preset", "preset": "photo",
+                                                       "name_suffix": " (form photo)"}, name="Mountains.jpg->Form photo")
         # PDF tools on the PDF we just made
         pdf = next((Path(r["output"]) for r in results if r["case"] == "Mountains.jpg->PDF" and r["ok"]), None)
         if pdf:

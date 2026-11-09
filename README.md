@@ -41,8 +41,8 @@ and the new file appears right next to the original, checked and ready.
 
 | Tool | What you get |
 |---|---|
-| 🗜️ **Compress images** | Pick **under 20 KB, 50 KB, 100 KB, 200 KB, 500 KB or 1 MB**, or drag a quality slider. Every choice shows the quality % and the new size *before* you click. The limit is always respected. |
-| 📄 **PDF toolkit** | **Compress** (Light, Balanced, Strong) · **Lock / Unlock** with an AES-256 password · keep or remove **Pages** (`1-3, 7, 10-end`) · **Rotate** · page **Numbers** · **Watermark** · **Merge** · **Split** |
+| 🗜️ **Compress images** | Pick **under 20 KB, 50 KB, 100 KB, 200 KB, 500 KB or 1 MB**, or drag a quality slider. Every choice shows the quality % and the new size *before* you click. The limit is always respected. **For forms:** exact-size JPGs for applications: photo (200×230, 20–50 KB), passport photo (35×45 mm), signature (140×60, empty paper trimmed), or your own width × height × KB. |
+| 📄 **PDF toolkit** | **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · keep or remove **Pages** (`1-3, 7, 10-end`) · **Rotate** · page **Numbers** · **Watermark** · **Merge** · **Split** |
 | 🔍 **Read text (OCR)** | Text from photos and scanned PDFs, or a **searchable PDF** that looks exactly like the scan. Uses the engine built into Windows, so nothing extra is downloaded. Sideways scans are turned upright automatically. |
 | 📦 **Zip & extract** | ZIP the selected files · extract **ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO** · repack any archive as a ZIP |
 | 📊 **Data files** | CSV / TSV / JSON → **Excel**, JSON or CSV · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
@@ -122,6 +122,10 @@ Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion
 > [!NOTE]
 > **"Windows protected your PC"?** Windows SmartScreen shows this for new apps that aren't widely downloaded yet. Click **More info → Run anyway**. Tapshift is open source: every release is built from this repository by GitHub Actions, and you can read every line.
 
+### Update
+
+**Settings → About → Check for updates** (or the tray menu). If there's a new version, Tapshift shows what's new, downloads it with a progress bar, checks it against GitHub's checksum, then installs it and restarts. The portable zip links to the download page instead.
+
 ### Uninstall
 
 Any of these works, and each removes everything (app, settings, logs):
@@ -155,7 +159,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Can it open password-protected files?** PDFs: yes, use **Unlock** (you need the password). Office files: remove the password in Office first.
 
-**Is anything sent to the internet?** No. Conversions happen on your PC. The only link is "Check for updates", which opens the releases page.
+**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift only goes online when you click **Check for updates**: it asks GitHub for the latest version and, if you choose, downloads the installer (checked against GitHub's checksum) and installs it.
 
 **Something failed. Where's the log?** Tray menu → Settings → About → Log folder. Please attach `app.log` when [reporting an issue](https://github.com/syedtaj7/TapShift/issues).
 

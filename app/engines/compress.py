@@ -235,10 +235,131 @@ def _best_under(img: Image.Image, out_ext: str, limit: int, start_scale: float =
                           "Try a bigger size limit.")
 
 
+# ---------------------------------------------------------------- upload-form presets
+
+# Typical sizes asked for by exam, job and government application forms.
+FORM_PRESETS = {
+    "photo": {"label": "form photo", "w": 200, "h": 230, "max_kb": 50, "min_kb": 20, "fit": "crop", "dpi": 0},
+    "passport": {"label": "passport photo", "w": 413, "h": 531, "max_kb": 100, "min_kb": 0, "fit": "crop",
+                 "dpi": 300},  # 35 x 45 mm at 300 dpi
+    "signature": {"label": "signature", "w": 140, "h": 60, "max_kb": 20, "min_kb": 10, "fit": "sign", "dpi": 0},
+}
+
+
+def _flatten(img: Image.Image) -> Image.Image:
+    if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+        rgba = img.convert("RGBA")
+        white = Image.new("RGB", rgba.size, "white")
+        white.paste(rgba, mask=rgba.getchannel("A"))
+        return white
+    return img.convert("RGB")
+
+
+def _cover_crop(img: Image.Image, w: int, h: int) -> Image.Image:
+    """Fill w x h exactly: scale to cover, crop the overflow. Centred across; a little
+    above centre vertically, since faces sit in the upper part of a photo."""
+    s = max(w / img.width, h / img.height)
+    nw, nh = max(w, round(img.width * s)), max(h, round(img.height * s))
+    im = img.resize((nw, nh), Image.Resampling.LANCZOS)
+    left, top = (nw - w) // 2, int((nh - h) * 0.3)
+    return im.crop((left, top, left + w, top + h))
+
+
+def _fit_signature(img: Image.Image, w: int, h: int) -> tuple[Image.Image, bool]:
+    """Trim the empty paper around the ink, then fit it inside w x h on the same paper color."""
+    import numpy as np
+
+    rgb = np.asarray(img, dtype=np.uint8)
+    gray = rgb.astype(np.int16) @ np.array([299, 587, 114]) // 1000
+    paper_level = int(np.percentile(gray, 90))
+    ink = gray < paper_level - 45
+    paper = tuple(int(v) for v in np.median(rgb[~ink], axis=0)) if (~ink).any() else (255, 255, 255)
+    trimmed = False
+    if ink.sum() > 20:
+        ys, xs = np.nonzero(ink)
+        x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+        mx, my = int((x1 - x0) * 0.06) + 2, int((y1 - y0) * 0.12) + 2
+        box = (max(0, x0 - mx), max(0, y0 - my), min(img.width, x1 + mx + 1), min(img.height, y1 + my + 1))
+        trimmed = box != (0, 0, img.width, img.height)
+        img = img.crop(box)
+    s = min(w / img.width, h / img.height)
+    nw, nh = max(1, round(img.width * s)), max(1, round(img.height * s))
+    canvas = Image.new("RGB", (w, h), paper)
+    canvas.paste(img.resize((nw, nh), Image.Resampling.LANCZOS), ((w - nw) // 2, (h - nh) // 2))
+    return canvas, trimmed
+
+
+def _jpeg(img: Image.Image, q: int, dpi: int) -> bytes:
+    buf = io.BytesIO()
+    kw = {"dpi": (dpi, dpi)} if dpi else {}
+    img.save(buf, "JPEG", quality=q, optimize=True, subsampling=0 if q >= 90 else 2, **kw)
+    return buf.getvalue()
+
+
+def _form_preset(src: Path, out: Path, opts: dict, notes: Notes) -> list[str]:
+    key = opts.get("preset", "photo")
+    if key == "custom":
+        try:
+            spec = {"label": "custom", "w": int(opts["w"]), "h": int(opts["h"]), "max_kb": int(opts["max_kb"]),
+                    "min_kb": 0, "fit": "crop", "dpi": 0}
+        except (KeyError, ValueError) as e:
+            raise ConversionError("Type a width, a height and a size limit (whole numbers).") from e
+    elif key in FORM_PRESETS:
+        spec = FORM_PRESETS[key]
+    else:
+        raise ConversionError(f"Unknown preset: {key}")
+    w, h, limit = spec["w"], spec["h"], spec["max_kb"] * KB
+    if not (16 <= w <= 8000 and 16 <= h <= 8000):
+        raise ConversionError("Width and height must be between 16 and 8000 pixels.")
+    if not (5 * KB <= limit <= 20_000 * KB):
+        raise ConversionError("The size limit must be between 5 KB and 20 MB.")
+    img = _flatten(_source_image(src, ".jpg", notes))
+    trimmed = False
+    if spec["fit"] == "sign":
+        im, trimmed = _fit_signature(img, w, h)
+    else:
+        im = _cover_crop(img, w, h)
+    lo, hi, best, best_q = 10, 95, None, 0
+    while lo <= hi:  # highest quality that fits under the limit
+        mid = (lo + hi) // 2
+        d = _jpeg(im, mid, spec["dpi"])
+        if len(d) <= limit:
+            best, best_q, lo = d, mid, mid + 1
+        else:
+            hi = mid - 1
+    if best is None:
+        raise ConversionError(f"A {w}x{h} picture can't fit under {human(limit)}. Try a bigger size limit.")
+    extra = []
+    if spec["min_kb"] and len(best) < spec["min_kb"] * KB:
+        d = _jpeg(im, 100, spec["dpi"])  # forms often reject files that are too small
+        if len(best) < len(d) <= limit:
+            best, best_q = d, 100
+        if len(best) < spec["min_kb"] * KB:
+            extra.append(f"Note: it's {human(len(best))}; some forms ask for at least {spec['min_kb']} KB.")
+    with open(long_path(out), "wb") as fh:
+        fh.write(best)
+    with Image.open(long_path(out)) as check:  # verify
+        check.load()
+        if check.size != (w, h):
+            raise VerificationError("the picture has the wrong size")
+    if len(best) > limit:
+        raise VerificationError(f"the file is {human(len(best))}, over the {human(limit)} limit")
+    lines = [f"Ready to upload: {w}x{h} px, {human(len(best))} (limit {human(limit)}), quality {best_q}%."]
+    if spec["fit"] == "sign":
+        lines.append("Trimmed the empty paper around the signature." if trimmed else "Fitted the signature inside.")
+    else:
+        lines.append("Cropped to the form's shape, keeping the top of the picture.")
+    if spec["dpi"]:
+        lines.append(f"Set to {spec['dpi']} dpi, so it prints at 35 x 45 mm.")
+    return lines + extra
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     src = sources[0]
     out_ext = out.suffix.lower()
     notes = Notes()
+    if opts.get("mode") == "preset":
+        return _form_preset(src, out, opts, notes)
     img = _source_image(src, out_ext, notes)
     original = src.stat().st_size
     mode = opts.get("mode", "size")

@@ -64,7 +64,8 @@ def build_jobs(offer: Offer, options: dict, settings: Settings) -> list[dict]:
         first = offer.sources[0]
         stem = first.stem if len(offer.sources) == 1 else f"{first.stem} and {len(offer.sources) - 1} more"
         return [job(offer.sources, stem + t.suffix)]
-    return [job([s], s.stem + t.suffix) for s in offer.sources]
+    suffix = options.get("name_suffix") or t.suffix  # e.g. " (form photo)" for an upload preset
+    return [job([s], s.stem + suffix) for s in offer.sources]
 
 
 class _Relay(QObject):

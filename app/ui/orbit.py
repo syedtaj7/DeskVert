@@ -30,7 +30,7 @@ from .fx import display_family
 # ---------------------------------------------------------------- what each option does (short on purpose)
 
 BLURBS = {
-    "compress.image": "Pick a size, see the quality first",
+    "compress.image": "Pick a size, or a form photo preset",
     "image.jpg": "Smaller photo that opens anywhere",
     "image.png": "Lossless, keeps transparency",
     "image.webp": "Small and sharp, made for the web",
@@ -48,7 +48,7 @@ BLURBS = {
     "archive.zip": "Pack everything into one .zip",
     "archive.extract": "Unpack into a new folder",
     "archive.tozip": "Repack as a standard ZIP",
-    "pdf.compress": "Smaller PDF, same pages",
+    "pdf.compress": "Smaller PDF, even under 200 KB",
     "pdf.pages": "Keep or remove pages",
     "pdf.lock": "Needs a password to open",
     "pdf.unlock": "Removes the password",

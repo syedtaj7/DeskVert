@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from ..errors import ConversionError, VerificationError
@@ -179,8 +180,114 @@ COMPRESS_LEVELS = {  # pictures above `threshold` dpi are re-saved at `target` d
 }
 
 
+# Gentlest first: (picture dpi, JPEG quality). Used to find the best quality that fits a size limit.
+SIZE_LADDER = [(220, 85), (180, 80), (150, 75), (130, 70), (110, 65), (96, 60), (80, 55), (72, 50), (60, 45)]
+SIZE_LIMITS = {"Under 200 KB": 200, "Under 500 KB": 500, "Under 1 MB": 1000, "Under 2 MB": 2000}
+
+
+def _shrink_attempt(src: Path, dest: Path, dpi: int | None, quality: int, gray: bool = False) -> int:
+    with _open(src) as d:
+        if dpi is not None and any(page.get_images(full=False) for page in d):
+            d.rewrite_images(dpi_threshold=int(dpi * 1.2), dpi_target=dpi, quality=quality, lossy=True,
+                             lossless=True, bitonal=False, color=True, gray=True, set_to_gray=gray)
+        _save(d, dest, garbage=4, clean=True, deflate_images=True, deflate_fonts=True, use_objstms=1)
+    return Path(long_path(dest)).stat().st_size
+
+
+def _picture_scale(src: Path, out: Path) -> float:
+    """How big the first page's picture is now, compared with before (1.0 = same size)."""
+    try:
+        with _open(src) as a, _open(out) as b:
+            ia, ib = a[0].get_images(full=True), b[0].get_images(full=True)
+            if ia and ib:
+                return b.extract_image(ib[0][0])["width"] / max(1, a.extract_image(ia[0][0])["width"])
+    except Exception:
+        pass
+    return 1.0
+
+
+def compress_to(src: Path, out: Path, limit_kb: int, notes: list[str]) -> None:
+    """The best quality that fits under the limit.
+
+    Light on slow laptops: the search runs on a sample of up to 4 pages (sizes scaled up
+    to the whole document), then the whole PDF is compressed once with the chosen
+    setting and its real size checked; if it's still over, the next setting is tried."""
+    limit = limit_kb * 1000
+    before = Path(long_path(src)).stat().st_size
+    if before <= limit:
+        raise ConversionError(f"This PDF is already under {_human(limit)} ({_human(before)}).")
+    with _open(src) as d:
+        texts = _page_texts(d)
+        n = d.page_count
+    trial = out.parent / "trial.pdf"
+    if _shrink_attempt(src, trial, None, 0) <= limit:  # tidying alone is enough: pictures stay as they are
+        os.replace(long_path(trial), long_path(out))
+        label = "tidied the file structure; pictures untouched"
+    else:
+        probe, scale = src, 1.0
+        if n > 4:
+            pick = sorted({round(i * (n - 1) / 3) for i in range(4)})
+            probe = out.parent / "sample.pdf"
+            with _open(src) as d:
+                d.select(pick)
+                d.save(long_path(probe), garbage=3, deflate=True)
+            scale = n / len(pick)
+        budget = limit * (0.92 if probe is not src else 1.0)  # a little headroom when estimating from a sample
+
+        def fits(dpi: int, q: int) -> bool:
+            return _shrink_attempt(probe, trial, dpi, q) * scale <= budget
+
+        dpis, qs = [dp for dp, _q in SIZE_LADDER], (90, 82, 74, 66, 58)
+        # 1) the gentlest resolution where the lowest acceptable quality fits (size falls as dpi falls)
+        lo, hi, di = 0, len(dpis) - 1, None
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if fits(dpis[mid], qs[-1]):
+                di, hi = mid, mid - 1
+            else:
+                lo = mid + 1
+        plan: list[tuple[int, int, bool]] = []
+        if di is not None:
+            # 2) the highest quality that fits at that resolution (size falls as quality falls)
+            lo, hi, qi = 0, len(qs) - 2, len(qs) - 1
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                if fits(dpis[di], qs[mid]):
+                    qi, hi = mid, mid - 1
+                else:
+                    lo = mid + 1
+            plan = [(dpis[di], q, False) for q in qs[qi:]] + [(dp, qs[-1], False) for dp in dpis[di + 1:]]
+        plan += [(dpis[-1], 50, False), (dpis[-1], 45, True)]
+        size = None
+        for dpi, q, gray in plan:  # the real thing; step down only if the sample was optimistic
+            size = _shrink_attempt(src, trial, dpi, q, gray)
+            if size <= limit:
+                os.replace(long_path(trial), long_path(out))
+                k_scale = _picture_scale(src, out)
+                size_word = ("full size" if k_scale > 0.97 else "half size" if k_scale > 0.4
+                             else f"{max(1, round(k_scale * 100))}% size")
+                label = f"pictures at {size_word}" + (" in black and white" if gray else f", quality {q}%")
+                break
+        else:
+            raise ConversionError(
+                f"The smallest this PDF gets is about {_human(size)} (pictures at {SIZE_LADDER[-1][0]} dpi, black "
+                f"and white). The rest is text and fonts, which can't shrink without losing them. Try a bigger "
+                f"limit, or remove pages first.")
+    _check_same(out, texts, "compress")
+    after = Path(long_path(out)).stat().st_size
+    if after > limit:
+        raise VerificationError(f"the file is {_human(after)}, over the {_human(limit)} limit")
+    saved = min(99, int((1 - after / before) * 100))
+    notes.append(f"{_human(before)} → {_human(after)} ({saved}% smaller), under the {_human(limit)} limit.")
+    notes.append(f"Best quality that fits: {label}. Text and pages unchanged.")
+
+
 def compress(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
     level = opts.get("level", "Balanced")
+    if level in SIZE_LIMITS:
+        compress_to(src, out, SIZE_LIMITS[level], notes)
+        return
+    level = level.split(" ")[0]  # "Balanced (no limit)" -> "Balanced"
     target, threshold, quality = COMPRESS_LEVELS.get(level, COMPRESS_LEVELS["Balanced"])
     before = Path(long_path(src)).stat().st_size
     with _open(src) as d:

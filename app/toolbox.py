@@ -103,7 +103,7 @@ def validate(opt: Option, value) -> str | None:
 
 COMPRESS_IMAGE = Target("compress.image", "Compress", "*", suffix=" (compressed)", ask=True)
 
-PDF_COMPRESS = Target("pdf.compress", "Compress", ".pdf", suffix=" (compressed)")
+PDF_COMPRESS = Target("pdf.compress", "Compress", ".pdf", suffix=" (compressed)", ask=True)
 PDF_PAGES = Target("pdf.pages", "Pages", ".pdf", suffix=" (pages)", ask=True)
 PDF_LOCK = Target("pdf.lock", "Lock", ".pdf", suffix=" (locked)", ask=True)
 PDF_UNLOCK = Target("pdf.unlock", "Unlock", ".pdf", suffix=" (unlocked)", ask=True)
@@ -129,6 +129,13 @@ TEXT_HTML = Target("textdoc.html", "HTML", ".html")
 TEXT_DOCX = Target("textdoc.docx", "DOCX", ".docx")
 
 COMPRESS_TARGETS_KB = (20, 50, 100, 200, 500, 1000)
+
+# Upload-form presets shown in the Compress panel (the sizes live in engines/compress.py).
+FORM_PRESET_ROWS = [
+    ("photo", "Form photo", "200×230 px · 20–50 KB · exam & job forms", "form photo"),
+    ("passport", "Passport photo", "35×45 mm (413×531 px) · up to 100 KB", "passport photo"),
+    ("signature", "Signature", "140×60 px · 10–20 KB · trims the empty paper", "signature"),
+]
 
 
 # ---------------------------------------------------------------- offers
@@ -190,8 +197,10 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
     offers: list[Offer] = []
     if unlocked:
         offers.append(_offer(PDF_COMPRESS, "smaller file", [
-            "Shrinks the pictures inside the PDF and cleans up the file. Text stays sharp and searchable."], [
-            Option("level", "How much", "choice", "Balanced", choices=("Light", "Balanced", "Strong")),
+            "Pick a size limit (like under 200 KB for a form) or a level. Text stays sharp and searchable."], [
+            Option("level", "Size", "choice", "Balanced (no limit)",
+                   choices=("Under 200 KB", "Under 500 KB", "Under 1 MB", "Under 2 MB", "Light (no limit)",
+                            "Balanced (no limit)", "Strong (no limit)")),
         ], unlocked))
         offers.append(_offer(PDF_PAGES, "keep or remove", [], [
             Option("mode", "Pages to", "choice", "Keep", choices=("Keep", "Remove")),

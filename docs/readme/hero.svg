@@ -49,7 +49,7 @@
 <rect x="0.5" y="0.5" width="1199" height="639" rx="28" fill="#121214" stroke="rgba(255,255,255,0.08)"/>
 <defs><pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="rgba(255,255,255,0.07)"/></pattern><clipPath id="cardclip"><rect x="1" y="1" width="1198" height="638" rx="27"/></clipPath></defs>
 <g clip-path="url(#cardclip)"><g class="grid"><rect x="0" y="0" width="1264" height="704" fill="url(#dots)"/></g></g>
-<g class="rise" style="animation-delay:.05s"><rect x="80" y="92" width="268" height="36" rx="18" fill="#1C1C20" stroke="#303036"/><circle class="dot" cx="102" cy="110" r="5" fill="#34BE84"/><text class="s sb" x="118" y="116" font-size="15" fill="#F0F0EE">v1.2 · free &amp; open source</text></g>
+<g class="rise" style="animation-delay:.05s"><rect x="80" y="92" width="268" height="36" rx="18" fill="#1C1C20" stroke="#303036"/><circle class="dot" cx="102" cy="110" r="5" fill="#34BE84"/><text class="s sb" x="118" y="116" font-size="15" fill="#F0F0EE">v1.3 · free &amp; open source</text></g>
 <g class="rise" style="animation-delay:.15s"><text class="s b" x="76" y="236" font-size="104" fill="#F0F0EE" letter-spacing="-3">Tapshift</text></g>
 <rect class="fb under" x="82" y="258" width="150" height="8" rx="4" fill="#34BE84" style="transform-origin:left center"/>
 <g class="rise" style="animation-delay:0.45s"><text class="s sb" x="80" y="318" font-size="30" fill="#F0F0EE">Select a file.</text></g>

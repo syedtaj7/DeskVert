@@ -383,6 +383,7 @@ class CompressPage(QWidget):
         self._req = 0
         self._curve: list = []
         self._size = 0
+        self.mode = "size"  # "size": a size limit or quality; "forms": upload-form presets
         self.lay = QVBoxLayout(self)
         self.lay.setContentsMargins(4, 4, 4, 4)
         self.lay.setSpacing(8)
@@ -402,6 +403,12 @@ class CompressPage(QWidget):
         title.setObjectName("title")
         title.setStyleSheet("font-size: 16px;")
         self.lay.addWidget(title)
+        tabs = Segmented([("size", "Size limit"), ("forms", "For forms")], self.mode)
+        tabs.changed.connect(lambda v: (setattr(self, "mode", v), self.load(self.offer, self.fmt)))
+        self.lay.addWidget(tabs)
+        if self.mode == "forms":
+            self._build_forms(offer)
+            return
         many = len(offer.sources) > 1
         self.sub = QLabel(f"{len(offer.sources)} images; each one gets the size you pick." if many
                           else "Measuring sizes...")
@@ -518,7 +525,97 @@ class CompressPage(QWidget):
         if hasattr(w, "_fit"):
             w._fit()
 
+    def _build_forms(self, offer: Offer):
+        """Exact sizes asked for by upload forms: photo, passport photo, signature, or your own."""
+        from PySide6.QtGui import QIntValidator
+
+        from ..toolbox import FORM_PRESET_ROWS
+
+        many = len(offer.sources) > 1
+        sub = QLabel(("Each image gets" if many else "Makes") + " an exact-size JPG next to the original. "
+                     "Check your form's rules: sizes vary.")
+        sub.setObjectName("sub")
+        sub.setWordWrap(True)
+        self.lay.addWidget(sub)
+        self.form_rows: list[CompressRow] = []
+        box = QWidget()
+        bl = QVBoxLayout(box)
+        bl.setContentsMargins(0, 0, 0, 0)
+        bl.setSpacing(6)
+        for key, title, detail, label in FORM_PRESET_ROWS:
+            r = CompressRow(title, detail, "JPG")
+            r.preset, r.label = key, label
+            r.toggled.connect(lambda on: self.go.setEnabled(True))
+            self.form_rows.append(r)
+            bl.addWidget(r)
+        self.custom_size = CompressRow("Custom size", "your width, height and size limit", "JPG")
+        self.custom_size.preset, self.custom_size.label = "custom", ""
+        self.custom_size.toggled.connect(lambda on: self.go.setEnabled(True))
+        self.form_rows.append(self.custom_size)
+        bl.addWidget(self.custom_size)
+        self.lay.addWidget(box)
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        self.cw, self.ch, self.ckb = QLineEdit(), QLineEdit(), QLineEdit()
+        for edit, ph, top in ((self.cw, "width", 8000), (self.ch, "height", 8000), (self.ckb, "KB", 20000)):
+            edit.setPlaceholderText(ph)
+            edit.setValidator(QIntValidator(1, top, edit))
+            edit.setFixedWidth(64)
+            edit.textEdited.connect(lambda _t: self.custom_size.setChecked(True))
+        for w in (self.cw, QLabel("×"), self.ch, QLabel("px, under"), self.ckb, QLabel("KB")):
+            row.addWidget(w)
+        row.addStretch(1)
+        holder = QWidget()
+        holder.setLayout(row)
+        self.lay.addWidget(holder)
+        self.form_err = QLabel()
+        self.form_err.setObjectName("error")
+        self.form_err.setWordWrap(True)
+        self.form_err.hide()
+        self.lay.addWidget(self.form_err)
+        self.lay.addStretch(1)
+        btns = QHBoxLayout()
+        back = QPushButton("Back")
+        back.clicked.connect(self.back.emit)
+        self.go = QPushButton("Make it")
+        self.go.setObjectName("primary")
+        self.go.setEnabled(False)
+        self.go.clicked.connect(self._go)
+        btns.addWidget(back)
+        btns.addStretch(1)
+        btns.addWidget(self.go)
+        bh = QWidget()
+        bh.setLayout(btns)
+        self.lay.addWidget(bh)
+        w = self.window()
+        if hasattr(w, "_fit"):
+            w._fit()
+
+    def _go_forms(self):
+        chosen = next((r for r in self.form_rows if r.isChecked()), None)
+        if chosen is None:
+            return
+        opts = {"format": "JPG", "mode": "preset", "preset": chosen.preset}
+        if chosen.preset == "custom":
+            try:
+                w, h, kb = int(self.cw.text()), int(self.ch.text()), int(self.ckb.text())
+            except ValueError:
+                self.form_err.setText("Type a width, a height and a size limit.")
+                self.form_err.show()
+                return
+            if not (16 <= w <= 8000 and 16 <= h <= 8000) or not (5 <= kb <= 20000):
+                self.form_err.setText("Width and height: 16 to 8000 px. Size limit: 5 to 20000 KB.")
+                self.form_err.show()
+                return
+            opts.update(w=w, h=h, max_kb=kb, name_suffix=f" ({w}x{h})")
+        else:
+            opts["name_suffix"] = f" ({chosen.label})"
+        self.convert.emit(self.offer, opts)
+
     def _go(self):
+        if self.mode == "forms":
+            self._go_forms()
+            return
         chosen = next((r for r in self.rows if r.isChecked()), None)
         if chosen is None:
             return

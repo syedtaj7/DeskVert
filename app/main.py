@@ -147,6 +147,7 @@ class Controller(QObject):
         self.pause_action.setCheckable(True)
         self.pause_action.toggled.connect(lambda v: setattr(self, "paused", v))
         m.addAction("About Tapshift", lambda: self.show_settings(4))
+        m.addAction("Check for updates\u2026", lambda: self.show_settings(4, check_updates=True))
         if winutil.uninstaller() is not None:
             m.addAction("Uninstall Tapshift\u2026", self.uninstall)
         m.addAction("Quit", self.quit)
@@ -216,7 +217,7 @@ class Controller(QObject):
         if w is not None:
             w.present()
 
-    def show_settings(self, section: int = 0) -> None:
+    def show_settings(self, section: int = 0, check_updates: bool = False) -> None:
         from .ui.settings_ui import SettingsWindow
 
         existing = self.windows.get("settings")
@@ -224,6 +225,8 @@ class Controller(QObject):
             existing.nav.select(section)
             existing.raise_()
             existing.activateWindow()
+            if check_updates:
+                existing.check_updates()
             return
         w = self._window("settings", lambda: SettingsWindow(self.settings, winutil.autostart_enabled()))
         if w is None:
@@ -232,7 +235,10 @@ class Controller(QObject):
         w.show_tour.connect(self.show_tour)
         w.open_logs.connect(lambda: os.startfile(str(log_dir())))
         w.uninstall.connect(self.uninstall)
+        w.install_update.connect(self.install_update)
         w.present(section)
+        if check_updates:
+            w.check_updates()
 
     def _apply(self, key: str, value, save: bool = True) -> None:
         """Apply one setting change right away."""
@@ -387,6 +393,19 @@ class Controller(QObject):
         QTimer.singleShot(3000, winutil.trim_memory)
 
     # ------------------------------------------------------------ exit
+    def install_update(self, path: str) -> None:
+        """Start the downloaded installer and quit; it installs over this copy and opens the new one."""
+        from pathlib import Path
+
+        from . import updater
+
+        try:
+            updater.launch_installer(Path(path))
+        except OSError as e:
+            log.error("couldn't start the installer: %s", e)
+            return
+        self.quit()
+
     def uninstall(self) -> None:
         """Hand over to the uninstaller (it asks "remove Tapshift?" first) and quit,
         so Tapshift's files aren't in use."""
@@ -454,6 +473,23 @@ def make_samples(folder: Path) -> Path:
 
 def main() -> int:
     setup_logging()
+    if "--check-update" in sys.argv:  # used to verify a built copy can reach GitHub over HTTPS
+        import json
+
+        from . import updater
+
+        i = sys.argv.index("--check-update")
+        target = Path(sys.argv[i + 1]) if len(sys.argv) > i + 1 else Path.cwd()
+        target.mkdir(parents=True, exist_ok=True)
+        try:
+            rel = updater.fetch_latest()
+            res = {"ok": True, "latest": rel.version, "current": __version__, "newer": updater.is_newer(rel.version),
+                   "setup": rel.setup.name if rel.setup else None,
+                   "checksum": bool(rel.setup and rel.setup.sha256)}
+        except Exception as e:  # noqa: BLE001
+            res = {"ok": False, "error": str(e)}
+        (target / "update-check.json").write_text(json.dumps(res, indent=2), encoding="utf-8")
+        return 0 if res["ok"] else 1
     if "--selftest" in sys.argv:
         from .selftest import run as selftest
 

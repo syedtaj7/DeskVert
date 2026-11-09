@@ -79,6 +79,7 @@ class SettingsWindow(ChromeWindow):
     show_tour = Signal()
     open_logs = Signal()
     uninstall = Signal()
+    install_update = Signal(str)  # path of a downloaded, verified installer
 
     def __init__(self, s: Settings, autostart: bool):
         super().__init__("Tapshift Settings", QSize(860, 600))
@@ -196,7 +197,7 @@ class SettingsWindow(ChromeWindow):
         gh = PillButton("GitHub page", "primary", min_width=150)
         gh.clicked.connect(lambda: webbrowser.open(github_url()))
         upd = PillButton("Check for updates", "ghost", min_width=170)
-        upd.clicked.connect(lambda: webbrowser.open(github_url("/releases/latest")))
+        upd.clicked.connect(self.check_updates)
         lic = PillButton("Licenses", "ghost", min_width=110)
         lic.clicked.connect(open_licenses)
         logs = PillButton("Log folder", "ghost", min_width=120)
@@ -220,10 +221,15 @@ class SettingsWindow(ChromeWindow):
             f"github.com/{GITHUB_REPO}</a><br><br>"
             "Built with Python, Qt (PySide6), Pillow, pillow-heif, rawpy, PyMuPDF and img2pdf; Licenses lists "
             "each one. Office documents are converted by your own Microsoft Office.")
-        for w in (head, b, bh, credits):
+        from .update_ui import UpdatePanel
+
+        self.update_panel = UpdatePanel()
+        self.update_panel.install_requested.connect(self.install_update.emit)
+        for w in (head, b, bh, self.update_panel, credits):
             lay.addWidget(w)
         lay.addStretch(1)
         self.sections.add(page, [head, b, bh, credits])
+        self._about_index = len(names)
         names.append("About")
 
         self.nav = NavRail(names)
@@ -238,3 +244,8 @@ class SettingsWindow(ChromeWindow):
         super().present()
         self.nav.select(section, emit=False)
         self.sections.show_section(section)
+
+    def check_updates(self) -> None:
+        """Open the About page and ask GitHub for a newer version."""
+        self.nav.select(self._about_index)
+        self.update_panel.start_check()
