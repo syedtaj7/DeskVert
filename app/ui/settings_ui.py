@@ -131,10 +131,9 @@ class SettingsWindow(ChromeWindow):
         accent.changed.connect(lambda v: self.changed.emit("palette", v))
         rows = [setting_row("Shortcut", "Choose the three-key combo if Ctrl + Shift switches your keyboard layout. "
                                         "Applies immediately.", keys),
-                setting_row("Appearance", "Auto follows Windows' light or dark mode. Applies after Tapshift "
-                                          "restarts.", look),
+                setting_row("Appearance", "Auto follows Windows' light or dark mode. Applies right away.", look),
                 setting_row("Accent color", "Windows color uses the accent you picked in Windows Settings. "
-                                            "Applies after Tapshift restarts.", accent)]
+                                            "Applies right away.", accent)]
         lay.addWidget(a)
         for r in rows:
             lay.addWidget(r)

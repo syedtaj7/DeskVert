@@ -689,8 +689,14 @@ class Popup(QWidget):
         screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
         area = screen.availableGeometry()
         side = "left" if QCursor.pos().x() > area.left() + area.width() * 0.6 else "right"
-        self.wheel = self.orbit = OrbitView(nodes if nodes is not None else offers, title, card_side=side,
-                                            note=subtitle, quick=quick)
+        items = nodes if nodes is not None else offers
+        self.wheel = self.orbit = OrbitView(items, title, card_side=side, note=subtitle, quick=quick)
+        # Small screens (or big Windows zoom): shrink the whole web so it fits, never cut off.
+        room_h, room_w = area.height() - 90, area.width() - 60  # the window adds its own margins
+        if self.orbit.height() > room_h or self.orbit.width() > room_w:
+            k = max(0.62, min((room_h - 34) / (self.orbit.height() - 34), room_w / self.orbit.width()))
+            self.orbit.deleteLater()
+            self.wheel = self.orbit = OrbitView(items, title, card_side=side, scale=k, note=subtitle, quick=quick)
         self.last_key = ""  # what was chosen (for recents and "tap twice to repeat")
         self._chosen_node = None
         wheel_holder = QWidget()

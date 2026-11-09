@@ -249,7 +249,9 @@ class OrbitView(QWidget):
 
     MAX_SCALE = 1.16
     DRIFT_SECONDS = 6.0
-    KID = 0.84  # children are drawn a little smaller
+    KID = 0.94  # a branch's choices: nearly full size, so their names stay easy to read
+    LINGER_MS = 800  # an open fan stays out this long after the pointer leaves it
+    SWITCH_MS = 350  # while a fan is open, rest this long on another option to switch to it
 
     def __init__(self, nodes, center_title: str, card_side: str = "right", scale: float = 1.0,
                  note: str = "", quick=None, parent=None):
@@ -297,6 +299,17 @@ class OrbitView(QWidget):
         self._timer.setTimerType(Qt.TimerType.PreciseTimer)
         self._timer.timeout.connect(self._tick)
         self._last = time.perf_counter()
+        # Hover intent: a fan doesn't snap shut when the pointer crosses a neighbour on its way out.
+        self._pos = QPointF(-1, -1)
+        self._linger = QTimer(self)
+        self._linger.setSingleShot(True)
+        self._linger.setInterval(self.LINGER_MS)
+        self._linger.timeout.connect(self._linger_done)
+        self._pending = -1
+        self._switch = QTimer(self)
+        self._switch.setSingleShot(True)
+        self._switch.setInterval(self.SWITCH_MS)
+        self._switch.timeout.connect(self._switch_done)
 
     # ------------------------------------------------------------ layout
     def _cap(self, r: float) -> int:
@@ -335,9 +348,11 @@ class OrbitView(QWidget):
         self.n_top = len(self.items)
         self.DC = D * self.KID
         self.RC = self.radii[-1] + D * 1.3  # where a branch's choices fan out
-        self.DR = self.radii[-1] + D / 2 + 18  # the disc everything sits on
         has_fans = any(n.children for n in self.items)
-        self.E = max(self.DR + 22, (self.RC + self.DC / 2 * self.MAX_SCALE + 18) if has_fans else 0)
+        # The disc everything sits on; with branches it reaches past the fans, so their choices
+        # sit on a solid background (never on the desktop showing through).
+        self.DR = (self.RC + self.DC / 2 * self.MAX_SCALE + 12) if has_fans else self.radii[-1] + D / 2 + 18
+        self.E = self.DR + 22
         S = 2 * self.E
         self.NOTE_H = 34
         self.ox = (self.CARD_W + self.CARD_GAP) if self.side == "left" else 0
@@ -387,12 +402,13 @@ class OrbitView(QWidget):
         c = self.orbit_center()
         d = math.hypot(pos.x() - c.x(), pos.y() - c.y())
         r0 = self.radii[self.ps[self.open].ring]
-        if not (r0 - self.D * 0.4 <= d <= self.RC + self.DC):
+        if not (r0 - self.D * 0.6 <= d <= self.RC + self.DC):
             return False
         a = math.degrees(math.atan2(pos.y() - c.y(), pos.x() - c.x()))
         kids = self.ps[self.n_top:]
-        lo = min(p.base for p in kids) - 8
-        hi = max(p.base for p in kids) + 8
+        pad = math.degrees((self.DC * 0.75) / self.RC)  # half a choice beyond each end
+        lo = min(p.base for p in kids) - pad
+        hi = max(p.base for p in kids) + pad
         mid = (lo + hi) / 2
         return abs(((a - mid + 180) % 360) - 180) <= (hi - lo) / 2
 
@@ -694,7 +710,7 @@ class OrbitView(QWidget):
         p.drawText(QPointF(pad, y + fmt.ascent()), fmt.elidedText(title, Qt.TextElideMode.ElideRight, inner))
         y += 24 + 6
         p.setFont(f_body)
-        p.setPen(_alpha(theme.TEXT, 0.82))
+        p.setPen(theme.TEXT)
         for line in body_lines:
             p.drawText(QPointF(pad, y + fm_body.ascent()), line)
             y += fm_body.height() + 1
@@ -722,7 +738,7 @@ class OrbitView(QWidget):
         if hint:
             y += 8
             p.setFont(f_small)
-            p.setPen(_alpha(theme.DIM, 0.9))
+            p.setPen(theme.DIM)
             p.drawText(QPointF(pad, y + QFontMetrics(f_small).ascent()), hint)
         p.end()
         self._cards[id(node)] = pm
@@ -817,8 +833,7 @@ class OrbitView(QWidget):
             else:
                 p.r.t, p.sw.t = rr, 0.0
                 p.s.t = 1.12 if h else 1.0
-                lit = h or i == self.open or (kid and self.hover < 0)
-                p.a.t = 1.0 if (self.hover < 0 and self.open < 0) or lit or (kid and self.hover >= self.n_top) else 0.62
+                p.a.t = 1.0  # always fully opaque: the hovered one is lifted and coloured instead
             chosen = ex is not None and i == ex["i"]
             busy |= p.r.step(dt, 90 if chosen else (170 if kid else 120), 14 if not kid else 17, m)
             busy |= p.sw.step(dt, 60, 12, m)
@@ -904,8 +919,8 @@ class OrbitView(QWidget):
                 kids = self.ps[self.n_top:]
                 for k, kp in enumerate(kids):
                     on = self.n_top + k == self.hover
-                    p.setPen(QPen(_alpha(theme.ACCENT if on else theme.TEXT, (0.9 if on else 0.22) * kp.a.v),
-                                  2 if on else 1.2))
+                    p.setPen(QPen(_alpha(theme.ACCENT if on else theme.TEXT, (0.95 if on else 0.32) * kp.a.v),
+                                  2 if on else 1.3))
                     p.drawLine(QPointF(b.x, b.y), QPointF(kp.x, kp.y))
                 pen = QPen(_alpha(theme.TEXT, 0.14 * min(kp.a.v for kp in kids)), 1.0)
                 pen.setStyle(Qt.PenStyle.DotLine)
@@ -981,13 +996,19 @@ class OrbitView(QWidget):
 
     def _nearest(self, pos: QPointF) -> int:
         best, bd = -1, 1e9
+        kid_best, kid_d = -1, 1e9
         for i, pl in enumerate(self.ps):
-            if pl.a.v < 0.2:
+            kid = i >= self.n_top
+            if pl.a.v < 0.2 and not kid:
                 continue
-            reach = (self.DC if i >= self.n_top else self.D) * 0.62
+            reach = (self.DC * 0.8) if kid else self.D * 0.62  # choices are easy to land on
             d = math.hypot(pl.hx - pos.x(), pl.hy - pos.y()) / reach
+            if kid and d < kid_d:
+                kid_best, kid_d = i, d
             if d < bd:
                 best, bd = i, d
+        if kid_d <= 1.0:  # an open fan's choices win over the ring they sit beside
+            return kid_best
         return best if bd <= 1.0 else -1
 
     def mouseMoveEvent(self, e):
@@ -997,15 +1018,34 @@ class OrbitView(QWidget):
         c = self.orbit_center()
         self.inside = math.hypot(pos.x() - c.x(), pos.y() - c.y()) < self.E
         self.kbd = False
+        self._pos = pos
         i = self._nearest(pos)
-        if 0 <= i < self.n_top:
-            if self.items[i].children:
+        if self.open >= 0:
+            if i >= self.n_top or i == self.open or self._in_fan(pos):
+                # On the branch, on one of its choices, or on the way to them: the fan stays.
+                self._linger.stop()
+                self._switch.stop()
+                self._pending = -1
+                if 0 <= i < self.n_top and i != self.open:
+                    i = self.hover if self.hover >= self.n_top else self.open  # crossing a neighbour
+                if i >= 0:
+                    self.set_hover(i)
+            elif i >= 0:
+                # Resting on another option: switch to it only after a moment.
+                if i != self._pending:
+                    self._pending = i
+                    self._switch.start()
+                self._linger.stop()
+            else:
+                self._pending = -1
+                self._switch.stop()
+                if not self._linger.isActive():
+                    self._linger.start()
+        else:
+            if 0 <= i < self.n_top and self.items[i].children:
                 self.open_branch(i)
-            elif self.open >= 0:
-                self.close_branch()
-        elif i < 0 and self.open >= 0 and not self._in_fan(pos):
-            self.close_branch()
-        self.set_hover(i)
+            self.set_hover(i)
+        i = self.hover
         for k, pl in enumerate(self.ps):
             if k == i:
                 pl.mx.t = max(-14.0, min(14.0, (pos.x() - pl.hx) * 0.3))
@@ -1019,17 +1059,47 @@ class OrbitView(QWidget):
         for pl in self.ps:
             pl.mx.t = pl.my.t = 0.0
         if not self.kbd:
-            self.close_branch()
-            self.set_hover(-1)
+            self._switch.stop()
+            self._pending = -1
+            if self.open >= 0:
+                self._linger.start()  # coming straight back keeps the fan open
+            else:
+                self.set_hover(-1)
         self._wake()
+
+    def _linger_done(self) -> None:
+        """The pointer stayed away from the open fan: fold it away."""
+        here = self.underMouse()
+        i = self._nearest(self._pos) if here else -1
+        if self.open >= 0 and here and (i == self.open or i >= self.n_top or self._in_fan(self._pos)):
+            return
+        self.close_branch()
+        i = self._nearest(self._pos) if here else -1
+        if 0 <= i < self.n_top and self.items[i].children:
+            self.open_branch(i)
+        self.set_hover(i)
+
+    def _switch_done(self) -> None:
+        """Rested on another option while a fan was open: move to it."""
+        i, self._pending = self._pending, -1
+        if i < 0 or self._nearest(self._pos) != i:
+            return
+        self.close_branch()
+        if self.items[i].children:
+            self.open_branch(i)
+        self.set_hover(i)
 
     def mouseReleaseEvent(self, e):
         if self._exit is not None:
             return
         i = self._nearest(e.position())
+        if self.open >= 0 and self._in_fan(e.position()) and (i < 0 or i < self.n_top and i != self.open):
+            i = self.hover if self.hover >= self.n_top else self.open  # a click on the way into the fan
         node = self.node_at(i)
         if node is None:
             return
+        self._linger.stop()
+        self._switch.stop()
         if node.children:
             self.open_branch(i)  # a branch only opens; its choices do the work
             return
