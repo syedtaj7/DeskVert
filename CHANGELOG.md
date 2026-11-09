@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+### Easier to uninstall
+- **Uninstall Tapshift** is now in the Start menu, in the tray menu, and in Settings > About.
+- Uninstalling now removes everything: settings, logs and scratch files, and the start-up entry left by
+  early development builds.
+
 ## 1.1.0
 
 ### Everyday file tools

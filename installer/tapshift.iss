@@ -28,9 +28,9 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Ask to close a running Tapshift before installing or uninstalling.
-AppMutex=Local\Tapshift.SingleInstance
-CloseApplications=yes
+; Tapshift is a tray app that's nearly always running: Setup and the uninstaller close it
+; themselves (see [Code]) instead of asking the user to quit it first.
+CloseApplications=no
 LicenseFile=..\LICENSE
 
 [Languages]
@@ -44,14 +44,42 @@ Source: "..\dist\Tapshift\*"; DestDir: "{app}"; Flags: ignoreversion recursesubd
 
 [Icons]
 Name: "{userprograms}\Tapshift"; Filename: "{app}\Tapshift.exe"
+Name: "{userprograms}\Uninstall Tapshift"; Filename: "{uninstallexe}"; Comment: "Remove Tapshift from this PC"
 Name: "{userdesktop}\Tapshift"; Filename: "{app}\Tapshift.exe"; Tasks: desktopicon
 
 [Registry]
 ; Tapshift adds itself to start-up when you choose "Start with Windows". Remove that on uninstall.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "Tapshift"; Flags: uninsdeletevalue dontcreatekey
+; Start-up entry left by early development builds (named File Formatter then).
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "FileFormatter"; Flags: uninsdeletevalue dontcreatekey
+
+[UninstallDelete]
+; Settings, logs and scratch space: nothing of Tapshift stays behind.
+Type: filesandordirs; Name: "{userappdata}\Tapshift"
+Type: filesandordirs; Name: "{localappdata}\Tapshift"
+Type: filesandordirs; Name: "{app}"
 
 [Run]
 Filename: "{app}\Tapshift.exe"; Description: "Start Tapshift now"; Flags: nowait postinstall skipifsilent
 
-[UninstallRun]
-Filename: "{sys}\taskkill.exe"; Parameters: "/IM Tapshift.exe /F"; Flags: runhidden; RunOnceId: "StopTapshift"
+[Code]
+// Close Tapshift (the tray app and any conversion workers) so its files can be replaced or removed.
+procedure StopTapshift();
+var
+  Code: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM Tapshift.exe /F', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Sleep(1000);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopTapshift();
+  Result := '';
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  StopTapshift();
+  Result := True;
+end;

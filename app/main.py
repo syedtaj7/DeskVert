@@ -147,6 +147,8 @@ class Controller(QObject):
         self.pause_action.setCheckable(True)
         self.pause_action.toggled.connect(lambda v: setattr(self, "paused", v))
         m.addAction("About Tapshift", lambda: self.show_settings(4))
+        if winutil.uninstaller() is not None:
+            m.addAction("Uninstall Tapshift\u2026", self.uninstall)
         m.addAction("Quit", self.quit)
         self.menu = m
         self.tray.setContextMenu(m)
@@ -229,6 +231,7 @@ class Controller(QObject):
         w.changed.connect(self._apply)
         w.show_tour.connect(self.show_tour)
         w.open_logs.connect(lambda: os.startfile(str(log_dir())))
+        w.uninstall.connect(self.uninstall)
         w.present(section)
 
     def _apply(self, key: str, value, save: bool = True) -> None:
@@ -384,6 +387,12 @@ class Controller(QObject):
         QTimer.singleShot(3000, winutil.trim_memory)
 
     # ------------------------------------------------------------ exit
+    def uninstall(self) -> None:
+        """Hand over to the uninstaller (it asks "remove Tapshift?" first) and quit,
+        so Tapshift's files aren't in use."""
+        if winutil.start_uninstall():
+            self.quit()
+
     def quit(self, restart_cmd: str | None = None) -> None:
         if self.hotkey is not None:
             self.hotkey.stop()

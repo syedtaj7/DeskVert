@@ -78,6 +78,7 @@ class SettingsWindow(ChromeWindow):
     changed = Signal(str, object)
     show_tour = Signal()
     open_logs = Signal()
+    uninstall = Signal()
 
     def __init__(self, s: Settings, autostart: bool):
         super().__init__("Tapshift Settings", QSize(860, 600))
@@ -202,6 +203,12 @@ class SettingsWindow(ChromeWindow):
         logs.clicked.connect(self.open_logs.emit)
         for w in (gh, upd, lic, logs):
             btns.addWidget(w)
+        from ..winutil import uninstaller
+
+        if uninstaller() is not None:  # installed with Setup (not the portable zip)
+            rem = PillButton("Uninstall", "ghost", min_width=110)
+            rem.clicked.connect(self.uninstall.emit)
+            btns.addWidget(rem)
         btns.addStretch(1)
         bh = QWidget()
         bh.setLayout(btns)

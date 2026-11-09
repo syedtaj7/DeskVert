@@ -106,6 +106,25 @@ def set_autostart(enabled: bool) -> None:
                 pass
 
 
+def uninstaller() -> Path | None:
+    """The installer's uninstaller, when Tapshift was installed with Setup
+    (the portable zip and the source version have none)."""
+    if not getattr(sys, "frozen", False):
+        return None
+    exe = Path(sys.executable).with_name("unins000.exe")
+    return exe if exe.exists() else None
+
+
+def start_uninstall() -> bool:
+    """Start the uninstaller (it asks for confirmation first). The caller
+    should quit right after, so the files can be removed."""
+    exe = uninstaller()
+    if exe is None:
+        return False
+    subprocess.Popen([str(exe)], close_fds=True, creationflags=0x00000008)  # DETACHED_PROCESS
+    return True
+
+
 def show_in_explorer(path: str | Path) -> None:
     p = Path(path)
     if p.exists():
