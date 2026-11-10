@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.8.0
+
+### Fixes
+- **Ctrl + Shift keeps working.** After the shortcut listener restarted (finishing the welcome tour, or
+  touching the shortcut setting), Windows kept calling the old, freed listener, so taps stopped after the
+  first one. Each listener now has a window of its own, and choosing the same shortcut no longer restarts it.
+
+### The web, all the way down
+- **No more "More…", no search box, no typing.** Groups that hold many choices open fans of their own,
+  further out, like a spider's web: pictures → More formats → Everyday / Pro / Classic / Vector; PDF →
+  Convert → As images / As text / As e-book; mixed selections → each kind → All. Everything is one point
+  away.
+- Moving towards an open fan keeps it open across both levels, and the disc **breathes with the web**:
+  snug around the rings when closed, growing as fans open.
+
+### A brand-new welcome tour
+- **The real picker, live:** a ghost cursor drives it (opening Split, then Convert → As images...). Move
+  your mouse onto it and you take over.
+- **A universe of formats:** every kind of file Tapshift handles, orbiting a live count (counted from what
+  the picker offers, so new conversions appear by themselves). Point at a world to see what goes in and
+  what comes out.
+- **Try it here:** pick a sample (photo, PDF, song, GPS track, 3D model, contacts, subtitles, e-book, font,
+  drawing) and play with its real web. Nothing is converted.
+- **Power moves:** tap twice to repeat, the right-click menu, Undo, and presets, each with a small
+  animation. Updated safety page, same setup and finish.
+- Light: animations only run on the page you're looking at, and stop when there's nothing to move.
+
 ## 1.7.0
 
 ### Sound, the light way

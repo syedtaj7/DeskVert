@@ -30,7 +30,7 @@ and the new file appears right next to the original, checked and ready.
 
 1. **Select** one file or many, in File Explorer or on the Desktop.
 2. **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd>: press both, let go. Normal shortcuts like <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> keep working.
-3. **Pick** from the orbit: tools circle on one ring, formats on the other. Related tools are grouped into a web: point at **Split** and its choices (in half, every N pages, by ranges, every page) fan out around it. A small card says what each one does and what the new file will be called. Right-click for options, or just start typing (`pdf`, `zip`…).
+3. **Pick** from the orbit: tools circle on one ring, formats on the other. Related tools are grouped into a web: point at **Split** and its choices (in half, every N pages, by ranges, every page) fan out around it. A small card says what each one does and what the new file will be called. Choices that hold more open their own fan further out, like a spider's web: everything is one point away, no menus or search. Right-click for options.
 4. **Done.** `photo.heic` becomes `photo.webp` in the same folder. Nothing is ever overwritten.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
@@ -151,10 +151,11 @@ Any of these works, and each removes everything (app, settings, logs):
 |---|---|
 | Convert | Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, click a format |
 | Options (quality, pages, password…) | Right-click an option in the picker; tools ask when you click them |
-| Every format | Click **More**, or just start typing |
+| Every format | Point at a group: its choices fan out, and groups inside open fans of their own |
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
 | Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
+| See it all | Tray icon → **Welcome tour**: the live picker, every format, and a playground |
 | Many kinds of files at once | Select them all: each kind gets its own branch ("2 pictures", "1 PDF"), plus **Combine** and **ZIP** for everything |
 | Right-click menu | Right-click files → **Convert with Tapshift** (Windows 11: Show more options) |
 | Undo | Click **Undo** on the Saved card: the new files go to the Recycle Bin |

@@ -333,7 +333,7 @@ class OrbitView(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.motion = animations_enabled()
         self.center_title = center_title
-        self.note = note or "Right-click for options  ·  type to search"
+        self.note = note or "Point to explore  ·  right-click for options"
         self.side = card_side
         k = scale
         self.D, self.HUB, self.GAP = 64 * k, 100 * k, 12 * k
@@ -345,11 +345,14 @@ class OrbitView(QWidget):
         self.kbd = False
         self._exit: dict | None = None
         self._t = 0.0
-        self.rot = [0.0, 0.0, 0.0]  # inner ring, outer ring, fans (fans don't drift)
+        self.rot = [0.0, 0.0, 0.0, 0.0]  # inner ring, outer ring, fans, fans of fans (fans don't drift)
+        self.sub = -1  # a choice inside the open fan that is itself a branch, with its own fan further out
+        self.frame_ms = 16  # 60 fps in the real picker; the welcome tour asks for 30
+        self.l2 = self.n_top  # where that second fan's choices start in self.items
         self.speed = Spring(1.0 if self.motion else 0.0)
         self.ring_a = Spring(0.0)
         self.hub_s = Spring(0.75)
-        self.disc_s = Spring(0.9)
+        self.disc_s = Spring(0.9 * self.DR_closed / self.DR)
         self._disc_pix: QPixmap | None = None
         self._note_pix: QPixmap | None = None
         self.card_a, self.card_y, self.card_dx = Spring(0), Spring(0), Spring(0)
@@ -364,6 +367,8 @@ class OrbitView(QWidget):
         for n in self.items:
             warm.append(n)
             warm += list(n.children)
+            for c in n.children:
+                warm += list(c.children)
         self._warm = warm[::-1]  # pre-drawn after the opening, first planet first
         self._dpr = 0.0
         self._timer = QTimer(self)
@@ -418,9 +423,15 @@ class OrbitView(QWidget):
         self.DC = D * self.KID
         self.RC = self.radii[-1] + D * 1.3  # where a branch's choices fan out
         has_fans = any(n.children for n in self.items)
+        nested = any(c.children for n in self.items for c in n.children)
+        self.RC2 = self.RC + D * 1.25  # a fan's own fans open further out still
         # The disc everything sits on; with branches it reaches past the fans, so their choices
         # sit on a solid background (never on the desktop showing through).
-        self.DR = (self.RC + self.DC / 2 * self.MAX_SCALE + 12) if has_fans else self.radii[-1] + D / 2 + 18
+        outer = self.RC2 if nested else self.RC
+        self.DR = (outer + self.DC / 2 * self.MAX_SCALE + 12) if has_fans else self.radii[-1] + D / 2 + 18
+        # The disc breathes with the web: snug around the rings when closed, wider as fans open.
+        self.DR_closed = min(self.DR, self.radii[-1] + D / 2 * self.MAX_SCALE + 18)
+        self.DR_l1 = min(self.DR, self.RC + self.DC / 2 * self.MAX_SCALE + 12)
         self.E = self.DR + 22
         S = 2 * self.E
         self.NOTE_H = 34
@@ -439,6 +450,7 @@ class OrbitView(QWidget):
             return
         self.close_branch()
         self.open = i
+        self.l2 = self.n_top + len(self.items[i].children)
         kids = self.items[i].children
         m = len(kids)
         ang = math.degrees(self.ps[i].ang)
@@ -454,12 +466,44 @@ class OrbitView(QWidget):
             self.ps.append(pl)
         self._wake()
 
+    def open_sub(self, k: int) -> None:
+        """A choice in the open fan that is a branch itself: its choices fan out further."""
+        if k == self.sub or not (self.n_top <= k < self.l2) or not self.items[k].children:
+            return
+        self.close_sub()
+        self.sub = k
+        kids = self.items[k].children
+        m = len(kids)
+        ang = self.ps[k].base
+        step = math.degrees((self.DC + 20) / self.RC2)
+        for j, kid in enumerate(kids):
+            pl = _Planet(3, ang + (j - (m - 1) / 2) * step, self._t + j * 0.025)
+            pl.r.snap(self.RC)
+            pl.sw.snap(0)
+            pl.s.snap(0.5 if self.motion else 1)
+            pl.a.snap(0 if self.motion else 1)
+            self.items.append(kid)
+            self.ps.append(pl)
+        self._wake()
+
+    def close_sub(self) -> None:
+        if self.sub < 0:
+            return
+        del self.items[self.l2:]
+        del self.ps[self.l2:]
+        self.sub = -1
+        if self.hover >= self.l2:
+            self.set_hover(-1)
+        self._wake()
+
     def close_branch(self) -> None:
         if self.open < 0:
             return
+        self.close_sub()
         del self.items[self.n_top:]
         del self.ps[self.n_top:]
         self.open = -1
+        self.l2 = self.n_top
         if self.hover >= self.n_top:
             self.set_hover(-1)
         self._wake()
@@ -471,7 +515,7 @@ class OrbitView(QWidget):
         c = self.orbit_center()
         d = math.hypot(pos.x() - c.x(), pos.y() - c.y())
         r0 = self.radii[self.ps[self.open].ring]
-        if not (r0 - self.D * 0.6 <= d <= self.RC + self.DC):
+        if not (r0 - self.D * 0.6 <= d <= (self.RC2 if self.sub >= 0 else self.RC) + self.DC):
             return False
         a = math.degrees(math.atan2(pos.y() - c.y(), pos.x() - c.x()))
         kids = self.ps[self.n_top:]
@@ -493,6 +537,7 @@ class OrbitView(QWidget):
             self._disc_pix = None
             self._note_pix = None
             self.__dict__.pop("_card_shadows", None)
+            self.__dict__.pop("_disc_sizes", None)
         return dpr
 
     def _new_pix(self, w: float, h: float) -> QPixmap:
@@ -627,7 +672,7 @@ class OrbitView(QWidget):
         return pm
 
     def _disc_pixmap(self) -> QPixmap:
-        """Soft shadow, the disc and both orbits, drawn once."""
+        """Soft shadow and the disc, drawn once at full size (it's scaled down while the web is closed)."""
         if self._disc_pix is not None:
             return self._disc_pix
         from PySide6.QtGui import QRadialGradient
@@ -648,9 +693,24 @@ class OrbitView(QWidget):
         p.setPen(QPen(theme.LINE, 1.2))
         p.setBrush(theme.BG)
         p.drawEllipse(c, R, R)
-        p.drawPixmap(QPointF(0, 0), self._rings_pixmap())
         p.end()
         self._disc_pix = pm
+        return pm
+
+    def _disc_at(self, k: float) -> QPixmap:
+        """The disc drawn once at a resting size (closed web, one fan open...), so a still picker
+        never rescales the big image on every frame."""
+        cache = self.__dict__.setdefault("_disc_sizes", {})
+        pm = cache.get(k)
+        if pm is None:
+            pm = self._new_pix(2 * self.E, 2 * self.E)
+            p = self._painter(pm)
+            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            ds = 2 * self.E * k
+            p.drawPixmap(QRectF(self.E - ds / 2, self.E - ds / 2, ds, ds), self._disc_pixmap(),
+                         QRectF(self._disc_pixmap().rect()))
+            p.end()
+            cache[k] = pm
         return pm
 
     def _card_shadow(self, w: float, h: float) -> QPixmap:
@@ -729,7 +789,7 @@ class OrbitView(QWidget):
             meta, warn, hint = "", "", "Point at it to open"
         elif node.key.startswith("more:"):
             tag, title, cap, text = "LIST", node.label, node.caption, node.blurb or "Every option, with search"
-            meta, warn, hint = "", "", "Or just start typing"
+            meta, warn, hint = "", "", "Point at it to open"
         elif o is None:
             tag, title, cap, text, meta, warn, hint = "", node.label, node.caption, node.blurb, "", "", ""
         else:
@@ -884,7 +944,8 @@ class OrbitView(QWidget):
         busy |= self.ring_a.step(dt, 120, 20, m)
         self.hub_s.t = 1.08 if ex else 1.0
         busy |= self.hub_s.step(dt, 220, 16, m)
-        self.disc_s.t = 1.04 if ex else 1.0
+        reach = self.DR_closed if self.open < 0 else (self.DR_l1 if self.sub < 0 else self.DR)
+        self.disc_s.t = (1.04 if ex else 1.0) * reach / self.DR
         busy |= self.disc_s.step(dt, 200, 17, m)
         c = self.orbit_center()
         for i, p in enumerate(self.ps):
@@ -892,7 +953,7 @@ class OrbitView(QWidget):
                 busy = True
                 continue
             kid = i >= self.n_top
-            rr = self.RC if kid else self.radii[p.ring]
+            rr = self.RC2 if p.ring == 3 else (self.RC if kid else self.radii[p.ring])
             h = i == self.hover
             if ex is not None:
                 if i == ex["i"]:
@@ -946,7 +1007,7 @@ class OrbitView(QWidget):
         if not (busy or drifting):
             self._timer.stop()
             return
-        want = 16 if busy else 33  # idle drift doesn't need 60 fps
+        want = self.frame_ms if busy else 33  # idle drift doesn't need 60 fps
         if self._timer.interval() != want:
             self._timer.setInterval(want)
 
@@ -963,8 +1024,11 @@ class OrbitView(QWidget):
         p.setOpacity(1.0 if self._exit is None else max(0.0, 1 - self._exit["t"] / self._exit["dur"]))
         if abs(self.disc_s.v - 1.0) < 1e-3:  # at rest: a plain copy, no rescaling of the big image
             p.drawPixmap(QPointF(c.x() - self.E, c.y() - self.E), disc)
+        elif abs(self.disc_s.v - self.disc_s.t) < 1e-3:  # at rest at a smaller size: a ready-made copy
+            p.drawPixmap(QPointF(c.x() - self.E, c.y() - self.E), self._disc_at(round(self.disc_s.t, 3)))
         else:
             p.drawPixmap(QRectF(c.x() - ds / 2, c.y() - ds / 2, ds, ds), disc, QRectF(disc.rect()))
+        p.drawPixmap(QPointF(c.x() - self.E, c.y() - self.E), self._rings_pixmap())  # orbits at their true size
         note = self._note_pixmap()
         nw = note.width() / self._dpr
         p.setOpacity(ra)
@@ -983,11 +1047,16 @@ class OrbitView(QWidget):
                     p.drawLine(QPointF(c.x() + math.cos(ang) * r0, c.y() + math.sin(ang) * r0),
                                QPointF(c.x() + math.cos(ang) * r1, c.y() + math.sin(ang) * r1))
             # the web: threads from the open branch to each choice, and a thread through the choices
+            webs = []
             if self.open >= 0 and len(self.ps) > self.n_top:
-                b = self.ps[self.open]
-                kids = self.ps[self.n_top:]
+                webs.append((self.open, self.n_top, self.l2))
+            if self.sub >= 0 and len(self.ps) > self.l2:
+                webs.append((self.sub, self.l2, len(self.ps)))
+            for bi, lo, hi in webs:
+                b = self.ps[bi]
+                kids = self.ps[lo:hi]
                 for k, kp in enumerate(kids):
-                    on = self.n_top + k == self.hover
+                    on = lo + k == self.hover or lo + k == self.sub
                     p.setPen(QPen(_alpha(theme.ACCENT if on else theme.TEXT, (0.95 if on else 0.32) * kp.a.v),
                                   2 if on else 1.3))
                     p.drawLine(QPointF(b.x, b.y), QPointF(kp.x, kp.y))
@@ -1005,7 +1074,7 @@ class OrbitView(QWidget):
             if a < 0.01:
                 continue
             node = self.items[i]
-            pm = self._planet_pixmap(node, i == self.hover or i == self.open)
+            pm = self._planet_pixmap(node, i == self.hover or i == self.open or i == self.sub)
             size = L * pl.s.v / self.MAX_SCALE * (self.KID if i >= self.n_top else 1.0)
             p.setOpacity(a)
             p.drawPixmap(QRectF(pl.x - size / 2, pl.y - size / 2, size, size), pm, QRectF(pm.rect()))
@@ -1112,9 +1181,14 @@ class OrbitView(QWidget):
             return False  # standing still is not heading anywhere
         c = self.orbit_center()
         # where the choices end up (they may still be flying out) and the branch itself
-        targets = [(c.x() + math.cos(math.radians(self.ps[k].base)) * self.RC,
-                    c.y() + math.sin(math.radians(self.ps[k].base)) * self.RC) for k in range(self.n_top, len(self.ps))]
+        targets = []
+        for k in range(self.n_top, len(self.ps)):
+            r = self.RC2 if k >= self.l2 else self.RC
+            targets.append((c.x() + math.cos(math.radians(self.ps[k].base)) * r,
+                            c.y() + math.sin(math.radians(self.ps[k].base)) * r))
         targets.append((self.ps[self.open].hx, self.ps[self.open].hy))
+        if self.sub >= 0:
+            targets.append((self.ps[self.sub].hx, self.ps[self.sub].hy))
         for tx, ty in targets:
             dx, dy = tx - pos.x(), ty - pos.y()
             d = math.hypot(dx, dy)
@@ -1122,6 +1196,25 @@ class OrbitView(QWidget):
                 return True
             cos = (vx * dx + vy * dy) / (speed * d)
             if cos >= math.cos(math.radians(self.AIM_DEG)):
+                return True
+        return False
+
+    def _heading_to_sub(self, pos: QPointF) -> bool:
+        """Moving towards the second fan's choices?"""
+        if self.sub < 0 or len(self._trail) < 2:
+            return False
+        now = self._trail[-1][0]
+        prev = next((q for ts, q in reversed(self._trail) if now - ts >= 0.025), self._trail[0][1])
+        vx, vy = pos.x() - prev.x(), pos.y() - prev.y()
+        speed = math.hypot(vx, vy)
+        if speed < 2.5:
+            return False
+        c = self.orbit_center()
+        for k in range(self.l2, len(self.ps)):
+            a = math.radians(self.ps[k].base)
+            dx, dy = c.x() + math.cos(a) * self.RC2 - pos.x(), c.y() + math.sin(a) * self.RC2 - pos.y()
+            d = math.hypot(dx, dy)
+            if d < 1 or (vx * dx + vy * dy) / (speed * d) >= math.cos(math.radians(self.AIM_DEG)):
                 return True
         return False
 
@@ -1135,6 +1228,19 @@ class OrbitView(QWidget):
             return
         if i >= self.n_top or i == self.open:  # on the branch or one of its choices
             self._aim.stop()
+            if self.n_top <= i < self.l2:  # a choice in the first fan
+                if self.sub >= 0 and i != self.sub and not stopped and self._heading_to_sub(pos):
+                    self._aim.start()  # crossing a neighbour on the way out to the open second fan
+                    return
+                if self.items[i].children:
+                    self.open_sub(i)  # a branch inside the fan: its own fan opens further out
+                elif self.sub >= 0:
+                    if not stopped and self._heading_to_sub(pos):
+                        self._aim.start()  # crossing a neighbour on the way out to the second fan
+                        return
+                    self.close_sub()
+            elif i == self.open and self.sub >= 0:
+                self.close_sub()  # back on the branch: fold the second fan away
             self.set_hover(i)
             return
         if i < 0 and self._in_fan(pos):  # in a gap between the choices: nothing to change
@@ -1178,8 +1284,8 @@ class OrbitView(QWidget):
         if node is None:
             return
         self._aim.stop()
-        if node.children:
-            self.open_branch(i)  # a branch only opens; its choices do the work
+        if node.children:  # a branch only opens; its choices do the work
+            self.open_branch(i) if i < self.n_top else self.open_sub(i)
             return
         if e.button() == Qt.MouseButton.RightButton:
             self.options_requested.emit(node)
@@ -1194,8 +1300,12 @@ class OrbitView(QWidget):
             step = 1 if k in (Qt.Key.Key_Right, Qt.Key.Key_Down) else -1
             self.kbd = True
             if in_fan:
-                lo, n = self.n_top, len(self.items) - self.n_top
-                self.set_hover(lo + (self.hover - lo + step) % n)
+                lo, hi = (self.l2, len(self.items)) if self.hover >= self.l2 else (self.n_top, self.l2)
+                n = hi - lo
+                nxt = lo + (self.hover - lo + step) % n
+                if lo == self.n_top and self.sub >= 0 and nxt != self.sub:
+                    self.close_sub()
+                self.set_hover(nxt)
             else:
                 n = self.n_top
                 if n:
@@ -1205,10 +1315,18 @@ class OrbitView(QWidget):
             node = self.items[self.hover]
             if node.children:
                 self.kbd = True
-                self.open_branch(self.hover)
-                self.set_hover(self.n_top)  # its first choice
+                if self.hover < self.n_top:
+                    self.open_branch(self.hover)
+                    self.set_hover(self.n_top)  # its first choice
+                else:
+                    self.open_sub(self.hover)
+                    self.set_hover(self.l2)
             else:
                 self.activated.emit(node)
+        elif k in (Qt.Key.Key_Escape, Qt.Key.Key_Backspace) and self.sub >= 0:
+            b = self.sub
+            self.close_sub()
+            self.set_hover(b)
         elif k in (Qt.Key.Key_Escape, Qt.Key.Key_Backspace) and self.open >= 0:
             b = self.open
             self.close_branch()

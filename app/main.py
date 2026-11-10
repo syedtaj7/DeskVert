@@ -327,9 +327,12 @@ class Controller(QObject):
             self.settings.save()
             QTimer.singleShot(0, self._restyle)  # after the click that changed it has finished
             return
+        unchanged = key == "hotkey" and value == self.settings.hotkey and self.hotkey is not None
         setattr(self.settings, key, value)
         if save:
             self.settings.save()
+        if key == "hotkey" and unchanged:
+            return  # same shortcut: keep the running listener (restarting it gains nothing)
         if key == "hotkey":
             ok, err = self._start_hotkey()
             if not ok:

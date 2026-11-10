@@ -61,7 +61,52 @@ KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "docume
 # Every kind of file: the ways to pack them.
 PACK = ("Pack", "ZIP, 7Z, TAR.GZ", ["archive.zip", "archive.7z", "archive.targz"])
 REPACK = ("Repack", "ZIP, 7Z, TAR.GZ", ["archive.tozip", "archive.to7z", "archive.totargz"])
-FAN_MAX = 8  # choices in one fan; more go behind "More..." (the searchable list)
+FAN_MAX = 8  # choices in one fan; bigger groups open fans of their own (a web, never a list)
+# Big branches, split into named fans of their own: (kind, branch) -> [(label, caption, keys)].
+SUBGROUPS = {
+    ("image", "More formats"): [
+        ("Everyday", "HEIC, AVIF, ICO...", ["image.heic", "image.avif", "image.ico", "image.tiff", "image.gif",
+                                            "image.bmp"]),
+        ("Pro", "JPEG 2000, ICNS...", ["image.jp2", "image.icns", "image.tga", "image.qoi", "image.dds"]),
+        ("Classic", "PCX, PPM, SGI, XBM", ["image.pcx", "image.ppm", "image.sgi", "image.xbm"]),
+        ("Vector", "SVG as PDF", ["vector.pdf", "vector.svgz", "vector.svg"]),
+    ],
+    ("image", "Edit"): [
+        ("Turn", "rotate, mirror", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip"]),
+        ("Fix", "size, color, info", ["imgedit.resize", "imgedit.gray", "imgedit.clean", "imgedit.dpi"]),
+        ("Combine", "several in one", ["imgedit.stitch", "imgedit.anim"]),
+    ],
+    ("pdf", "Convert"): [
+        ("As images", "PNG, JPG, TIFF...", ["pdf.png", "pdf.jpg", "pdf.longimg", "pdf.tiff", "pdf.pictures"]),
+        ("As text", "TXT, Markdown, HTML", ["pdf.txt", "pdf.md", "pdf.html"]),
+        ("As e-book", "EPUB, comic", ["ebook.epub", "ebook.cbz"]),
+    ],
+}
+
+
+def _nest(kids: list, kind: str = "", branch: str = "") -> list:
+    """Keep every fan readable: named sub-fans where defined, otherwise extra fans of up to FAN_MAX."""
+    if len(kids) <= FAN_MAX:
+        return kids
+    by_key = {k.key: k for k in kids}
+    named = SUBGROUPS.get((kind, branch))
+    out, used = [], set()
+    if named:
+        for label, caption, keys in named:
+            sub = [by_key[k] for k in keys if k in by_key and k not in used]
+            used.update(n.key for n in sub)
+            if len(sub) == 1:
+                out.append(sub[0])
+            elif sub:
+                out.append(Node(label, caption, children=_nest(sub), key=f"branch:{branch}/{label}"))
+        rest = [k for k in kids if k.key not in used]
+        out += rest
+        if len(out) <= FAN_MAX:
+            return out
+        kids = out
+    # generic: the first choices stay, the rest open a further fan ("More"), as deep as needed
+    head, tail = kids[:FAN_MAX - 1], kids[FAN_MAX - 1:]
+    return head + [Node("More", f"{len(tail)} more", children=_nest(tail), key=f"branch:{branch}/more")]
 QUICK_MAX = 6
 # Mixed selections: the most useful actions per type (the rest are under "More…").
 MIXED_PICKS = {
@@ -122,9 +167,7 @@ def _arrange(offers: list[Offer], kind: str) -> list[Node]:
         if b[0] not in built:
             keys = next(k for lbl, _c, k in groups if lbl == b[0])
             kids = [_leaf(by_key[k]) for k in keys if k in by_key]
-            if len(kids) > FAN_MAX:  # a fan stays readable: the rest are one tap away in the list
-                kids = kids[:FAN_MAX - 1] + [Node("More…", f"all {len(kids)}", key=f"more:{kind}", tool=False,
-                                                  blurb="Every option, with search")]
+            kids = _nest(kids, kind, b[0])
             node = kids[0] if len(kids) == 1 else Node(b[0], b[1], children=kids, key=f"branch:{b[0]}")
             built[b[0]] = node
             nodes.append(node)
@@ -171,9 +214,9 @@ def build_menu(paths: list[Path], s: Settings) -> tuple[list[Node], list[Node], 
         picks = MIXED_PICKS.get(kind)
         chosen = ([o for k in picks for o in offers if o.target.key == k] if picks else offers)[:FAN_MAX - 1]
         leaves = [_leaf(o) for o in chosen]
-        if len(offers) > len(chosen):
-            leaves.append(Node("More…", f"all {len(offers)}", key=f"more:{kind}", tool=False,
-                               blurb="Every option for these files, with search"))
+        rest = [_leaf(o) for o in offers if o not in chosen]
+        if rest:  # everything else for these files, one fan further out (no list, no search)
+            leaves.append(Node("All", f"{len(rest)} more", children=_nest(rest), key=f"branch:{kind}/all"))
         one, many = KIND_WORDS.get("document" if kind == "pdf" else kind, ("file", "files"))
         if kind == "pdf":
             one, many = "PDF", "PDFs"

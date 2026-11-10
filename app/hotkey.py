@@ -118,6 +118,8 @@ class ModifierTapListener:
         self._ready = threading.Event()
         self.error: str | None = None
         self._wndproc = None  # keep the callback alive
+        self.hwnd = 0
+        self.handled = 0  # messages this listener's own window procedure has seen (for tests)
 
     def start(self) -> bool:
         self._ready.clear()
@@ -180,6 +182,7 @@ class ModifierTapListener:
         state = {"timer": False}
 
         def wndproc(hwnd, msg, wparam, lparam):
+            self.handled += 1
             try:
                 if msg == WM_INPUT:
                     size.value = ctypes.sizeof(RAWINPUT)
@@ -220,12 +223,21 @@ class ModifierTapListener:
         cls.cbSize = ctypes.sizeof(WNDCLASSEXW)
         cls.lpfnWndProc = self._wndproc
         cls.hInstance = hinst
-        cls.lpszClassName = "TapshiftTapListener"
-        user32.RegisterClassExW(ctypes.byref(cls))
+        # A class name of its own: when the listener restarts (new shortcut, end of the welcome tour),
+        # reusing one name made Windows keep the old, freed window procedure, so taps stopped after one.
+        cls.lpszClassName = f"TapshiftTapListener-{id(self):x}-{self._tid:x}"
+        if not user32.RegisterClassExW(ctypes.byref(cls)):
+            self.error = "Couldn't start the Ctrl+Shift listener."
+            self._ready.set()
+            return
         hwnd = user32.CreateWindowExW(0, cls.lpszClassName, "", 0, 0, 0, 0, 0, HWND_MESSAGE, None, hinst, None)
+        self.hwnd = hwnd or 0
         dev = RAWINPUTDEVICE(0x01, 0x06, RIDEV_INPUTSINK, hwnd)  # generic desktop / keyboard
         if not hwnd or not user32.RegisterRawInputDevices(ctypes.byref(dev), 1, ctypes.sizeof(dev)):
             self.error = "Couldn't start the Ctrl+Shift listener."
+            if hwnd:
+                user32.DestroyWindow(hwnd)
+            user32.UnregisterClassW(cls.lpszClassName, hinst)
             self._ready.set()
             return
         self._ready.set()
@@ -234,6 +246,7 @@ class ModifierTapListener:
             user32.TranslateMessage(ctypes.byref(msg))
             user32.DispatchMessageW(ctypes.byref(msg))
         user32.DestroyWindow(hwnd)
+        user32.UnregisterClassW(cls.lpszClassName, hinst)
 
 
 class HotkeyListener:
