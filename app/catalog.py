@@ -350,6 +350,10 @@ def kind_of(path: Path) -> str | None:
         return "subtitle"
     if e in toolbox.EBOOK_EXTS:
         return "ebook"
+    if e in toolbox.AUDIO_EXTS:
+        return "audio"
+    if e in toolbox.VIDEO_EXTS:
+        return "video"
     for kind, exts in (("font", toolbox.FONT_EXTS), ("model", toolbox.MODEL_EXTS), ("drawing", toolbox.DRAWING_EXTS),
                        ("mail", toolbox.MAIL_EXTS), ("map", toolbox.MAP_EXTS), ("vector", toolbox.VECTOR_EXTS)):
         if e in exts:
@@ -367,7 +371,7 @@ def pick_group(paths: list[Path]) -> tuple[str | None, list[Path], list[Path]]:
     if not groups:
         return None, [], list(paths)
     order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4, "subtitle": 5, "ebook": 6, "font": 7,
-             "model": 8, "drawing": 9, "mail": 10, "map": 11, "vector": 12}
+             "model": 8, "drawing": 9, "mail": 10, "map": 11, "vector": 12, "audio": 13, "video": 14}
     kind = max(groups, key=lambda k: (len(groups[k]), -order[k]))
     chosen = groups[kind]
     return kind, chosen, [p for p in paths if p not in chosen]
@@ -416,6 +420,8 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         offers = toolbox.subtitle_offers(files)
     elif kind == "ebook":
         offers = toolbox.ebook_offers(files)
+    elif kind in ("audio", "video"):
+        offers = toolbox.audio_offers(files, video=kind == "video")
     elif kind in ("font", "model", "drawing", "mail", "map", "vector"):
         offers = {"font": toolbox.font_offers, "model": toolbox.model_offers, "drawing": toolbox.drawing_offers,
                   "mail": toolbox.mail_offers, "map": toolbox.map_offers, "vector": toolbox.vector_offers}[kind](files)
@@ -455,8 +461,9 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
     if ext in _APPLE:
         return title, f"{name} is an Apple {_APPLE[ext]} file, which can only be opened on a Mac or iPhone."
     if ext in MEDIA_EXTS:
-        return title, (f"{name} {'are audio or video files' if many else 'is an audio or video file'}. "
-                       "Tapshift doesn't handle audio or video yet (it keeps your laptop light).")
+        return title, (f"{name} {'are audio or video files' if many else 'is an audio or video file'} Windows "
+                       "can't read. Tapshift converts sound with Windows' own converter; re-encoding video isn't "
+                       "offered, to keep your laptop light.")
 
     def a(kind: str) -> str:
         return "" if many else ("an " if kind[0] in "aeiou" else "a ")

@@ -14,7 +14,9 @@ hidden = [
     "app.toolbox", "app.menu", "app.engines.mixed", "app.ui.customize", "app.engines.imgedit",
     "app.engines.subtitle", "app.engines.ebook", "yaml", "tomllib", "xml.etree.ElementTree",
     "app.engines.geo", "app.engines.font", "app.engines.mesh", "app.engines.cad", "app.engines.mail",
-    "app.engines.vector", "lxml", "lxml.html", "lxml.etree", "email", "quopri", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
+    "app.engines.vector", "lxml", "lxml.html", "lxml.etree", "email", "quopri", "app.engines.media",
+    "winrt.windows.media.transcoding", "winrt.windows.media.mediaproperties", "winrt.windows.storage",
+    "winrt.windows.storage.fileproperties", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
     # Windows' built-in text recognition (pywinrt projections)
     "winrt.runtime", "winrt.system", "winrt.windows.foundation", "winrt.windows.foundation.collections",
     "winrt.windows.globalization", "winrt.windows.graphics.imaging", "winrt.windows.media.ocr",
@@ -32,13 +34,19 @@ a = Analysis(
            (str(ROOT / "THIRD-PARTY-NOTICES.md"), "licenses"),
            (str(ROOT / "licenses" / "*.txt"), "licenses")],
     hiddenimports=hidden,
-    excludes=["tkinter", "pytest", "onnxruntime", "pymupdf4llm", "pymupdf_layout", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
+    excludes=["tkinter", "pytest", "onnxruntime", "pymupdf4llm", "pymupdf_layout", "pymupdf.layout", "networkx",
+              "google.protobuf", "flatbuffers", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
               "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf"],
     noarchive=False,
 )
 # Not needed: Qt's software OpenGL fallback (Tapshift only draws 2D) and Qt's UI translations (English UI).
 a.binaries = [b for b in a.binaries if not b[0].lower().endswith("opengl32sw.dll")]
 a.datas = [d for d in a.datas if not (d[0].replace("\\", "/").find("/translations/") >= 0 and d[0].endswith(".qm"))]
+# PyMuPDF 2.x ships AI layout models (onnxruntime) Tapshift never uses; newer PyInstaller hooks collect them.
+# Keep them out on every build machine, so the app stays the same small size.
+_HEAVY = ("pymupdf/layout", "onnxruntime", "networkx", "google/protobuf", "flatbuffers", "pymupdf4llm")
+a.datas = [d for d in a.datas if not any(h in d[0].replace("\\", "/").lower() for h in _HEAVY)]
+a.binaries = [b for b in a.binaries if not any(h in b[0].replace("\\", "/").lower() for h in _HEAVY)]
 
 pyz = PYZ(a.pure)
 

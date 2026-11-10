@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.0
+
+### Sound, the light way
+- **Music and recordings:** MP3, M4A, WAV, FLAC and WMA into each other (AAC, OGG, Opus, AIFF and AMR are
+  read too, where Windows can). High, medium or small quality for MP3, M4A and WMA.
+- **The sound from a video:** MP4, MOV, MKV, AVI, WMV, 3GP, WebM and more → MP3, M4A, WAV, FLAC or WMA.
+  Only the sound is touched; the picture is never decoded or re-encoded.
+- Made by **Windows' own converter** (Media Foundation): nothing to download, about a quarter of a
+  second of processor time per minute of sound. Every result's length is checked against the original.
+- Re-encoding video (smaller videos, 720p, WebM, GIF) isn't offered: it's the heavy kind of work
+  Tapshift keeps off low-end laptops.
+
+### Fixes
+- **The installer is back to its usual size.** 1.6.0's GitHub build accidentally included PyMuPDF's AI
+  layout models (about 40 MB) that Tapshift never uses; every build now leaves them out.
+
 ## 1.6.0
 
 ### Many more formats, still light

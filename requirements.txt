@@ -16,3 +16,7 @@ winrt-Windows.Globalization==4!10.0.28000.2957
 winrt-Windows.Graphics.Imaging==4!10.0.28000.2957
 winrt-Windows.Media.Ocr==4!10.0.28000.2957
 winrt-Windows.Storage.Streams==4!10.0.28000.2957
+winrt-Windows.Storage==4!10.0.28000.2957
+winrt-Windows.Storage.FileProperties==4!10.0.28000.2957
+winrt-Windows.Media.Transcoding==4!10.0.28000.2957
+winrt-Windows.Media.MediaProperties==4!10.0.28000.2957
