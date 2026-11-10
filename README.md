@@ -50,6 +50,7 @@ and the new file appears right next to the original, checked and ready.
 | 🧊 **3D models** | **STL, OBJ, PLY, 3MF, GLB/glTF** into each other, plus a shaded **picture** of the model |
 | 📐 **CAD** | **DXF** → **PDF**, **SVG** or **PNG**, without AutoCAD |
 | 🔤 **Fonts** | **TTF / OTF ↔ WOFF**, → **EOT** |
+| 🎵 **Sound** | **MP3, M4A, WAV, FLAC, WMA** (and AAC, OGG, Opus, AIFF in) into each other · the **sound from a video** (MP4, MOV, MKV, AVI, WMV...) as MP3 or M4A. Uses Windows' own converter, so nothing is downloaded and it stays light. Videos themselves aren't re-encoded. |
 | ✉️ **Mail & saved pages** | **EML** e-mails and **MHTML** pages → **PDF**, **HTML**, **TXT**, **Markdown**; e-mail attachments → **ZIP** |
 | 📝 **Markdown** | → **PDF** (A4, with headings, tables, code and images) · **HTML** · **Word** |
 | 🖼️ **Picture edits** | **Turn** left, right or upside down · **Mirror** · **Grayscale** · **Resize** (half, 1920, 1280 or 1080 px) · **Clean info**: removes location, camera and date before you share (JPG and PNG aren't re-encoded) · **Long image**: several pictures stitched one under the other |

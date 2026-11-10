@@ -48,13 +48,16 @@ BRANCHES = {
     "model": [("More formats", "every 3D format", ["mesh.3mf", "mesh.ply"])],
     "document": [("Data", "without Excel", ["data.sheets", "data.json", "data.yaml", "data.xml"])],
     "map": [("Data", "tables", ["geo.csv", "geo.xlsx"])],
+    "audio": [("Lossless", "WAV, FLAC", ["media.wav", "media.flac"])],
+    "video": [("Sound", "MP3, M4A, WAV...", ["media.mp3", "media.m4a", "media.wav", "media.flac", "media.wma"])],
 }
 KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "documents"), "data": ("data file", "data files"),
               "markdown": ("Markdown file", "Markdown files"), "archive": ("archive", "archives"),
               "subtitle": ("subtitle file", "subtitle files"), "ebook": ("e-book", "e-books"),
               "font": ("font", "fonts"), "model": ("3D model", "3D models"), "drawing": ("drawing", "drawings"),
               "mail": ("e-mail or page", "e-mails or pages"), "map": ("map file", "map files"),
-              "vector": ("drawing", "drawings")}
+              "vector": ("drawing", "drawings"), "audio": ("sound file", "sound files"),
+              "video": ("video", "videos")}
 # Every kind of file: the ways to pack them.
 PACK = ("Pack", "ZIP, 7Z, TAR.GZ", ["archive.zip", "archive.7z", "archive.targz"])
 REPACK = ("Repack", "ZIP, 7Z, TAR.GZ", ["archive.tozip", "archive.to7z", "archive.totargz"])
@@ -234,7 +237,7 @@ FAVOURITE_CHOICES = [
     ("pdf.gray", "PDF: Grayscale"), ("pdf.png", "PDF: pages to PNG"), ("pdf.nup", "PDF: pages per sheet"),
     ("imgedit.rotr", "Pictures: turn right"), ("imgedit.resize", "Pictures: resize"),
     ("imgedit.clean", "Pictures: remove location & camera info"), ("doc.pdf", "Documents: to PDF"),
-    ("archive.zip", "Any files: ZIP"),
+    ("archive.zip", "Any files: ZIP"), ("media.mp3", "Sound: to MP3"), ("media.m4a", "Sound: to M4A"),
 ]
 FAVOURITE_NAMES = dict(FAVOURITE_CHOICES)
 

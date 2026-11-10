@@ -27,6 +27,8 @@ DRAWING_EXTS = {".dxf"}
 MAIL_EXTS = {".eml", ".mht", ".mhtml"}
 MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx"}
 VECTOR_EXTS = {".ai"}
+# Sound only, through Windows' own converter (videos: their sound; the picture is never re-encoded).
+from .engines.media import AUDIO_EXTS, VIDEO_EXTS  # noqa: E402  (plain sets, nothing heavy)
 # Picture edits work on these (other formats: convert first).
 EDIT_IMAGE_FMTS = {"jpg", "png", "webp", "bmp", "tiff"}
 MARKDOWN_EXTS = {".md", ".markdown", ".mdown", ".mkd"}
@@ -185,6 +187,9 @@ MAIL_ZIP = Target("mail.zip", "Attachments", ".zip", suffix=" (attachments)")
 GEO_TARGETS = [Target("geo.kml", "KML", ".kml"), Target("geo.geojson", "GeoJSON", ".geojson"),
                Target("geo.gpx", "GPX", ".gpx"), Target("geo.kmz", "KMZ", ".kmz"), Target("geo.csv", "CSV", ".csv"),
                Target("geo.xlsx", "XLSX", ".xlsx")]
+AUDIO_TARGETS = [Target("media.mp3", "MP3", ".mp3"), Target("media.m4a", "M4A", ".m4a"),
+                 Target("media.wav", "WAV", ".wav"), Target("media.flac", "FLAC", ".flac"),
+                 Target("media.wma", "WMA", ".wma")]
 TEXT_EPUB = Target("ebook.epub", "EPUB", ".epub")
 TEXT_MD = Target("textdoc.md", "Markdown", ".md")
 DATA_YAML = Target("data.yaml", "YAML", ".yaml")
@@ -367,6 +372,27 @@ def vector_offers(files: list[Path]) -> list[Offer]:
     return [_offer(VEC_PDF, "Illustrator as PDF", ["Works with .ai files saved with PDF content (the default)."], [],
                    files),
             _offer(VEC_PNG, "picture", ["Transparent background kept."], [], files)]
+
+
+AUDIO_CAPTIONS = {"mp3": "plays everywhere", "m4a": "smaller, Apple", "wav": "lossless, editing",
+                  "flac": "lossless, smaller", "wma": "Windows Media"}
+
+
+def audio_offers(files: list[Path], video: bool) -> list[Offer]:
+    """Music and recordings into each other; for videos, just their sound. Light: Windows' own converter."""
+    exts = {p: p.suffix.lower().lstrip(".") for p in files}
+    lossy = [Option("quality", "Quality", "choice", "High (192 kbps)",
+                    choices=("High (192 kbps)", "Medium (128 kbps)", "Small (96 kbps)"))]
+    offers = []
+    for t in AUDIO_TARGETS:
+        srcs = [p for p in files if exts[p] != t.fmt]
+        if not srcs:
+            continue
+        cap = "the sound only" if video else AUDIO_CAPTIONS[t.fmt]
+        why = ("Takes only the sound; the video itself isn't touched, so it's quick and light."
+               if video else "Made by Windows' own converter; nothing to download.")
+        offers.append(_offer(t, cap, [why], lossy if t.fmt in ("mp3", "m4a", "wma") else [], srcs))
+    return offers
 
 
 def pack_offers(files: list[Path]) -> list[Offer]:

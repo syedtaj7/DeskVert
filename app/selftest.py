@@ -21,7 +21,18 @@ def _make_extras(folder: Path) -> dict[str, Path]:
     files = {"csv": folder / "Prices.csv", "json": folder / "Settings.json", "md": folder / "Read me.md",
              "scan": folder / "Receipt.png", "srt": folder / "Film.srt", "yaml": folder / "Config.yaml",
              "epub": folder / "Story.epub", "geo": folder / "Places.geojson", "obj": folder / "Cube.obj",
-             "dxf": folder / "Plan.dxf", "eml": folder / "Hello.eml", "csvpeople": folder / "People.csv"}
+             "dxf": folder / "Plan.dxf", "eml": folder / "Hello.eml", "csvpeople": folder / "People.csv",
+             "wav": folder / "Tone.wav"}
+    import math
+    import struct
+    import wave
+
+    with wave.open(str(files["wav"]), "wb") as w:  # 2 seconds of a quiet tone
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(22050)
+        w.writeframes(b"".join(struct.pack("<h", int(6000 * math.sin(2 * math.pi * 440 * i / 22050)))
+                               for i in range(22050 * 2)))
     files["geo"].write_text('{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point",'
                             '"coordinates":[77.59,12.97]},"properties":{"name":"Bengaluru"}}]}', encoding="utf-8")
     cube_v = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)]
@@ -165,6 +176,8 @@ def run(folder: Path) -> int:
         case([extras["json"]], "TOML")
         case([extras["md"]], "EPUB")
         case([extras["srt"]], "ASS")
+        case([extras["wav"]], "MP3")
+        case([extras["wav"]], "M4A")
         case([samples / "Sunset.png"], "QOI")
         case([samples / "Mountains.jpg"], "Set DPI", {"dpi": "300 dpi"})
         case([samples / "Sunset.png", samples / "Mountains.jpg"], "7Z", name="2 images->7Z")
