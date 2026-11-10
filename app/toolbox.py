@@ -17,9 +17,16 @@ from .catalog import Offer, Option, Target
 ARCHIVE_EXTS = {".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz", ".tbz2", ".xz", ".txz", ".zst", ".cab",
                 ".iso"}
 DATA_EXTS = {".csv": "csv", ".tsv": "tsv", ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".toml": "toml",
-             ".xml": "xml", ".jsonl": "jsonl", ".ndjson": "jsonl"}
-SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt"}
-EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps"}
+             ".xml": "xml", ".jsonl": "jsonl", ".ndjson": "jsonl", ".vcf": "vcf"}
+SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".smi": "sami", ".sami": "sami",
+                 ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd"}
+EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
+FONT_EXTS = {".ttf", ".otf", ".woff", ".eot"}
+MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
+DRAWING_EXTS = {".dxf"}
+MAIL_EXTS = {".eml", ".mht", ".mhtml"}
+MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx"}
+VECTOR_EXTS = {".ai"}
 # Picture edits work on these (other formats: convert first).
 EDIT_IMAGE_FMTS = {"jpg", "png", "webp", "bmp", "tiff"}
 MARKDOWN_EXTS = {".md", ".markdown", ".mdown", ".mkd"}
@@ -137,8 +144,49 @@ IMG_STITCH = Target("imgedit.stitch", "Long image", "*", suffix=" (stitched)", c
 
 SUB_VTT = Target("subtitle.vtt", "WebVTT", ".vtt")
 SUB_SRT = Target("subtitle.srt", "SRT", ".srt")
+SUB_TARGETS = [SUB_SRT, SUB_VTT, Target("subtitle.ass", "ASS", ".ass"), Target("subtitle.sami", "SAMI", ".smi"),
+               Target("subtitle.ttml", "TTML", ".ttml"), Target("subtitle.lrc", "LRC", ".lrc"),
+               Target("subtitle.microdvd", "MicroDVD", ".sub")]
 EBOOK_PDF = Target("ebook.pdf", "PDF", ".pdf")
 EBOOK_TXT = Target("ebook.txt", "TXT", ".txt")
+EBOOK_EPUB = Target("ebook.epub", "EPUB", ".epub")
+EBOOK_CBZ = Target("ebook.cbz", "CBZ", ".cbz")
+PDF_TIFF = Target("pdf.tiff", "TIFF", ".tiff")
+PDF_LONG = Target("pdf.longimg", "Long image", ".jpg", suffix=" (long)")
+PDF_MD = Target("pdf.md", "Markdown", ".md")
+PDF_HTML = Target("pdf.html", "HTML", ".html")
+IMG_DPI = Target("imgedit.dpi", "Set DPI", "*", suffix=" (dpi)", ask=True)
+IMG_ANIM = Target("imgedit.anim", "Animated GIF", ".gif", combine=True)
+VEC_PDF = Target("vector.pdf", "Vector PDF", ".pdf")
+VEC_SVGZ = Target("vector.svgz", "SVGZ", ".svgz")
+VEC_SVG = Target("vector.svg", "SVG", ".svg")
+VEC_PNG = Target("vector.png", "PNG", ".png")
+PACK_7Z = Target("archive.7z", "7Z", ".7z", combine=True)
+PACK_TGZ = Target("archive.targz", "TAR.GZ", ".tar.gz", combine=True)
+TO_7Z = Target("archive.to7z", "To 7Z", ".7z")
+TO_TGZ = Target("archive.totargz", "To TAR.GZ", ".tar.gz")
+DATA_TOML = Target("data.toml", "TOML", ".toml")
+DATA_XML = Target("data.xml", "XML", ".xml")
+DATA_TSV = Target("data.tsv", "TSV", ".tsv")
+DATA_SHEETS = Target("data.sheets", "CSV per sheet", "", folder="sheets")
+DATA_VCF = Target("data.vcf", "vCard", ".vcf")
+DATA_VCSV = Target("data.vcsv", "CSV", ".csv")
+DATA_VXLSX = Target("data.vxlsx", "XLSX", ".xlsx")
+FONT_WOFF = Target("font.woff", "WOFF", ".woff")
+FONT_SFNT = Target("font.sfnt", "TTF / OTF", "*")
+FONT_EOT = Target("font.eot", "EOT", ".eot")
+MESH_TARGETS = [Target("mesh.stl", "STL", ".stl"), Target("mesh.obj", "OBJ", ".obj"), Target("mesh.glb", "GLB", ".glb"),
+                Target("mesh.3mf", "3MF", ".3mf"), Target("mesh.ply", "PLY", ".ply"),
+                Target("mesh.png", "Picture", ".png", suffix=" (preview)")]
+CAD_TARGETS = [Target("cad.pdf", "PDF", ".pdf"), Target("cad.svg", "SVG", ".svg"), Target("cad.png", "PNG", ".png")]
+MAIL_TARGETS = [Target("mail.pdf", "PDF", ".pdf"), Target("mail.html", "HTML", ".html"), Target("mail.txt", "TXT", ".txt"),
+                Target("mail.md", "Markdown", ".md")]
+MAIL_ZIP = Target("mail.zip", "Attachments", ".zip", suffix=" (attachments)")
+GEO_TARGETS = [Target("geo.kml", "KML", ".kml"), Target("geo.geojson", "GeoJSON", ".geojson"),
+               Target("geo.gpx", "GPX", ".gpx"), Target("geo.kmz", "KMZ", ".kmz"), Target("geo.csv", "CSV", ".csv"),
+               Target("geo.xlsx", "XLSX", ".xlsx")]
+TEXT_EPUB = Target("ebook.epub", "EPUB", ".epub")
+TEXT_MD = Target("textdoc.md", "Markdown", ".md")
 DATA_YAML = Target("data.yaml", "YAML", ".yaml")
 DATA_JSONL = Target("data.jsonl", "JSON Lines", ".jsonl")
 MIXED_PDF = Target("mixed.pdf", "1 PDF", ".pdf", combine=True)
@@ -197,7 +245,7 @@ def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
     """Rotate, mirror, grayscale, resize, remove hidden info; several pictures can be stitched."""
     srcs = [p for p in images if fmts.get(p) in EDIT_IMAGE_FMTS]
     if not srcs:
-        return []
+        return _svg_offers(images, fmts)
     offers = [
         _offer(IMG_ROTL, "90° left", ["Turned the way you see it, saved in the same format."], [], srcs),
         _offer(IMG_ROTR, "90° right", ["Turned the way you see it, saved in the same format."], [], srcs),
@@ -211,31 +259,143 @@ def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
             "Removes location, camera, date and other hidden details before you share a photo. JPG and PNG "
             "pictures aren't re-encoded: the picture stays exactly the same."], [], srcs),
     ]
+    dpi_ok = [p for p in srcs if fmts.get(p) in ("jpg", "png", "tiff", "bmp")]
+    if dpi_ok:
+        offers.append(_offer(IMG_DPI, "print resolution", [
+            "Sets the print size (dots per inch) without changing a single pixel. JPG isn't re-encoded."], [
+            Option("dpi", "Resolution", "choice", "300 dpi", choices=("72 dpi", "96 dpi", "150 dpi", "200 dpi",
+                                                                       "300 dpi", "600 dpi")),
+        ], dpi_ok))
     if len(srcs) >= 2:
         offers.append(_offer(IMG_STITCH, f"{len(srcs)} in one", [
             "One under the other, in the order selected (like a long screenshot)."], [], srcs))
+        offers.append(_offer(IMG_ANIM, f"{len(srcs)} frames", ["A looping animation, in the order selected."], [
+            Option("delay", "Each picture", "choice", "1 s", choices=("0.3 s", "0.5 s", "1 s", "2 s", "3 s")),
+        ], srcs))
+    return offers + _svg_offers(images, fmts)
+
+
+def _svg_offers(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
+    svgs = [p for p in images if fmts.get(p) == "svg"]
+    offers = []
+    if svgs:
+        offers.append(_offer(VEC_PDF, "sharp at any zoom", ["A vector PDF: lines and text stay sharp."], [], svgs))
+        plain = [p for p in svgs if p.suffix.lower() == ".svg"]
+        packed = [p for p in svgs if p.suffix.lower() == ".svgz"]
+        if plain:
+            offers.append(_offer(VEC_SVGZ, "compressed", ["The same drawing, gzip-compressed."], [], plain))
+        if packed:
+            offers.append(_offer(VEC_SVG, "uncompressed", ["The same drawing, as plain SVG."], [], packed))
     return offers
+
+
+SUB_CAPTIONS = {"srt": "TVs, VLC, editors", "vtt": "web players", "ass": "styled (Aegisub)", "sami": "older players",
+                "ttml": "broadcast, Netflix", "lrc": "song lyrics", "microdvd": "frame-based"}
 
 
 def subtitle_offers(files: list[Path]) -> list[Offer]:
     kinds = {p: SUBTITLE_EXTS[p.suffix.lower()] for p in files}
     offers = []
-    srt = [p for p in files if kinds[p] == "srt"]
-    vtt = [p for p in files if kinds[p] == "vtt"]
-    if srt:
-        offers.append(_offer(SUB_VTT, "for web players", ["Every timing kept to the millisecond."], [], srt))
-    if vtt:
-        offers.append(_offer(SUB_SRT, "for TVs and VLC", ["Every timing kept. Web-only styling is left out."], [],
-                             vtt))
+    for t in SUB_TARGETS:
+        srcs = [p for p in files if kinds[p] != t.fmt]
+        if srcs:
+            offers.append(_offer(t, SUB_CAPTIONS.get(t.fmt, ""), ["Saved as UTF-8; timings are kept."], [], srcs))
     return offers
 
 
 def ebook_offers(files: list[Path]) -> list[Offer]:
-    return [
-        _offer(EBOOK_PDF, "A5 pages", ["Laid out on A5 pages; pictures included. Locked (DRM) books can't be "
-                                       "opened."], [], files),
-        _offer(EBOOK_TXT, "just the words", ["All the text, without pictures or layout."], [], files),
-    ]
+    comics = {".cbz", ".cbr", ".cb7", ".cbt"}
+    offers = [_offer(EBOOK_PDF, "A5 pages", ["Laid out on A5 pages; pictures included. Locked (DRM) books can't be "
+                                             "opened."], [], files)]
+    books = [p for p in files if p.suffix.lower() not in comics | {".cbr"}]
+    remake = [p for p in books if p.suffix.lower() != ".epub"]
+    if remake:
+        offers.append(_offer(EBOOK_EPUB, "e-reader book", ["A reflowable EPUB with chapters, for any e-reader."], [],
+                             remake))
+    if books:
+        offers.append(_offer(EBOOK_TXT, "just the words", ["All the text, without pictures or layout."], [], books))
+    return offers
+
+
+def font_offers(files: list[Path]) -> list[Offer]:
+    desk = [p for p in files if p.suffix.lower() in (".ttf", ".otf")]
+    web = [p for p in files if p.suffix.lower() in (".woff", ".eot")]
+    offers = []
+    if desk:
+        offers.append(_offer(FONT_WOFF, "for web pages", ["Every table copied exactly, compressed."], [], desk))
+        offers.append(_offer(FONT_EOT, "old Internet Explorer", ["Every table copied exactly."], [], desk))
+    if web:
+        offers.append(_offer(FONT_SFNT, "install on a PC", ["An installable desktop font, every table exact."], [],
+                             web))
+    return offers
+
+
+def model_offers(files: list[Path]) -> list[Offer]:
+    exts = {p: p.suffix.lower().lstrip(".") for p in files}
+    out = []
+    for t in MESH_TARGETS:
+        srcs = [p for p in files if exts[p] != t.fmt and not (t.fmt == "glb" and exts[p] == "gltf")]
+        if srcs:
+            out.append(_offer(t, "shaded preview" if t.fmt == "png" else "3D model",
+                              ["The shape is converted; colors and textures aren't."], [], srcs))
+    return out
+
+
+def drawing_offers(files: list[Path]) -> list[Offer]:
+    return [_offer(t, {"pdf": "vector", "svg": "for the web", "png": "picture"}[t.fmt],
+                   ["Drawn without AutoCAD: lines, arcs, text and blocks. Hatch fills aren't drawn."], [], files)
+            for t in CAD_TARGETS]
+
+
+def mail_offers(files: list[Path]) -> list[Offer]:
+    offers = [_offer(t, {"pdf": "A4 document", "html": "one page", "txt": "just the text", "md": "Markdown"}[t.fmt],
+                     ["Scripts never run; web pictures aren't downloaded."], [], files) for t in MAIL_TARGETS]
+    eml = [p for p in files if p.suffix.lower() == ".eml"]
+    if eml:
+        offers.append(_offer(MAIL_ZIP, "in a ZIP", ["The e-mail's attachments, in one ZIP."], [], eml))
+    return offers
+
+
+def map_offers(files: list[Path]) -> list[Offer]:
+    exts = {p: p.suffix.lower().lstrip(".") for p in files}
+    return [_offer(t, "map data", ["Longitude / latitude (WGS 84). GPX has no areas: they become tracks."], [],
+                   [p for p in files if exts[p] != t.fmt]) for t in GEO_TARGETS
+            if any(exts[p] != t.fmt for p in files)]
+
+
+def vector_offers(files: list[Path]) -> list[Offer]:
+    return [_offer(VEC_PDF, "Illustrator as PDF", ["Works with .ai files saved with PDF content (the default)."], [],
+                   files),
+            _offer(VEC_PNG, "picture", ["Transparent background kept."], [], files)]
+
+
+def pack_offers(files: list[Path]) -> list[Offer]:
+    n = len(files)
+    return [_offer(PACK_7Z, f"{n} file{'s' if n != 1 else ''}, smaller", ["7-Zip format, made by Windows' own tar."],
+                   [], files),
+            _offer(PACK_TGZ, f"{n} file{'s' if n != 1 else ''}", ["For Linux and Mac users."], [], files)]
+
+
+def sheet_offers(files: list[Path]) -> list[Offer]:
+    """Excel workbooks read without Excel."""
+    books = [p for p in files if p.suffix.lower() in (".xlsx", ".xlsm")]
+    if not books:
+        return []
+    return [_offer(DATA_SHEETS, "every sheet", ["One CSV per sheet, values as Excel last calculated them."], [], books),
+            _offer(DATA_JSON, "records", ["The first sheet; the first row names the fields."], [], books),
+            _offer(DATA_YAML, "records", ["The first sheet; the first row names the fields."], [], books),
+            _offer(DATA_XML, "records", ["The first sheet; the first row names the fields."], [], books)]
+
+
+def _csv_header(p: Path) -> list[str]:
+    import csv
+
+    try:
+        with open(p, "r", encoding="utf-8-sig", errors="replace", newline="") as f:
+            line = f.readline(4096)
+        return next(csv.reader([line], delimiter="\t" if p.suffix.lower() == ".tsv" else ","), [])
+    except OSError:
+        return []
 
 
 def ocr_offers(files: list[Path], fmts: dict[Path, str] | None, pdf: bool) -> list[Offer]:
@@ -320,6 +480,16 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
                    validate="pages"),
         ], unlocked))
         offers.append(_offer(PDF_REVERSE, "last page first", [], [], unlocked))
+        offers.append(_offer(PDF_LONG, "one picture", ["All pages one under the other (up to 60 pages)."], [],
+                             unlocked))
+        offers.append(_offer(PDF_TIFF, "multi-page", ["Every page at 200 dpi in one TIFF, lossless."], [], unlocked))
+        offers.append(_offer(PDF_MD, "text + headings", ["Text, headings, lists and tables as Markdown."], [],
+                             unlocked))
+        offers.append(_offer(PDF_HTML, "web page", ["Every page's text and pictures in one web page."], [],
+                             unlocked))
+        offers.append(_offer(EBOOK_EPUB, "e-book", ["A reflowable EPUB made from the text (layout not kept)."], [],
+                             unlocked))
+        offers.append(_offer(EBOOK_CBZ, "comic archive", ["Pages as pictures for comic readers."], [], unlocked))
         offers.append(_offer(PDF_NUP, "pages on a sheet", [
             "Puts several pages on each A4 sheet, in reading order. The pages stay sharp (vector)."], [
             Option("per", "Pages per sheet", "choice", "2", choices=("2", "4", "6", "9")),
@@ -349,6 +519,12 @@ def archive_offers(files: list[Path]) -> list[Offer]:
     if non_zip:
         offers.append(_offer(TO_ZIP, "repack", ["Re-packs the archive as a standard ZIP that opens everywhere."],
                              [], non_zip))
+    non_7z = [p for p in files if p.suffix.lower() != ".7z"]
+    if non_7z:
+        offers.append(_offer(TO_7Z, "repack, smaller", ["Re-packs the archive as 7Z."], [], non_7z))
+    non_tgz = [p for p in files if not p.name.lower().endswith((".tar.gz", ".tgz"))]
+    if non_tgz:
+        offers.append(_offer(TO_TGZ, "repack", ["Re-packs the archive as TAR.GZ (Linux and Mac)."], [], non_tgz))
     return offers
 
 
@@ -364,7 +540,38 @@ def data_offers(files: list[Path], excel_installed: bool) -> list[Offer]:
     tables = [p for p in files if kinds[p] in ("csv", "tsv")]
     jsons = [p for p in files if kinds[p] == "json"]
     other = [p for p in files if kinds[p] in ("yaml", "toml", "xml", "jsonl")]
+    vcards = [p for p in files if kinds[p] == "vcf"]
     offers: list[Offer] = []
+    if vcards:
+        offers.append(_offer(DATA_VCSV, "contacts table", ["Names, phones, emails, company and more."], [], vcards))
+        offers.append(_offer(DATA_VXLSX, "contacts in Excel", ["Names, phones, emails, company and more."], [],
+                             vcards))
+    structured = other + jsons + tables
+    for t, cap in ((DATA_TOML, "settings file"), (DATA_XML, "same data")):
+        srcs = [p for p in structured if kinds[p] != t.fmt]
+        if srcs:
+            offers.append(_offer(t, cap, ["Every value is kept (tables become records)."], [], srcs))
+    if tables:
+        csvs = [p for p in tables if kinds[p] == "csv"]
+        tsvs = [p for p in tables if kinds[p] == "tsv"]
+        if csvs:
+            offers.append(_offer(DATA_TSV, "tab separated", ["Every cell the same."], [], csvs))
+        if tsvs:
+            offers.append(_offer(DATA_CSV, "comma separated", ["Every cell the same."], [], tsvs))
+        offers.append(_offer(DATA_YAML, "records", ["The first row names the fields."], [], tables))
+        from .engines.geo import csv_columns
+
+        maps = [p for p in tables if kinds[p] == "csv" and csv_columns(_csv_header(p))]
+        for t in GEO_TARGETS[:4]:
+            if maps:
+                offers.append(_offer(t, "map from coordinates", ["Uses the longitude / latitude (or WKT) column."],
+                                     [], maps))
+        heads = {p: [h.strip().lower() for h in _csv_header(p)] for p in tables}
+        people = [p for p in tables if any(h in ("name", "full name", "first name", "phone", "mobile", "email",
+                                                 "e-mail") for h in heads[p])]
+        if people:
+            offers.append(_offer(DATA_VCF, "phone contacts", ["One contact per row (name, phone, email...)."], [],
+                                 people))
     if other:
         offers.append(_offer(DATA_JSON, "same data", ["Every value is kept; dates become text like 2026-11-09."],
                              [], other))
@@ -404,7 +611,20 @@ def markdown_offers(files: list[Path], word_installed: bool) -> list[Offer]:
     ]
     if word_installed:
         offers.append(_offer(TEXT_DOCX, "Word", ["Created by Microsoft Word from the formatted text."], [], files))
+    offers.append(_offer(TEXT_EPUB, "e-book", ["A reflowable EPUB; headings become chapters."], [], files))
     return offers
+
+
+def text_extra_offers(files: list[Path]) -> list[Offer]:
+    """TXT / HTML documents: an e-book, and HTML as Markdown (no Word needed)."""
+    texts = [p for p in files if p.suffix.lower() in (".txt", ".htm", ".html")]
+    out = []
+    if texts:
+        out.append(_offer(TEXT_EPUB, "e-book", ["A reflowable EPUB; headings become chapters."], [], texts))
+    pages = [p for p in files if p.suffix.lower() in (".htm", ".html")]
+    if pages:
+        out.append(_offer(TEXT_MD, "Markdown", ["Headings, lists, tables and links kept."], [], pages))
+    return out
 
 
 def text_fallback_offers(files: list[Path]) -> list[Offer]:
@@ -416,6 +636,10 @@ def output_ext(t: Target, source: Path, options: dict) -> str:
     """The extension for targets whose format is decided per file ("*")."""
     if t.ext != "*":
         return t.ext
+    if t.key == "font.sfnt":
+        from .engines.font import desktop_ext
+
+        return desktop_ext(source)
     if t.key == "imgedit.stitch":  # JPG when the pictures are photos, PNG otherwise
         return ".jpg" if source.suffix.lower() in (".jpg", ".jpeg") else ".png"
     if t.key == "compress.image":

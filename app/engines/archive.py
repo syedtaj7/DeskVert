@@ -208,9 +208,95 @@ def to_zip(src: Path, out: Path, notes: list[str]) -> None:
     _write_zip([(p, _rel(p, unpacked)) for p in files], out, notes)
 
 
+def _named(sources: list[Path]) -> list[tuple[Path, str]]:
+    items, used = [], set()
+    for p in sources:
+        name, k = p.name, 2
+        while name.lower() in used:
+            name, k = f"{p.stem} ({k}){p.suffix}", k + 1
+        used.add(name.lower())
+        items.append((p, name))
+    return items
+
+
+def _write_targz(items: list[tuple[Path, str]], out: Path, notes: list[str]) -> None:
+    import tarfile
+
+    total = sum(os.path.getsize(long_path(p)) for p, _ in items)
+    _need_space(out.parent, total)
+    with tarfile.open(long_path(out), "w:gz", compresslevel=6) as tf:
+        for path, name in items:
+            tf.add(long_path(path), arcname=name, recursive=False)
+    sizes = {}
+    with tarfile.open(long_path(out), "r:gz") as tf:  # reading it all checks the gzip checksum
+        for m in tf.getmembers():
+            if m.isfile():
+                f = tf.extractfile(m)
+                while f.read(1 << 20):
+                    pass
+                sizes[m.name] = m.size
+    for path, name in items:
+        if sizes.get(name) != os.path.getsize(long_path(path)):
+            raise VerificationError(f"{name} is missing or the wrong size inside the archive")
+    notes.append(f"Checked: {len(items)} file{'s' if len(items) != 1 else ''}, {_human(total)} \u2192 "
+                 f"{_human(os.path.getsize(long_path(out)))}.")
+
+
+def _write_7z(items: list[tuple[Path, str]], out: Path, notes: list[str]) -> None:
+    import shutil
+
+    total = sum(os.path.getsize(long_path(p)) for p, _ in items)
+    _need_space(out.parent, total)
+    stage = None
+    args = ["--format", "7zip", "-cf", str(out)]
+    bases = {Path(str(p)[: -len(name)]) for p, name in items if str(p).replace("\\", "/").endswith(name)}
+    if len(bases) == 1 and all(str(p).replace("\\", "/").endswith(name) for p, name in items)             and any("/" in name for _p, name in items):  # a repacked folder tree: names relative to one folder
+        args += ["-C", str(next(iter(bases)))] + [name for _p, name in items]
+    elif any(p.name != name for p, name in items):  # renamed duplicates: give them their new names
+        stage = out.parent / "stage7z"
+        stage.mkdir()
+        for path, name in items:
+            shutil.copy2(long_path(path), long_path(stage / name))
+        args += ["-C", str(stage)] + [name for _p, name in items]
+    else:
+        for path, name in items:
+            args += ["-C", str(path.parent), name]
+    try:
+        _run_tar(args)
+    finally:
+        if stage is not None:
+            shutil.rmtree(long_path(stage), ignore_errors=True)
+    listing = _run_tar(["-tvf", str(out)])
+    sizes = {}
+    for line in listing.splitlines():
+        parts = line.split(None, 8)
+        if len(parts) == 9 and parts[0].startswith("-"):
+            sizes[parts[8]] = int(parts[4])
+    for path, name in items:
+        if sizes.get(name) != os.path.getsize(long_path(path)):
+            raise VerificationError(f"{name} is missing or the wrong size inside the 7z")
+    notes.append(f"Checked: {len(items)} file{'s' if len(items) != 1 else ''}, {_human(total)} \u2192 "
+                 f"{_human(os.path.getsize(long_path(out)))}.")
+
+
+def _repack(src: Path, out: Path, writer, notes: list[str]) -> None:
+    unpacked = out.parent / "unpacked"
+    extract(src, unpacked, [])
+    files = sorted(_files_under(unpacked))
+    writer([(p, _rel(p, unpacked)) for p in files], out, notes)
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     notes: list[str] = []
-    if fmt == "zip":
+    if fmt == "7z":
+        _write_7z(_named(sources), out, notes)
+    elif fmt == "targz":
+        _write_targz(_named(sources), out, notes)
+    elif fmt == "to7z":
+        _repack(sources[0], out, _write_7z, notes)
+    elif fmt == "totargz":
+        _repack(sources[0], out, _write_targz, notes)
+    elif fmt == "zip":
         make_zip(sources, out, notes)
     elif fmt == "extract":
         extract(sources[0], out, notes)

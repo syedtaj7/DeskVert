@@ -22,7 +22,7 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | img2pdf | Lossless images to PDF | LGPL-3.0 | https://gitlab.mister-muffin.de/josch/img2pdf |
 | pikepdf / qpdf | PDF writing for img2pdf | MPL-2.0 / Apache-2.0 | https://github.com/pikepdf/pikepdf · https://github.com/qpdf/qpdf |
 | NumPy (with OpenBLAS) | Image comparisons | BSD-3-Clause | https://github.com/numpy/numpy |
-| lxml / libxml2 | XML for pikepdf | BSD-3-Clause / MIT | https://github.com/lxml/lxml |
+| lxml / libxml2 | Well-formed pages in EPUB e-books | BSD-3-Clause / MIT | https://github.com/lxml/lxml |
 | pywin32 | Windows and Office integration | PSF License | https://github.com/mhammond/pywin32 |
 | openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
 | PyYAML / libyaml | Reading and writing YAML | MIT | https://github.com/yaml/pyyaml |

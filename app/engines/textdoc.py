@@ -205,6 +205,12 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
         to_html(src, out, notes)
     elif fmt == "docx":
         to_docx(src, out, notes)
+    elif fmt == "md":
+        doc = _document(src)
+        md = doc.toMarkdown()
+        Path(long_path(out)).write_text(md, encoding="utf-8")
+        _check(doc.toPlainText(), Path(long_path(out)).read_text(encoding="utf-8"), "Markdown", 0.95)
+        notes.append("Checked: all of the text, with headings, lists, tables and links as Markdown.")
     else:
         raise ConversionError(f"Unknown document conversion: {fmt}")
     return notes

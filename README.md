@@ -42,14 +42,19 @@ and the new file appears right next to the original, checked and ready.
 | Tool | What you get |
 |---|---|
 | 🗜️ **Compress images** | Pick **under 20 KB, 50 KB, 100 KB, 200 KB, 500 KB or 1 MB**, or drag a quality slider. Every choice shows the quality % and the new size *before* you click. The limit is always respected. **For forms:** exact-size JPGs for applications: photo (200×230, 20–50 KB), passport photo (35×45 mm), signature (140×60, empty paper trimmed), or your own width × height × KB. |
-| 📄 **PDF toolkit** | **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB, or your own) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · **Split** in half, every N pages, by ranges or every page · keep or remove **Pages** (`1-3, 7, 10-end`) · **Reorder** or **Reverse** · **Rotate** · page **Numbers** · **2, 4, 6 or 9 pages per sheet** · **Watermark** · **Flatten** forms · **Clean info** (author, dates, hidden data) · **Grayscale** · save the **Pictures** inside · **Merge** · pictures and PDFs **combined** into one PDF |
+| 📄 **PDF toolkit** | **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB, or your own) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · **Split** in half, every N pages, by ranges or every page · keep or remove **Pages** (`1-3, 7, 10-end`) · **Reorder** or **Reverse** · **Rotate** · page **Numbers** · **2, 4, 6 or 9 pages per sheet** · **Watermark** · **Flatten** forms · **Clean info** (author, dates, hidden data) · **Grayscale** · save the **Pictures** inside · **Merge** · pictures and PDFs **combined** into one PDF · → **Markdown**, **HTML**, **EPUB**, **TIFF**, **one long image**, **CBZ** |
 | 🔍 **Read text (OCR)** | Text from photos and scanned PDFs, or a **searchable PDF** that looks exactly like the scan. Uses the engine built into Windows, so nothing extra is downloaded. Sideways scans are turned upright automatically. |
 | 📦 **Zip & extract** | ZIP the selected files · extract **ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO** · repack any archive as a ZIP |
-| 📊 **Data files** | CSV / TSV / JSON / **YAML** / **TOML** / **XML** / **JSON Lines** → **Excel**, JSON, YAML or CSV · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
+| 📊 **Data files** | CSV / TSV / Excel / JSON / **YAML** / **TOML** / **XML** / **JSON Lines** into each other · Excel sheets → CSV each, without Excel · **vCard contacts** ↔ CSV / Excel · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
+| 🗺️ **Maps** | **GeoJSON, KML, KMZ, GPX** into each other, to CSV or Excel, and a CSV with coordinates → map file |
+| 🧊 **3D models** | **STL, OBJ, PLY, 3MF, GLB/glTF** into each other, plus a shaded **picture** of the model |
+| 📐 **CAD** | **DXF** → **PDF**, **SVG** or **PNG**, without AutoCAD |
+| 🔤 **Fonts** | **TTF / OTF ↔ WOFF**, → **EOT** |
+| ✉️ **Mail & saved pages** | **EML** e-mails and **MHTML** pages → **PDF**, **HTML**, **TXT**, **Markdown**; e-mail attachments → **ZIP** |
 | 📝 **Markdown** | → **PDF** (A4, with headings, tables, code and images) · **HTML** · **Word** |
 | 🖼️ **Picture edits** | **Turn** left, right or upside down · **Mirror** · **Grayscale** · **Resize** (half, 1920, 1280 or 1080 px) · **Clean info**: removes location, camera and date before you share (JPG and PNG aren't re-encoded) · **Long image**: several pictures stitched one under the other |
-| 📚 **E-books** | **EPUB, MOBI, FB2**, CBZ comics and XPS → **PDF** (A5 pages) or **TXT**. No e-book software needed. |
-| 💬 **Subtitles** | **SRT ↔ WebVTT**, every timing kept to the millisecond |
+| 📚 **E-books** | **EPUB, MOBI, FB2**, comics (**CBZ, CBR, CB7, CBT**) and XPS → **PDF**, **EPUB** or **TXT** · Markdown, HTML, TXT and PDF → **EPUB** · PDF → **CBZ**. No e-book software needed. |
+| 💬 **Subtitles** | **SRT, WebVTT, ASS/SSA, SAMI, TTML, LRC, MicroDVD** into each other, saved as UTF-8 |
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
