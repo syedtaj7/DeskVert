@@ -738,7 +738,7 @@ class Popup(QWidget):
     def _default_hint(self):
         self.hint.setObjectName("hint")
         self.hint.setStyleSheet("")
-        self.hint.setText("Right-click an option for its settings, or start typing to search.")
+        self.hint.setText("Right-click an option for its settings.")
 
     def _wheel_activate(self, node):
         if node.key.startswith("more:") or node.offer is None:
@@ -916,14 +916,7 @@ class Popup(QWidget):
             else:
                 self.close()
             return
-        if page == 0:
-            if k == Qt.Key.Key_Tab:
-                self._show_list("")
-                return
-            text = e.text()
-            if text and text.isprintable() and not text.isspace():
-                self._show_list(text)
-                return
+        # No search box: everything is in the web itself, one point away.
         super().keyPressEvent(e)
 
 
