@@ -26,21 +26,39 @@ BRANCHES = {
         ("Pages", "order and layout", ["pdf.pages", "pdf.reorder", "pdf.reverse", "pdf.rotate", "pdf.numbers",
                                        "pdf.nup"]),
         ("Protect", "password and more", ["pdf.lock", "pdf.unlock", "pdf.watermark", "pdf.flatten", "pdf.clean"]),
-        ("Convert", "to other files", ["pdf.png", "pdf.jpg", "pdf.txt", "pdf.pictures", "pdf.gray"]),
+        ("Convert", "to other files", ["pdf.png", "pdf.jpg", "pdf.txt", "pdf.md", "pdf.html", "ebook.epub",
+                                       "pdf.longimg", "pdf.tiff", "ebook.cbz", "pdf.pictures", "pdf.gray"]),
         ("Text", "read scans", ["ocr.txt", "ocr.pdf"]),
     ],
     "image": [
         ("Edit", "turn, resize, clean", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip",
-                                         "imgedit.resize", "imgedit.gray", "imgedit.clean", "imgedit.stitch"]),
+                                         "imgedit.resize", "imgedit.gray", "imgedit.clean", "imgedit.dpi",
+                                         "imgedit.stitch", "imgedit.anim"]),
         ("More formats", "every image format", ["image.heic", "image.avif", "image.ico", "image.tiff", "image.gif",
-                                                "image.bmp", "image.tga"]),
+                                                "image.bmp", "image.jp2", "image.icns", "image.tga", "image.qoi",
+                                                "image.dds", "image.pcx", "image.ppm", "image.sgi", "image.xbm",
+                                                "vector.pdf", "vector.svgz", "vector.svg"]),
         ("Text", "read the text", ["ocr.txt", "ocr.pdf"]),
     ],
-    "data": [("JSON tools", "tidy or minify", ["data.tidy", "data.minify", "data.jsonl"])],
+    "data": [("JSON tools", "tidy or minify", ["data.tidy", "data.minify", "data.jsonl"]),
+             ("Map", "from coordinates", ["geo.kml", "geo.geojson", "geo.gpx", "geo.kmz"]),
+             ("More formats", "TOML, XML, TSV", ["data.toml", "data.xml", "data.tsv"])],
+    "subtitle": [("More formats", "every subtitle format", ["subtitle.ass", "subtitle.sami", "subtitle.ttml",
+                                                           "subtitle.lrc", "subtitle.microdvd"])],
+    "model": [("More formats", "every 3D format", ["mesh.3mf", "mesh.ply"])],
+    "document": [("Data", "without Excel", ["data.sheets", "data.json", "data.yaml", "data.xml"])],
+    "map": [("Data", "tables", ["geo.csv", "geo.xlsx"])],
 }
 KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "documents"), "data": ("data file", "data files"),
               "markdown": ("Markdown file", "Markdown files"), "archive": ("archive", "archives"),
-              "subtitle": ("subtitle file", "subtitle files"), "ebook": ("e-book", "e-books")}
+              "subtitle": ("subtitle file", "subtitle files"), "ebook": ("e-book", "e-books"),
+              "font": ("font", "fonts"), "model": ("3D model", "3D models"), "drawing": ("drawing", "drawings"),
+              "mail": ("e-mail or page", "e-mails or pages"), "map": ("map file", "map files"),
+              "vector": ("drawing", "drawings")}
+# Every kind of file: the ways to pack them.
+PACK = ("Pack", "ZIP, 7Z, TAR.GZ", ["archive.zip", "archive.7z", "archive.targz"])
+REPACK = ("Repack", "ZIP, 7Z, TAR.GZ", ["archive.tozip", "archive.to7z", "archive.totargz"])
+FAN_MAX = 8  # choices in one fan; more go behind "More..." (the searchable list)
 QUICK_MAX = 6
 # Mixed selections: the most useful actions per type (the rest are under "More…").
 MIXED_PICKS = {
@@ -87,9 +105,10 @@ def _arrange(offers: list[Offer], kind: str) -> list[Node]:
     """Offers -> top-level nodes, grouping related ones into branches."""
     by_key = {o.target.key: o for o in offers}
     branch_of: dict[str, tuple[str, str]] = {}
-    for label, caption, keys in BRANCHES.get(kind, []):
+    groups = list(BRANCHES.get(kind, [])) + [PACK, REPACK]
+    for label, caption, keys in groups:
         for k in keys:
-            branch_of[k] = (label, caption)
+            branch_of.setdefault(k, (label, caption))
     nodes: list[Node] = []
     built: dict[str, Node] = {}
     for o in offers:
@@ -98,8 +117,11 @@ def _arrange(offers: list[Offer], kind: str) -> list[Node]:
             nodes.append(_leaf(o))
             continue
         if b[0] not in built:
-            keys = next(k for lbl, _c, k in BRANCHES[kind] if lbl == b[0])
+            keys = next(k for lbl, _c, k in groups if lbl == b[0])
             kids = [_leaf(by_key[k]) for k in keys if k in by_key]
+            if len(kids) > FAN_MAX:  # a fan stays readable: the rest are one tap away in the list
+                kids = kids[:FAN_MAX - 1] + [Node("More…", f"all {len(kids)}", key=f"more:{kind}", tool=False,
+                                                  blurb="Every option, with search")]
             node = kids[0] if len(kids) == 1 else Node(b[0], b[1], children=kids, key=f"branch:{b[0]}")
             built[b[0]] = node
             nodes.append(node)
@@ -140,11 +162,11 @@ def build_menu(paths: list[Path], s: Settings) -> tuple[list[Node], list[Node], 
     nodes: list[Node] = []
     for kind, files in sorted(groups.items(), key=lambda kv: -len(kv[1])):
         offers, _ = offers_for(files, s)
-        offers = [o for o in offers if o.target.key != "archive.zip"]
+        offers = [o for o in offers if o.target.key not in ("archive.zip", "archive.7z", "archive.targz")]
         if not offers:
             continue
         picks = MIXED_PICKS.get(kind)
-        chosen = ([o for k in picks for o in offers if o.target.key == k] if picks else offers)[:7]
+        chosen = ([o for k in picks for o in offers if o.target.key == k] if picks else offers)[:FAN_MAX - 1]
         leaves = [_leaf(o) for o in chosen]
         if len(offers) > len(chosen):
             leaves.append(Node("More…", f"all {len(offers)}", key=f"more:{kind}", tool=False,

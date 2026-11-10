@@ -7,6 +7,9 @@
 - clean:  removes location, camera and other hidden details. JPG and PNG are
           cleaned without re-encoding (the picture data is copied byte for byte).
 - stitch: several pictures, one under the other, in one long image.
+- dpi:    sets the print resolution (72 to 600 dpi) without touching the pixels;
+          JPG only has its header changed, so nothing is re-encoded.
+- anim:   several pictures as one animated GIF.
 
 Camera details and color profiles are kept unless the edit is "clean". Every
 result is opened again and compared with what was expected.
@@ -250,7 +253,114 @@ def _stitch(sources: list[Path], out: Path) -> list[str]:
     return [f"Checked: {len(ims)} pictures, one under the other, {width}×{height} px."]
 
 
+# ---------------------------------------------------------------- print resolution (DPI)
+
+DPI_FORMATS = {"JPEG", "PNG", "TIFF", "BMP"}
+
+
+def _jpeg_set_dpi(data: bytes, dpi: int) -> bytes:
+    """Change the JFIF density (and EXIF resolution, if present) in place; the picture data is untouched."""
+    if data[:2] != b"\xff\xd8":
+        raise ConversionError("This JPG is damaged.")
+    out = bytearray(data)
+    i, has_jfif = 2, False
+    while i + 4 <= len(out) and out[i] == 0xFF and out[i + 1] != 0xDA:
+        marker = out[i + 1]
+        length = struct.unpack(">H", out[i + 2:i + 4])[0]
+        seg = i + 4
+        if marker == 0xE0 and out[seg:seg + 5] == b"JFIF\0":
+            out[seg + 7] = 1  # dots per inch
+            out[seg + 8:seg + 12] = struct.pack(">HH", dpi, dpi)
+            has_jfif = True
+        elif marker == 0xE1 and out[seg:seg + 6] == b"Exif\0\0":
+            tiff = seg + 6
+            end = "<" if out[tiff:tiff + 2] == b"II" else ">"
+            ifd = tiff + struct.unpack(end + "I", out[tiff + 4:tiff + 8])[0]
+            n = struct.unpack(end + "H", out[ifd:ifd + 2])[0]
+            for k in range(n):
+                e = ifd + 2 + 12 * k
+                tag, typ = struct.unpack(end + "HH", out[e:e + 4])
+                if tag in (0x011A, 0x011B) and typ == 5:
+                    off = tiff + struct.unpack(end + "I", out[e + 8:e + 12])[0]
+                    out[off:off + 8] = struct.pack(end + "II", dpi, 1)
+                elif tag == 0x0128 and typ == 3:
+                    out[e + 8:e + 10] = struct.pack(end + "H", 2)  # inches
+        i = seg + length - 2
+    if not has_jfif:
+        app0 = b"\xff\xe0" + struct.pack(">H", 16) + b"JFIF\0\x01\x01\x01" + struct.pack(">HH", dpi, dpi) + b"\0\0"
+        out[2:2] = app0
+    return bytes(out)
+
+
+def _set_dpi(src: Path, out: Path, opts: dict) -> list[str]:
+    import numpy as np
+
+    try:
+        dpi = int(str(opts.get("dpi", "300")).split()[0])
+    except ValueError:
+        dpi = 300
+    if not 50 <= dpi <= 1200:
+        raise ConversionError("Choose between 50 and 1200 dpi.")
+    im = _open(src)
+    fmt = im.format
+    if fmt not in DPI_FORMATS:
+        raise ConversionError("Print resolution can be set for JPG, PNG, TIFF and BMP pictures.")
+    if fmt == "JPEG":
+        Path(long_path(out)).write_bytes(_jpeg_set_dpi(Path(long_path(src)).read_bytes(), dpi))
+        how = "Only the header changed; the picture wasn't re-encoded."
+    else:
+        kw = {"dpi": (dpi, dpi)}
+        if im.info.get("icc_profile"):
+            kw["icc_profile"] = im.info["icc_profile"]
+        if fmt == "TIFF":
+            kw["compression"] = "tiff_lzw"
+        im.save(long_path(out), format=fmt, **kw)
+        how = "Every pixel is identical."
+    got = Image.open(long_path(out))
+    got.load()
+    if got.size != im.size or not np.array_equal(np.asarray(got), np.asarray(im)):
+        raise VerificationError("the picture changed")
+    have = got.info.get("dpi", (0, 0))
+    if round(float(have[0])) != dpi:
+        raise VerificationError("the resolution wasn't saved")
+    w, h = im.size
+    return [f"Set to {dpi} dpi: prints at {w / dpi * 2.54:.1f} \u00d7 {h / dpi * 2.54:.1f} cm. {how}"]
+
+
+# ---------------------------------------------------------------- animated GIF
+
+def _anim(sources: list[Path], out: Path, opts: dict) -> list[str]:
+    try:
+        secs = float(str(opts.get("delay", "1 s")).split()[0])
+    except ValueError:
+        secs = 1.0
+    frames = []
+    size = None
+    for s in sources:
+        im = _upright(_open(s)).convert("RGBA")
+        if size is None:
+            k = min(1.0, 800 / max(im.size))  # GIFs stay small enough to share
+            size = (max(1, round(im.width * k)), max(1, round(im.height * k)))
+        fit = ImageOps.contain(im, size, Image.Resampling.LANCZOS)
+        canvas = Image.new("RGBA", size, (255, 255, 255, 255))
+        canvas.alpha_composite(fit, ((size[0] - fit.width) // 2, (size[1] - fit.height) // 2))
+        frames.append(canvas.convert("RGB").quantize(colors=256, method=Image.Quantize.MEDIANCUT,
+                                                     dither=Image.Dither.FLOYDSTEINBERG))
+    frames[0].save(long_path(out), "GIF", save_all=True, append_images=frames[1:], duration=int(secs * 1000),
+                   loop=0, optimize=False, disposal=1)
+    with Image.open(long_path(out)) as g:
+        if getattr(g, "n_frames", 1) != len(frames) or g.size != size:
+            raise VerificationError("frames are missing from the GIF")
+    return [f"Checked: {len(frames)} pictures, {secs:g} s each, {size[0]}\u00d7{size[1]} px, looping."]
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
+    if fmt == "dpi":
+        return _set_dpi(sources[0], out, opts)
+    if fmt == "anim":
+        if len(sources) < 2:
+            raise ConversionError("Select two or more pictures for an animation.")
+        return _anim(sources, out, opts)
     if fmt == "stitch":
         if len(sources) < 2:
             raise ConversionError("Select two or more pictures to stitch.")

@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.6.0
+
+### Many more formats, still light
+Everything below runs on what Tapshift already has (no video, audio, Office-sized or AI engines), and
+every result is opened again and checked before it's saved.
+- **Pictures:** JPEG 2000, ICNS (Mac icons), QOI, DDS, PCX, PPM, SGI and XBM, and opening CUR, XPM, Sun
+  Raster, Photo CD, Windows metafiles (EMF / WMF) and Apple Live Photos (LIVP). **Set DPI** (print size,
+  without touching a pixel) and **Animated GIF** from several pictures. SVG → **vector PDF** and SVG ↔ SVGZ.
+- **PDF →** Markdown, HTML, EPUB, a multi-page TIFF, one long image, or a CBZ comic.
+- **E-books:** MOBI, FB2, Markdown, HTML, TXT and PDF → EPUB; comic archives CBR, CB7 and CBT → PDF.
+- **Subtitles:** ASS/SSA, SAMI, TTML, LRC and MicroDVD join SRT and WebVTT, all into each other.
+- **Data:** → TOML and XML; CSV ↔ TSV; Excel sheets → CSV, JSON, YAML or XML without Excel;
+  **vCard contacts** ↔ CSV / Excel (including old phones' encoded names).
+- **Maps:** GeoJSON, KML, KMZ, GPX and CSV with coordinates, into each other and to Excel.
+- **3D models:** STL, OBJ, PLY, 3MF and GLB/glTF into each other, and a shaded picture.
+- **CAD:** DXF drawings → PDF, SVG or PNG.
+- **Fonts:** TTF / OTF ↔ WOFF, and EOT.
+- **Mail and saved pages:** EML and MHTML → PDF, HTML, TXT or Markdown; e-mail attachments → ZIP.
+- **Archives:** pack files as **7Z** or **TAR.GZ** too, and repack any archive as 7Z or TAR.GZ.
+- **Illustrator** (.ai, saved with PDF content) → PDF or PNG.
+
+### Picker
+- Big groups stay readable: a fan shows at most 8 choices, and the rest are behind **More…** (the list
+  with search). ZIP, 7Z and TAR.GZ sit together under **Pack**.
+
 ## 1.5.0
 
 ### A snappier web

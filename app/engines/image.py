@@ -186,9 +186,21 @@ def load(path: Path, notes: Notes, multi: bool) -> Loaded:
         return _open_svg(path, notes)
 
     _ensure_plugins()
-    im = Image.open(long_path(path))
+    if ext == ".livp":
+        import zipfile
+
+        with zipfile.ZipFile(long_path(path)) as z:
+            name = next((n for n in z.namelist() if n.lower().endswith((".heic", ".heif", ".jpg", ".jpeg"))), None)
+            if name is None:
+                raise ConversionError("This Live Photo has no picture inside.")
+            im = Image.open(io.BytesIO(z.read(name)))
+        notes.add("The still photo of the Live Photo was converted (not its video).")
+    else:
+        im = Image.open(long_path(path))
     try:
         fmt = (im.format or "").upper()
+        if fmt == "WMF":  # Windows metafile (EMF / WMF): drawn by Windows at print resolution
+            im.load(dpi=200)
         n = getattr(im, "n_frames", 1)
         can_multi = fmt in ("GIF", "WEBP", "PNG", "AVIF", "TIFF")
         if n > 1 and can_multi and not multi:
@@ -331,11 +343,20 @@ def prepare(f: Image.Image, fmt: str, icc: bytes | None, notes: Notes) -> tuple[
         # BMP technically has an alpha variant, but Windows and most apps ignore
         # it, so the result would look different from the source. Flatten instead.
         f = _flatten(f, notes)
-    if fmt in ("webp", "heic", "avif", "ico", "bmp", "tga"):
-        if f.mode == "L":
+    if fmt in ("webp", "heic", "avif", "ico", "bmp", "tga", "qoi", "dds", "jp2", "sgi"):
+        if f.mode in ("L", "1"):
             f = f.convert("RGB")
-        elif f.mode == "LA":
+        elif f.mode in ("LA", "PA"):
             f = f.convert("RGBA")
+        elif f.mode == "P":
+            f = f.convert("RGBA" if _has_alpha(f) else "RGB")
+    if fmt in ("pcx", "ppm", "xbm") and _has_alpha(f):
+        f = _flatten(f, notes)
+    if fmt in ("pcx", "ppm") and f.mode not in ("RGB", "L"):
+        f = f.convert("RGB")
+    if fmt == "xbm":
+        f = f.convert("L").point(lambda v: 255 if v >= 128 else 0).convert("1")
+        notes.add("XBM holds black and white only, so the picture became black and white.")
     return f, icc
 
 
@@ -457,6 +478,12 @@ def _save(frames, durations, loop, fmt, out: Path, meta: Loaded, icc, opts: dict
     if fmt == "tga":
         first.save(path, "TGA", rle=True)
         return True, 0
+    if fmt == "jp2":
+        first.save(path, "JPEG2000", irreversible=False)  # the lossless kind of JPEG 2000
+        return True, 0
+    if fmt in ("qoi", "dds", "pcx", "ppm", "sgi", "xbm"):
+        first.save(path, {"qoi": "QOI", "dds": "DDS", "pcx": "PCX", "ppm": "PPM", "sgi": "SGI", "xbm": "XBM"}[fmt])
+        return True, 0
     raise ConversionError(f"Unknown image format: {fmt}")
 
 
@@ -576,6 +603,30 @@ def _convert_ico(src: Path, out: Path, notes: Notes) -> None:
         _compare(im, f, True, 0)
 
 
+def _convert_icns(src: Path, out: Path, notes: Notes) -> None:
+    """A macOS app icon: square, every size up to 1024 px."""
+    meta = load(src, notes, multi=False)
+    f, _ = prepare(meta.frames[0], "png", meta.icc, notes)
+    f = f.convert("RGBA")
+    w, h = f.size
+    if w != h:
+        side = max(w, h)
+        canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+        canvas.paste(f, ((side - w) // 2, (side - h) // 2))
+        f = canvas
+        notes.add("Padded to a square with transparent edges.")
+    if f.width != 1024:
+        if f.width < 512:
+            notes.add(f"The picture is only {f.width} px; the larger icon sizes are enlarged from it.")
+        f = f.resize((1024, 1024), Image.Resampling.LANCZOS)
+    f.save(long_path(out), "ICNS")
+    with Image.open(long_path(out)) as im:
+        im.load()
+        if im.size != (1024, 1024):
+            raise VerificationError("the largest icon size is missing")
+        _compare(im, f, False, 40)
+
+
 # ------------------------------------------------------------------ PDF
 
 
@@ -660,6 +711,9 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     src = sources[0]
     if fmt == "ico":
         _convert_ico(src, out, notes)
+        return list(notes)
+    if fmt == "icns":
+        _convert_icns(src, out, notes)
         return list(notes)
 
     meta = load(src, notes, multi=fmt in MULTI_FRAME_TARGETS)

@@ -75,6 +75,11 @@ IMAGE_EXTS: dict[str, str] = {
     ".tga": "tga",
     ".psd": "psd",
     ".svg": "svg", ".svgz": "svg",
+    ".jp2": "jp2", ".j2k": "jp2", ".jpf": "jp2", ".jpx": "jp2",
+    ".qoi": "qoi", ".icns": "icns", ".dds": "dds", ".pcx": "pcx",
+    ".ppm": "ppm", ".pgm": "ppm", ".pbm": "ppm", ".pnm": "ppm",
+    ".sgi": "sgi", ".rgb": "sgi", ".xbm": "xbm", ".xpm": "xpm", ".cur": "cur",
+    ".ras": "sun", ".sun": "sun", ".pcd": "pcd", ".emf": "emf", ".wmf": "emf", ".livp": "livp",
     **{e: "raw" for e in RAW_EXTS},
 }
 
@@ -91,14 +96,24 @@ IMAGE_TARGETS = [
     Target("image.gif", "GIF", ".gif"),
     Target("image.bmp", "BMP", ".bmp"),
     Target("image.tga", "TGA", ".tga"),
+    Target("image.jp2", "JPEG 2000", ".jp2"),
+    Target("image.icns", "ICNS", ".icns"),
+    Target("image.qoi", "QOI", ".qoi"),
+    Target("image.dds", "DDS", ".dds"),
+    Target("image.pcx", "PCX", ".pcx"),
+    Target("image.ppm", "PPM", ".ppm"),
+    Target("image.sgi", "SGI", ".sgi"),
+    Target("image.xbm", "XBM", ".xbm"),
 ]
 COMBINED_PDF = Target("image.pdf_combined", "1 PDF", ".pdf", combine=True)
 
-CAN_ALPHA = {"png", "webp", "heic", "avif", "gif", "tiff", "ico", "tga", "psd", "svg", "bmp"}
+CAN_ALPHA = {"png", "webp", "heic", "avif", "gif", "tiff", "ico", "tga", "psd", "svg", "bmp", "jp2", "qoi", "icns",
+             "dds", "sgi", "xpm", "cur", "emf", "livp"}
 CAN_ANIMATE = {"gif", "webp", "png", "avif"}
 LOSSY_SOURCES = {"jpg", "heic", "avif"}
-LOSSLESS_SOURCES = {"png", "bmp", "tiff", "gif", "tga", "ico", "psd", "svg", "raw"}
-SINGLE_FRAME_TARGETS = {"jpg", "heic", "bmp", "ico", "tga"}
+LOSSLESS_SOURCES = {"png", "bmp", "tiff", "gif", "tga", "ico", "psd", "svg", "raw", "qoi", "icns", "dds", "pcx",
+                    "ppm", "sgi", "xbm", "xpm", "cur", "sun", "emf"}
+SINGLE_FRAME_TARGETS = {"jpg", "heic", "bmp", "ico", "tga", "jp2", "icns", "qoi", "dds", "pcx", "ppm", "sgi", "xbm"}
 
 
 def image_format(path: Path) -> str | None:
@@ -202,7 +217,7 @@ MEDIA_EXTS = {
 # ---------------------------------------------------------------- documents (Microsoft Office + PDF)
 
 WORD_EXTS = {".doc": "doc", ".docx": "docx", ".docm": "docx", ".dot": "doc", ".dotx": "docx", ".odt": "odt",
-             ".rtf": "rtf", ".txt": "txt", ".htm": "html", ".html": "html", ".mht": "html", ".wpd": "wpd"}
+             ".rtf": "rtf", ".txt": "txt", ".htm": "html", ".html": "html", ".wpd": "wpd"}
 EXCEL_EXTS = {".xls": "xls", ".xlsx": "xlsx", ".xlsm": "xlsx", ".xlsb": "xlsb", ".ods": "ods"}  # CSV/TSV: data tools
 PPT_EXTS = {".ppt": "ppt", ".pptx": "pptx", ".pptm": "pptx", ".pps": "ppt", ".ppsx": "pptx", ".odp": "odp"}
 
@@ -335,6 +350,10 @@ def kind_of(path: Path) -> str | None:
         return "subtitle"
     if e in toolbox.EBOOK_EXTS:
         return "ebook"
+    for kind, exts in (("font", toolbox.FONT_EXTS), ("model", toolbox.MODEL_EXTS), ("drawing", toolbox.DRAWING_EXTS),
+                       ("mail", toolbox.MAIL_EXTS), ("map", toolbox.MAP_EXTS), ("vector", toolbox.VECTOR_EXTS)):
+        if e in exts:
+            return kind
     return "document" if doc_format(path) else None
 
 
@@ -347,7 +366,8 @@ def pick_group(paths: list[Path]) -> tuple[str | None, list[Path], list[Path]]:
             groups.setdefault(k, []).append(p)
     if not groups:
         return None, [], list(paths)
-    order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4, "subtitle": 5, "ebook": 6}
+    order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4, "subtitle": 5, "ebook": 6, "font": 7,
+             "model": 8, "drawing": 9, "mail": 10, "map": 11, "vector": 12}
     kind = max(groups, key=lambda k: (len(groups[k]), -order[k]))
     chosen = groups[kind]
     return kind, chosen, [p for p in paths if p not in chosen]
@@ -380,6 +400,10 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         elif main == "word" and not office_installed("word"):
             simple = [p for p in groups["word"] if p.suffix.lower() in (".txt", ".htm", ".html")]
             offers = toolbox.text_fallback_offers(simple) if simple else []
+        if main == "word":
+            offers += toolbox.text_extra_offers(groups["word"])
+        if main == "excel":
+            offers += toolbox.sheet_offers(groups["excel"])
         used = {p for o in offers for p in o.sources}
         others = others + [p for p in files if p not in used]
     elif kind == "data":
@@ -392,16 +416,23 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         offers = toolbox.subtitle_offers(files)
     elif kind == "ebook":
         offers = toolbox.ebook_offers(files)
+    elif kind in ("font", "model", "drawing", "mail", "map", "vector"):
+        offers = {"font": toolbox.font_offers, "model": toolbox.model_offers, "drawing": toolbox.drawing_offers,
+                  "mail": toolbox.mail_offers, "map": toolbox.map_offers, "vector": toolbox.vector_offers}[kind](files)
     if paths and kind != "archive":
         offers.append(toolbox.zip_offer(list(paths)))  # any files can be zipped
+        offers += toolbox.pack_offers(list(paths))
     return offers, others
 
 
 _COMING = {
     "Kindle book": {".azw", ".azw3", ".kfx"},
+    "WOFF2 font": {".woff2"},
+    "AutoCAD DWG drawing": {".dwg"},
+    "Shapefile map": {".shp"},
     "archive": {".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2", ".xz"},
     "font": {".ttf", ".otf", ".woff", ".woff2"},
-    "subtitle file": {".ass", ".ssa"},
+    "subtitle file": {".scc", ".stl.txt"},
 }
 _APPLE = {".pages": "Pages", ".numbers": "Numbers", ".key": "Keynote"}
 _NEVER = {
@@ -425,7 +456,7 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
         return title, f"{name} is an Apple {_APPLE[ext]} file, which can only be opened on a Mac or iPhone."
     if ext in MEDIA_EXTS:
         return title, (f"{name} {'are audio or video files' if many else 'is an audio or video file'}. "
-                       "Tapshift converts images, Office documents and PDFs; it doesn't handle audio or video.")
+                       "Tapshift doesn't handle audio or video yet (it keeps your laptop light).")
 
     def a(kind: str) -> str:
         return "" if many else ("an " if kind[0] in "aeiou" else "a ")
@@ -433,14 +464,13 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
     for kind, exts in _COMING.items():
         if ext in exts:
             return title, (f"{name} {'are' if many else 'is'} {a(kind)}{kind}{'s' if many else ''}. "
-                           f"{kind[0].upper() + kind[1:]}s aren't supported yet. "
-                           "Tapshift converts images, Office documents and PDFs.")
+                           f"{kind[0].upper() + kind[1:]}s aren't supported yet.")
     for kind, exts in _NEVER.items():
         if ext in exts:
             return title, f"{name} {'are' if many else 'is'} {a(kind)}{kind}{'s' if many else ''}, which can't be converted to another format."
     shown = ext.upper().lstrip(".") or "no extension"
-    return title, (f"Tapshift doesn't know the {shown} file type. "
-                   "It converts images, Office documents (Word, Excel, PowerPoint) and PDFs.")
+    return title, (f"Tapshift doesn't know the {shown} file type. It converts pictures, documents, PDFs, "
+                   "e-books, data, subtitles, fonts, maps, 3D models, drawings and archives.")
 
 
 def describe_selection(paths: list[Path]) -> str:

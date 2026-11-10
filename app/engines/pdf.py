@@ -771,6 +771,170 @@ TOOLS.update({
 })
 
 
+LONG_IMAGE_MAX_PAGES = 60
+
+
+def to_tiff(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """Every page in one multi-page TIFF (200 dpi, lossless LZW)."""
+    from PIL import Image
+
+    with _open(src) as d:
+        frames = [Image.frombytes("RGB", (pm.width, pm.height), pm.samples)
+                  for pm in (page.get_pixmap(dpi=200, alpha=False) for page in d)]
+    frames[0].save(long_path(out), "TIFF", compression="tiff_lzw", save_all=True, append_images=frames[1:],
+                   dpi=(200, 200))
+    with Image.open(long_path(out)) as im:
+        if getattr(im, "n_frames", 1) != len(frames):
+            raise VerificationError("pages are missing from the TIFF")
+    notes.append(f"Checked: {len(frames)} page{'s' if len(frames) != 1 else ''} at 200 dpi in one TIFF.")
+
+
+def long_image(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """All pages one under the other in a single picture (good for sharing on a phone)."""
+    from PIL import Image
+
+    with _open(src) as d:
+        n = d.page_count
+        if n > LONG_IMAGE_MAX_PAGES:
+            raise ConversionError(f"This PDF has {n} pages; one long image works for up to {LONG_IMAGE_MAX_PAGES}. "
+                                  "Pick some pages first (Pages \u2192 Keep or remove).")
+        width = 1080
+        parts = []
+        for page in d:
+            zoom = width / page.rect.width
+            pm = page.get_pixmap(matrix=pymupdf_matrix(zoom), alpha=False)
+            parts.append(Image.frombytes("RGB", (pm.width, pm.height), pm.samples))
+    gap = 12
+    height = sum(im.height for im in parts) + gap * (len(parts) - 1)
+    if height > 65000:
+        raise ConversionError("Together these pages are too tall for one picture. Pick fewer pages first.")
+    sheet = Image.new("RGB", (max(im.width for im in parts), height), (230, 230, 230))
+    y = 0
+    for im in parts:
+        sheet.paste(im, (0, y))
+        y += im.height + gap
+    sheet.save(long_path(out), "JPEG", quality=90, optimize=True)
+    with Image.open(long_path(out)) as im:
+        if im.size != sheet.size:
+            raise VerificationError("the picture is broken")
+    notes.append(f"Checked: {n} page{'s' if n != 1 else ''} in one picture, {sheet.width}\u00d7{sheet.height} px.")
+
+
+def pymupdf_matrix(zoom: float):
+    import pymupdf
+
+    return pymupdf.Matrix(zoom, zoom)
+
+
+BULLETS = ("\u2022", "\u25e6", "\u25aa", "\u25cf", "\u2013", "-", "*", "\u00b7")
+
+
+def markdown_of(d) -> str:
+    """The PDF's text as Markdown: bigger text becomes headings, bold stays bold, bullets become lists.
+    Light on purpose: no layout models, just the fonts and positions MuPDF reports."""
+    from collections import Counter
+
+    sizes: Counter = Counter()
+    pages = []
+    for page in d:
+        blocks = page.get_text("dict", flags=0)["blocks"]
+        pages.append(blocks)
+        for b in blocks:
+            for line in b.get("lines", []):
+                for s in line["spans"]:
+                    if s["text"].strip():
+                        sizes[round(s["size"], 1)] += len(s["text"])
+    body = sizes.most_common(1)[0][0] if sizes else 11.0
+    out: list[str] = []
+    for blocks in pages:
+        for b in blocks:
+            para: list[str] = []
+            for line in b.get("lines", []):
+                spans = [s for s in line["spans"] if s["text"].strip()]
+                if not spans:
+                    continue
+                size = max(s["size"] for s in spans)
+                level = 1 if size >= body * 1.6 else 2 if size >= body * 1.3 else 3 if size >= body * 1.12 else 0
+                if level:
+                    if para:
+                        out.append(" ".join(para))
+                        para = []
+                    out.append("#" * level + " " + "".join(s["text"] for s in line["spans"]).strip())
+                    continue
+                text = ""
+                for s in line["spans"]:
+                    t = s["text"]
+                    bold = bool(s["flags"] & 16) and t.strip()
+                    text += f"**{t.strip()}**" + (" " if t.endswith(" ") else "") if bold else t
+                text = text.strip()
+                if text.startswith(BULLETS) and len(text) > 1:
+                    if para:
+                        out.append(" ".join(para))
+                        para = []
+                    out.append("- " + text.lstrip("".join(BULLETS)).strip())
+                elif para and para[-1].endswith("-") and not para[-1].endswith(" -"):
+                    para[-1] = para[-1][:-1] + text  # a word split over two lines
+                else:
+                    para.append(text)
+            if para:
+                out.append(" ".join(para))
+        out.append("")
+    md, prev = [], ""
+    for chunk in out:  # blank lines between paragraphs, lists kept tight
+        if chunk.startswith("- ") and prev.startswith("- "):
+            md.append(chunk)
+        else:
+            md += ["", chunk] if md else [chunk]
+        prev = chunk
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(md)).strip() + "\n"
+
+
+def to_markdown(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """Text with headings, lists and bold kept."""
+    with _open(src) as d:
+        texts = _page_texts(d)
+        md = markdown_of(d)
+    if not "".join(texts).strip():
+        raise ConversionError("This PDF has no text in it. It's probably scanned images; try Read text first.")
+    Path(long_path(out)).write_text(md, encoding="utf-8")
+    from .officeutil import text_coverage
+
+    cov = text_coverage("\n".join(texts), Path(long_path(out)).read_text(encoding="utf-8"))
+    if cov is not None and cov < 0.95:
+        raise VerificationError(f"only {cov:.0%} of the text made it into the Markdown")
+    notes.append("Checked: all of the text, with headings, lists and bold as Markdown. Tables become text.")
+
+
+def to_html(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """One web page with every page's text and pictures (pictures saved inside the page)."""
+    import re as _re
+
+    with _open(src) as d:
+        texts = _page_texts(d)
+        bodies = []
+        for page in d:
+            x = page.get_text("xhtml")
+            m = _re.search(r"(?is)<body[^>]*>(.*)</body>", x)
+            bodies.append(f'<section class="page">{m.group(1) if m else x}</section>')
+    page_html = ('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + src.stem.replace("<", "&lt;") +
+                 '</title><style>body{max-width:860px;margin:32px auto;padding:0 18px;font-family:Segoe UI,Arial;'
+                 'line-height:1.5}.page{border-bottom:1px solid #ddd;padding:12px 0 24px}img{max-width:100%}</style>'
+                 '</head><body>' + "\n".join(bodies) + "</body></html>")
+    Path(long_path(out)).write_text(page_html, encoding="utf-8")
+    from .officeutil import text_coverage
+
+    plain = _re.sub(r"<[^>]+>", " ", page_html)
+    import html as _h
+
+    cov = text_coverage("\n".join(texts), _h.unescape(plain))
+    if cov is not None and cov < 0.97:
+        raise VerificationError(f"only {cov:.0%} of the text made it into the page")
+    notes.append(f"Checked: {len(bodies)} pages of text and pictures in one web page.")
+
+
+TOOLS.update({"tiff": to_tiff, "longimg": long_image, "md": to_markdown, "html": to_html})
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     notes: list[str] = []
     if fmt == "merge":

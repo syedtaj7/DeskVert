@@ -5,6 +5,7 @@ Used to check a built release (everything bundled, workers start, engines work).
 from __future__ import annotations
 
 import json
+import os
 import multiprocessing as mp
 import sys
 import time
@@ -19,7 +20,23 @@ def _make_extras(folder: Path) -> dict[str, Path]:
 
     files = {"csv": folder / "Prices.csv", "json": folder / "Settings.json", "md": folder / "Read me.md",
              "scan": folder / "Receipt.png", "srt": folder / "Film.srt", "yaml": folder / "Config.yaml",
-             "epub": folder / "Story.epub"}
+             "epub": folder / "Story.epub", "geo": folder / "Places.geojson", "obj": folder / "Cube.obj",
+             "dxf": folder / "Plan.dxf", "eml": folder / "Hello.eml", "csvpeople": folder / "People.csv"}
+    files["geo"].write_text('{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point",'
+                            '"coordinates":[77.59,12.97]},"properties":{"name":"Bengaluru"}}]}', encoding="utf-8")
+    cube_v = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)]
+    cube_f = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4), (1, 2, 6), (1, 6, 5), (2, 3, 7),
+              (2, 7, 6), (3, 0, 4), (3, 4, 7)]
+    files["obj"].write_text("".join(f"v {x} {y} {z}\n" for x, y, z in cube_v) +
+                            "".join(f"f {a + 1} {b + 1} {c + 1}\n" for a, b, c in cube_f), encoding="utf-8")
+    files["dxf"].write_text("\n".join(["0", "SECTION", "2", "ENTITIES", "0", "LINE", "8", "0", "10", "0", "20", "0",
+                                       "11", "50", "21", "0", "0", "CIRCLE", "8", "0", "10", "25", "20", "10", "40",
+                                       "8", "0", "TEXT", "8", "0", "10", "5", "20", "25", "40", "4", "1", "Room",
+                                       "0", "ENDSEC", "0", "EOF"]) + "\n", encoding="utf-8")
+    files["eml"].write_bytes(b"From: Asha <asha@example.com>\r\nTo: ravi@example.com\r\nSubject: Hello\r\n"
+                             b"Content-Type: text/plain; charset=utf-8\r\n\r\nHi Ravi, the trip photos are ready. "
+                             b"See you on Sunday at the station.\r\n")
+    files["csvpeople"].write_text("Name,Phone,Email\nAsha Rao,+91 98765 43210,asha@example.com\n", encoding="utf-8")
     files["srt"].write_text("1\n00:00:01,000 --> 00:00:03,500\n<i>Hello</i> there\n\n"
                             "2\n00:01:02,250 --> 00:01:04,000\nSecond line\n", encoding="utf-8")
     files["yaml"].write_text("name: Tapshift\nprice: 0.10\nreleased: 2026-11-09\nusers:\n  - {id: 1}\n  - {id: 2}\n",
@@ -138,6 +155,26 @@ def run(folder: Path) -> int:
         case([extras["srt"]], "WebVTT")
         case([extras["yaml"]], "JSON")
         case([extras["epub"]], "PDF")
+        # 1.6: maps, 3D, CAD, mail, contacts, more data, fonts, archives, picture formats
+        case([extras["geo"]], "KML")
+        case([extras["obj"]], "STL")
+        case([extras["obj"]], "GLB")
+        case([extras["dxf"]], "PDF")
+        case([extras["eml"]], "PDF")
+        case([extras["csvpeople"]], "vCard")
+        case([extras["json"]], "TOML")
+        case([extras["md"]], "EPUB")
+        case([extras["srt"]], "ASS")
+        case([samples / "Sunset.png"], "QOI")
+        case([samples / "Mountains.jpg"], "Set DPI", {"dpi": "300 dpi"})
+        case([samples / "Sunset.png", samples / "Mountains.jpg"], "7Z", name="2 images->7Z")
+        arial = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
+        if arial.exists():  # a copy: the new font goes next to it, never into Windows' own Fonts folder
+            import shutil
+
+            font = folder / "samples" / "arial.ttf"
+            shutil.copyfile(arial, font)
+            case([font], "WOFF", name="arial.ttf->WOFF")
     report = {"ok": all(r["ok"] for r in results), "seconds": round(time.perf_counter() - t0, 1),
               "frozen": bool(getattr(sys, "frozen", False)), "results": results}
     (folder / "selftest.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

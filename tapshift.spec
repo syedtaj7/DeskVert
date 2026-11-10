@@ -12,7 +12,9 @@ hidden = [
     "app.engines.image", "app.engines.doc", "app.engines.pdf", "app.engines.officeutil", "app.selftest",
     "app.engines.compress", "app.engines.archive", "app.engines.data", "app.engines.textdoc", "app.engines.ocr",
     "app.toolbox", "app.menu", "app.engines.mixed", "app.ui.customize", "app.engines.imgedit",
-    "app.engines.subtitle", "app.engines.ebook", "yaml", "tomllib", "xml.etree.ElementTree", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
+    "app.engines.subtitle", "app.engines.ebook", "yaml", "tomllib", "xml.etree.ElementTree",
+    "app.engines.geo", "app.engines.font", "app.engines.mesh", "app.engines.cad", "app.engines.mail",
+    "app.engines.vector", "lxml", "lxml.html", "lxml.etree", "email", "quopri", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
     # Windows' built-in text recognition (pywinrt projections)
     "winrt.runtime", "winrt.system", "winrt.windows.foundation", "winrt.windows.foundation.collections",
     "winrt.windows.globalization", "winrt.windows.graphics.imaging", "winrt.windows.media.ocr",
@@ -30,7 +32,7 @@ a = Analysis(
            (str(ROOT / "THIRD-PARTY-NOTICES.md"), "licenses"),
            (str(ROOT / "licenses" / "*.txt"), "licenses")],
     hiddenimports=hidden,
-    excludes=["tkinter", "pytest", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
+    excludes=["tkinter", "pytest", "onnxruntime", "pymupdf4llm", "pymupdf_layout", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
               "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf"],
     noarchive=False,
 )
