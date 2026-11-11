@@ -237,8 +237,12 @@ class Controller(QObject):
     def show_tour(self) -> None:
         from .ui.onboarding import TourWindow
 
-        choices = {"autostart": True if not self.settings.onboarded else winutil.autostart_enabled(),
-                   "theme": self.settings.theme, "cpu": self.settings.max_cpu_percent, "hotkey": self.settings.hotkey}
+        s = self.settings
+        choices = {"autostart": True if not s.onboarded else winutil.autostart_enabled(),
+                   "theme": s.theme, "cpu": s.max_cpu_percent, "hotkey": s.hotkey, "palette": s.palette,
+                   "picker_size": s.picker_size, "quality": s.quality_level, "quick_recents": s.quick_recents,
+                   "context_menu": s.context_menu, "keep_modified_date": s.keep_modified_date,
+                   "use_clipboard_fallback": s.use_clipboard_fallback, "two_at_once": s.max_workers >= 2}
         office = {k: office_installed(k) for k in ("word", "excel", "powerpoint")}
         w = self._window("tour", lambda: TourWindow(choices, office))
         if w is None:
@@ -253,9 +257,21 @@ class Controller(QObject):
         self._apply("autostart", choices["autostart"], save=False)
         self._apply("max_cpu_percent", int(choices["cpu"]), save=False)
         self._apply("hotkey", choices["hotkey"], save=False)
-        theme_changed = choices["theme"] != self.settings.theme
-        self.settings.theme = choices["theme"]
-        self.settings.save()
+        s = self.settings
+        theme_changed = (choices["theme"], choices.get("palette", s.palette)) != (s.theme, s.palette)
+        s.theme = choices["theme"]
+        s.palette = choices.get("palette", s.palette)
+        s.picker_size = choices.get("picker_size", s.picker_size)
+        if choices.get("quality", s.quality_level) != s.quality_level:
+            s.set_quality_level(choices["quality"])
+        for key in ("quick_recents", "keep_modified_date", "use_clipboard_fallback"):
+            setattr(s, key, bool(choices.get(key, getattr(s, key))))
+        workers = max(2, s.max_workers) if choices.get("two_at_once", s.max_workers >= 2) else 1
+        if workers != s.max_workers:
+            self._apply("max_workers", workers, save=False)
+        if bool(choices.get("context_menu", s.context_menu)) != s.context_menu:
+            self._apply("context_menu", bool(choices["context_menu"]))  # saves too
+        s.save()
         if theme_changed:
             QTimer.singleShot(0, self._restyle)
         if first:
@@ -342,7 +358,7 @@ class Controller(QObject):
                 self.panel.message("success", "Shortcut changed", f"{how} {self.key_label} with files selected.",
                                    4500)
             log.info("shortcut set to %s (%s)", self.settings.hotkey, "ok" if ok else err)
-        if key == "max_cpu_percent" and not self.jobs.busy:
+        if key in ("max_cpu_percent", "max_workers") and not self.jobs.busy:
             self.jobs.reset_pool()  # the next conversion starts with the new limit
 
     def try_samples(self) -> None:
@@ -456,7 +472,7 @@ class Controller(QObject):
             notes.append(f"{len(left_out)} file(s) of an unsupported type: only ZIP includes them.")
         center = f"1 {group[0].suffix.upper().lstrip('.') or 'file'}" if len(group) == 1 else f"{len(group)} files"
         self.popup = Popup(describe_selection(group), center, " ".join(notes), offers,
-                           estimator=self.jobs.estimate, nodes=nodes, quick=quick)
+                           estimator=self.jobs.estimate, nodes=nodes, quick=quick, scale=self.settings.picker_scale)
         self.popup.chosen.connect(self._submit)
         self.popup.destroyed.connect(self._popup_closed)
         self.popup.show_at_cursor()

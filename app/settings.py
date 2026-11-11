@@ -12,11 +12,20 @@ from .paths import config_dir
 log = logging.getLogger(__name__)
 
 
+PICKER_SCALE = {"compact": 0.86, "normal": 1.0, "large": 1.14}
+QUALITY_LEVELS = {
+    "smaller": {"jpeg_quality": 80, "webp_quality": 80, "avif_quality": 70, "heic_quality": 76},
+    "high": {"jpeg_quality": 92, "webp_quality": 92, "avif_quality": 88, "heic_quality": 90},  # the defaults
+    "best": {"jpeg_quality": 97, "webp_quality": 97, "avif_quality": 95, "heic_quality": 96},
+}
+
+
 @dataclass
 class Settings:
     hotkey: str = "Ctrl+Shift"  # tap Ctrl+Shift together; or a combo such as "Ctrl+Shift+Space"
     theme: str = "auto"  # auto (follow Windows) | dark | light
     palette: str = "verdant"  # verdant (green) | signal (orange) | native (your Windows accent color)
+    picker_size: str = "normal"  # compact | normal | large (how big the web of choices opens)
     onboarded: bool = False  # the welcome tour has been shown
     settings_version: int = 3
     jpeg_quality: int = 92
@@ -32,6 +41,21 @@ class Settings:
     favourites: list = field(default_factory=list)  # action keys pinned to the inner ring
     recent_actions: list = field(default_factory=list)  # most recent first
     presets: list = field(default_factory=list)  # {id, name, kind, key, options, summary}
+
+    @property
+    def picker_scale(self) -> float:
+        return PICKER_SCALE.get(self.picker_size, 1.0)
+
+    @property
+    def quality_level(self) -> str:
+        """The photo quality as one word (Settings > Quality has the exact numbers)."""
+        if self.jpeg_quality <= 84:
+            return "smaller"
+        return "best" if self.jpeg_quality >= 95 else "high"
+
+    def set_quality_level(self, level: str) -> None:
+        for key, value in QUALITY_LEVELS.get(level, QUALITY_LEVELS["high"]).items():
+            setattr(self, key, value)
 
     @property
     def workers(self) -> int:

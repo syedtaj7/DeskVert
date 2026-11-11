@@ -129,11 +129,17 @@ class SettingsWindow(ChromeWindow):
         accent = Segmented([("verdant", "Green"), ("signal", "Orange"), ("native", "Windows color")],
                            s.palette if s.palette in ("verdant", "signal", "native") else "verdant")
         accent.changed.connect(lambda v: self.changed.emit("palette", v))
+        from .onboarding import PICKER_CHOICES
+
+        size = Segmented(PICKER_CHOICES, s.picker_size if s.picker_size in ("compact", "normal", "large") else "normal")
+        size.changed.connect(lambda v: self.changed.emit("picker_size", v))
         rows = [setting_row("Shortcut", "Choose the three-key combo if Ctrl + Shift switches your keyboard layout. "
                                         "Applies immediately.", keys),
                 setting_row("Appearance", "Auto follows Windows' light or dark mode. Applies right away.", look),
                 setting_row("Accent color", "Windows color uses the accent you picked in Windows Settings. "
-                                            "Applies right away.", accent)]
+                                            "Applies right away.", accent),
+                setting_row("Picker size", "How big the web of choices opens. Compact suits small screens; it "
+                                           "always shrinks to fit.", size)]
         lay.addWidget(a)
         for r in rows:
             lay.addWidget(r)
