@@ -738,16 +738,23 @@ class ProgressPanel(_Card):
         margin = self.layout().contentsMargins()
         # the card's edge sits 12 px from the screen's edge (the window around it holds the shadow)
         home = QPoint(area.right() - self.width() + margin.right() - 12, area.bottom() - self.height() + margin.bottom() - 12)
+        sliding = self._slide is not None and self._slide.state() == QParallelAnimationGroup.State.Running
+        if self.isVisible() and not self._leaving:
+            # Already showing (or still sliding in): never stop the slide-in half way, or the card stays
+            # see-through (this happened when "converting this file" arrived right after "started").
+            if sliding:
+                self._slide_to.setEndValue(home)
+            else:
+                self.move(home)
+                self.setWindowOpacity(1.0)
+            return
         if self._slide is not None:
             self._slide.stop()
-        if not self.isVisible() or self._leaving:
-            self._leaving = False
-            self.move(home + QPoint(60, 0))
-            self.setWindowOpacity(0.0)
-            self.show()
-            self._animate(home, 1.0, 320)
-        else:
-            self.move(home)
+        self._leaving = False
+        self.move(home + QPoint(60, 0))
+        self.setWindowOpacity(0.0)
+        self.show()
+        self._animate(home, 1.0, 320)
 
     def _animate(self, pos: QPoint, opacity: float, ms: int, then=None):
         group = QParallelAnimationGroup(self)
@@ -762,7 +769,10 @@ class ProgressPanel(_Card):
         group.addAnimation(b)
         if then is not None:
             group.finished.connect(then)
+        else:  # arriving: whatever happened meanwhile, end fully shown
+            group.finished.connect(lambda: self.setWindowOpacity(1.0) if not self._leaving else None)
         self._slide = group
+        self._slide_to = a
         group.start()
 
     def _dismiss(self):
