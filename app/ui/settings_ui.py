@@ -101,6 +101,8 @@ class SettingsWindow(ChromeWindow):
         dates.toggled.connect(lambda v: self.changed.emit("keep_modified_date", v))
         menu = Toggle(s.context_menu)
         menu.toggled.connect(lambda v: self.changed.emit("context_menu", v))
+        auto_upd = Toggle(s.auto_update_check)
+        auto_upd.toggled.connect(lambda v: self.changed.emit("auto_update_check", v))
         tour = PillButton("Show the welcome tour", "ghost", min_width=200)
         tour.clicked.connect(self.show_tour.emit)
         rows = [setting_row("Start with Windows", "Wait in the tray, ready for the shortcut.", auto),
@@ -110,6 +112,9 @@ class SettingsWindow(ChromeWindow):
                             dates),
                 setting_row("Right-click menu", "Adds “Convert with Tapshift” to files' right-click menu "
                             "(on Windows 11: Show more options).", menu),
+                setting_row("Tell me about updates", "Every few hours, asks GitHub for the newest version number "
+                            "and lets you know when there is one. Nothing about you or your files is sent.",
+                            auto_upd),
                 setting_row("Welcome tour", "Walk through how Tapshift works again.", tour)]
         lay.addWidget(a)
         for r in rows:

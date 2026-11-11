@@ -1,9 +1,10 @@
 """Check GitHub for a newer Tapshift, download its installer and start it.
 
-Only runs when you ask (Settings > About > Check for updates, or the tray menu).
-What it sends: one request to GitHub's public API for the latest release, and
-then (if you choose) the download of that release's installer. No data about
-you or your files.
+Runs when you ask (Settings > About > Check for updates, or the tray menu) and,
+unless turned off (Settings > General > Tell me about updates), quietly every few
+hours to let you know a new version is out. What it sends: one request to GitHub's
+public API for the latest release, and then (only if you choose) the download of
+that release's installer. No data about you or your files.
 
 Safety:
 - only assets of this project's own GitHub releases are downloaded;

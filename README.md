@@ -133,7 +133,9 @@ Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion
 
 ### Update
 
-**Settings → About → Check for updates** (or the tray menu). If there's a new version, Tapshift shows what's new, downloads it with a progress bar, checks it against GitHub's checksum, then installs it and restarts. The portable zip links to the download page instead.
+Tapshift lets you know when a new version is out (it asks GitHub every few hours; turn it off in
+**Settings → General → Tell me about updates**). Click **Update**, or use **Settings → About → Check for updates**
+(or the tray menu). If there's a new version, Tapshift shows what's new, downloads it with a progress bar, checks it against GitHub's checksum, then installs it and restarts. The portable zip links to the download page instead.
 
 ### Uninstall
 
@@ -155,7 +157,7 @@ Any of these works, and each removes everything (app, settings, logs):
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
 | Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
-| See it all | Tray icon → **Welcome tour**: the live picker, every format, every conversion acted out, and a playground |
+| See it all | Tray icon → **Welcome tour**: the live picker, every format, and every conversion acted out |
 | Many kinds of files at once | Select them all: each kind gets its own branch ("2 pictures", "1 PDF"), plus **Combine** and **ZIP** for everything |
 | Right-click menu | Right-click files → **Convert with Tapshift** (Windows 11: Show more options) |
 | Undo | Click **Undo** on the Saved card: the new files go to the Recycle Bin |
@@ -174,7 +176,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Can it open password-protected files?** PDFs: yes, use **Unlock** (you need the password). Office files: remove the password in Office first.
 
-**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift only goes online when you click **Check for updates**: it asks GitHub for the latest version and, if you choose, downloads the installer (checked against GitHub's checksum) and installs it.
+**Is anything sent to the internet?** Your files never are: conversions happen on your PC. The only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it.
 
 **Something failed. Where's the log?** Tray menu → Settings → About → Log folder. Please attach `app.log` when [reporting an issue](https://github.com/syedtaj7/TapShift/issues).
 

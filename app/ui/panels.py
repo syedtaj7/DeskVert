@@ -271,6 +271,12 @@ class ProgressPanel(_Card):
         self.undo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.undo_btn.setToolTip("Move the new file to the Recycle Bin")
         self.undo_btn.clicked.connect(self._undo)
+        self.action_btn = QPushButton("")  # a one-off action, e.g. "Update" (see offer())
+        self.action_btn.setObjectName("primary")
+        self.action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.action_btn.clicked.connect(self._action)
+        self.action_btn.hide()
+        self._action_cb = None
         self.folder_btn = QPushButton("Show in folder")
         self.folder_btn.setObjectName("primary")
         self.folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -278,6 +284,7 @@ class ProgressPanel(_Card):
         btns.addWidget(self.cancel_btn)
         btns.addWidget(self.undo_btn)
         btns.addWidget(self.folder_btn)
+        btns.addWidget(self.action_btn)
         lay.addLayout(btns)
 
         self._output = ""
@@ -291,6 +298,8 @@ class ProgressPanel(_Card):
     # ---------------------------------------------------------------- states
     def start(self, label: str, total: int):
         self._busy = True
+        self.action_btn.hide()
+        self._action_cb = None
         self._hide_timer.stop()
         self.icon.set_kind("busy")
         self.title.setText(f"Converting to {label}")
@@ -317,6 +326,8 @@ class ProgressPanel(_Card):
 
     def finish(self, kind: str, title: str, body: str, output: str = "", outputs: list[str] | None = None):
         self._busy = False
+        self.action_btn.hide()
+        self._action_cb = None
         self.icon.set_kind(kind)
         self.title.setText(title)
         self.sub.setText(body)
@@ -342,6 +353,25 @@ class ProgressPanel(_Card):
             return
         self.finish(kind, title, body)
         self._hide_timer.start(ms)
+
+    def offer(self, kind: str, title: str, body: str, button: str, callback, ms: int = 20000) -> bool:
+        """A message with one button (e.g. an update). Not while converting; returns whether it showed."""
+        if self._busy:
+            return False
+        self.finish(kind, title, body)
+        self.action_btn.setText(button)
+        self.action_btn.show()
+        self._action_cb = callback
+        self._place_and_show()
+        self._hide_after = ms
+        self._hide_timer.start(ms)
+        return True
+
+    def _action(self):
+        cb = self._action_cb
+        self._dismiss()
+        if cb is not None:
+            cb()
 
     # ---------------------------------------------------------------- window
     def _place_and_show(self):
