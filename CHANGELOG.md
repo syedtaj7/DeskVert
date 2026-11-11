@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.9.0
+
+### The welcome tour, redone
+- **Watch them work:** a new scrolling gallery where every kind of conversion acts itself out, all playing at
+  once: a PDF shrinks while its size counts down, pages fly together to merge, a scan line turns a photo of a
+  page into text, a waveform squeezes into an MP3, a route draws itself on a map, files drop into a ZIP...
+  30 of them, one section per kind of file. A new kind of file gets its own section automatically.
+- **How it works** is now steady: a File Explorer window where a file is selected, Ctrl + Shift is tapped,
+  the picker pops up and the new file appears next to the original, with the four steps listed alongside.
+  Nothing spins or shimmers any more.
+- **Every format, one shortcut** replaces the drifting wheel with a map: every kind of file in a list, and for
+  the one you point at, what goes in and what comes out, flowing through Tapshift. Counted live.
+- **Undo** has a proper story: click Undo, the new file drops into the Recycle Bin, the original stays.
+- **Safe by design** is animated: the original stays locked while a copy slides out, both files are
+  compared, nothing reaches the internet, and the processor gauge never passes its limit.
+- **Make it yours** now has 12 options: shortcut, start with Windows, appearance, accent color, picker size,
+  performance, photo quality, recent actions in the centre, right-click menu, keeping the original's date,
+  using copied files, and two files at a time.
+
+### New
+- **Picker size** (Compact / Normal / Large) in Settings > Shortcut and look, and in the tour. The picker still
+  shrinks to fit small screens.
+- **Photo quality** in one word (Smaller / High / Best) in the tour; Settings > Quality keeps the exact numbers.
+
+### Light
+- Every tour page uses about 1 to 3.5 % of the whole processor while it animates (measured on a 12-thread
+  laptop), and the gallery only redraws the cards you can see.
+
 ## 1.8.0
 
 ### Fixes

@@ -646,7 +646,7 @@ class Popup(QWidget):
     chosen = Signal(object, dict)  # Offer, options
 
     def __init__(self, title: str, center_title: str, subtitle: str, offers: list[Offer], estimator=None,
-                 nodes=None, quick=None):
+                 nodes=None, quick=None, scale: float = 1.0):
         super().__init__(
             None,
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
@@ -690,13 +690,15 @@ class Popup(QWidget):
         area = screen.availableGeometry()
         side = "left" if QCursor.pos().x() > area.left() + area.width() * 0.6 else "right"
         items = nodes if nodes is not None else offers
-        self.wheel = self.orbit = OrbitView(items, title, card_side=side, note=subtitle, quick=quick)
+        # Picker size (Settings > Shortcut and look) sets the scale it opens at.
+        self.wheel = self.orbit = OrbitView(items, title, card_side=side, scale=scale, note=subtitle, quick=quick)
         # Small screens (or big Windows zoom): shrink the whole web so it fits, never cut off.
         room_h, room_w = area.height() - 90, area.width() - 60  # the window adds its own margins
         if self.orbit.height() > room_h or self.orbit.width() > room_w:
             k = max(0.62, min((room_h - 34) / (self.orbit.height() - 34), room_w / self.orbit.width()))
             self.orbit.deleteLater()
-            self.wheel = self.orbit = OrbitView(items, title, card_side=side, scale=k, note=subtitle, quick=quick)
+            self.wheel = self.orbit = OrbitView(items, title, card_side=side, scale=max(0.55, scale * k),
+                                                note=subtitle, quick=quick)
         self.last_key = ""  # what was chosen (for recents and "tap twice to repeat")
         self._chosen_node = None
         wheel_holder = QWidget()

@@ -1,9 +1,9 @@
 """The welcome tour: Tapshift's real picker, live, plus everything it converts.
 
 Pages: a live web picker driven by a ghost cursor (take over with your mouse),
-how it works, the universe of formats (counted live from the catalog, so new
-conversions appear here by themselves), a playground with sample files, power
-moves, safety, setup and the finish.
+how it works, a map of every format (counted live from the catalog, so new
+conversions appear here by themselves), every conversion acted out in a scrolling
+gallery, a playground with sample files, power moves, safety, setup and the finish.
 
 Every animation runs only while its page is showing, and stops when it's done.
 """
@@ -16,8 +16,9 @@ from pathlib import Path
 
 from PySide6.QtCore import (QEasingCurve, QEvent, QObject, QParallelAnimationGroup, QPoint, QPointF,
                             QPropertyAnimation, QRectF, QSize, Qt, QTimer, Signal)
-from PySide6.QtGui import QFont, QMouseEvent, QPainter, QPen
-from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QScrollArea, QVBoxLayout,
+                               QWidget)
 
 from . import theme
 from .chrome import ChromeWindow, label
@@ -32,6 +33,14 @@ CPU_TEXT = {
     "50": "Uses at most 50% of your processor. Quickest conversions; the fan may spin up on big files.",
 }
 SAMPLE_DIR = Path("C:/Tapshift tour")  # never read: the picker only needs the names
+QUALITY_CHOICES = [("smaller", "Smaller"), ("high", "High"), ("best", "Best")]
+QUALITY_TEXT = {
+    "smaller": "Noticeably smaller photos; fine for sharing and forms.",
+    "high": "Looks just like the original. Recommended.",
+    "best": "Closest to the original, larger files.",
+}
+PICKER_CHOICES = [("compact", "Compact"), ("normal", "Normal"), ("large", "Large")]
+ACCENT_CHOICES = [("verdant", "Green"), ("signal", "Orange"), ("native", "Windows")]
 
 
 def _menu_for(name: str):
@@ -194,6 +203,154 @@ class CheckDot(Clock):
             self._timer.stop()
 
 
+class SafeArt(Clock):
+    """A small looping picture for each promise on the safety page."""
+
+    FPS = 24
+    LOOP = 5.0
+    ZOOM = 1.2  # drawn in a 170 x 92 box, shown a little larger
+
+    def __init__(self, kind: str, parent=None):
+        super().__init__(parent)
+        self.kind = kind
+        self.setFixedSize(QSize(int(170 * self.ZOOM), int(92 * self.ZOOM)))
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        r = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        p.setPen(QPen(theme.LINE, 1))
+        p.setBrush(theme.SURFACE)
+        p.drawRoundedRect(r, 12, 12)
+        t = self.t % self.LOOP
+        p.setOpacity(ease_out(phase(t, 0, 0.3)) * (1 - ease_in_out(phase(t, self.LOOP - 0.35, self.LOOP))))
+        p.scale(self.ZOOM, self.ZOOM)
+        getattr(self, f"_{self.kind}")(p, t)
+        p.end()
+
+    def _small(self, p, r: QRectF, s: str, color=None, weight=QFont.Weight.DemiBold):
+        p.setPen(color or theme.DIM)
+        p.setFont(font(9.5, weight))
+        p.drawText(r, Qt.AlignmentFlag.AlignCenter, s)
+
+    def _lock(self, p, c: QPointF, k: float):
+        p.save()
+        p.setOpacity(p.opacity() * k)
+        pen = QPen(theme.SUCCESS, 2.2)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawArc(QRectF(c.x() - 5, c.y() - 10, 10, 12), 0, 180 * 16)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(theme.SUCCESS)
+        p.drawRoundedRect(QRectF(c.x() - 7, c.y() - 4, 14, 11), 2.5, 2.5)
+        p.restore()
+
+    def _original(self, p, t):
+        """The original stays put (and locked); the new file is a copy that slides out beside it."""
+        paint_file_icon(p, QRectF(22, 16, 38, 48), "image")
+        self._lock(p, QPointF(58, 18), ease_out(phase(t, 0.3, 0.7)))
+        self._small(p, QRectF(6, 66, 70, 16), "original")
+        k = ease_in_out(phase(t, 0.9, 1.9))
+        if k > 0:
+            x = 22 + (106 - 22) * k
+            p.save()
+            p.setOpacity(p.opacity() * min(1.0, k * 2))
+            paint_file_icon(p, QRectF(x, 16, 38, 48), "image")
+            p.restore()
+            self._small(p, QRectF(90, 66, 70, 16), "new copy", theme.ACCENT if k > 0.98 else None)
+
+    def _checked(self, p, t):
+        """Both files side by side, compared; a match turns into a check."""
+        paint_file_icon(p, QRectF(20, 18, 34, 44), "image")
+        paint_file_icon(p, QRectF(116, 18, 34, 44), "image")
+        sweep = 0.5 - 0.5 * math.cos(math.pi * 2 * phase(t, 0.3, 2.3))
+        c = QPointF(37 + (133 - 37) * sweep, 40)
+        if t < 2.4:
+            p.setPen(QPen(theme.TEXT, 2.2))
+            p.setBrush(with_alpha(theme.SURFACE, 0.4))
+            p.drawEllipse(c, 12, 12)
+            p.drawLine(QPointF(c.x() + 8.5, c.y() + 8.5), QPointF(c.x() + 15, c.y() + 15))
+        ok = phase(t, 2.4, 3.0)
+        if ok > 0:
+            paint_check(p, QPointF(85, 40), 30, ease_out(ok))
+        else:
+            p.setPen(theme.DIM)
+            p.setFont(font(18, QFont.Weight.Bold))
+            p.drawText(QRectF(70, 26, 30, 28), Qt.AlignmentFlag.AlignCenter, "=")
+        self._small(p, QRectF(0, 68, 170, 16), "same pixels · pages · words", theme.SUCCESS if ok > 0.5 else None)
+
+    def _offline(self, p, t):
+        """Your PC, and the internet it never talks to."""
+        scr = QRectF(18, 20, 58, 38)
+        p.setPen(QPen(theme.TEXT, 1.6))
+        p.setBrush(theme.SURFACE2)
+        p.drawRoundedRect(scr, 4, 4)
+        p.drawLine(QPointF(10, 64), QPointF(84, 64))
+        paint_file_icon(p, QRectF(37, 25, 20, 26), "image")
+        cloud = QPainterPath()
+        cx, cy = 132, 34
+        cloud.addEllipse(QPointF(cx - 12, cy + 4), 11, 9)
+        cloud.addEllipse(QPointF(cx + 2, cy - 3), 13, 12)
+        cloud.addEllipse(QPointF(cx + 14, cy + 4), 10, 8)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(with_alpha(theme.DIM, 0.35))
+        p.drawPath(cloud.simplified())
+        # a dot sets off for the cloud and is stopped halfway
+        go = phase(t, 0.4, 1.4)
+        x = 84 + (104 - 84) * ease_out(go)
+        if 0 < go < 1 or t < 2.8:
+            p.setBrush(with_alpha(theme.ACCENT, 1 - phase(t, 1.4, 2.0)))
+            p.drawEllipse(QPointF(x, 42), 3, 3)
+        p.setPen(QPen(with_alpha(theme.DIM, 0.6), 1.4, Qt.PenStyle.DashLine))
+        p.drawLine(QPointF(86, 42), QPointF(116, 38))
+        stop = ease_back(phase(t, 1.3, 1.7))
+        if stop > 0:
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(theme.ERROR)
+            p.drawEllipse(QPointF(104, 40), 9 * stop, 9 * stop)
+            pen = QPen(QColor(255, 255, 255), 2)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.setPen(pen)
+            d = 3.6 * stop
+            p.drawLine(QPointF(104 - d, 40 - d), QPointF(104 + d, 40 + d))
+            p.drawLine(QPointF(104 + d, 40 - d), QPointF(104 - d, 40 + d))
+        self._small(p, QRectF(0, 68, 170, 16), "nothing leaves your PC")
+
+    def _light(self, p, t):
+        """A gauge that never goes past its cap, and drops to zero when there's nothing to do."""
+        c = QPointF(85, 62)
+        rad = 40
+        rect = QRectF(c.x() - rad, c.y() - rad, 2 * rad, 2 * rad)
+        pen = QPen(theme.TRACK, 7)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawArc(rect, 0, 180 * 16)
+        busy = 1 - ease_in_out(phase(t, 2.6, 3.2))
+        v = (0.13 + 0.08 * math.sin(t * 2.6)) * busy  # share of the processor, always under 25 %
+        pen.setColor(theme.ACCENT)
+        p.setPen(pen)
+        if v > 0.003:
+            p.drawArc(rect, 180 * 16, -int(180 * 16 * v))
+        cap = math.pi * (1 - 0.25)
+        p.setPen(QPen(theme.ERROR, 2))
+        p.drawLine(QPointF(c.x() + math.cos(cap) * (rad - 8), c.y() - math.sin(cap) * (rad - 8)),
+                   QPointF(c.x() + math.cos(cap) * (rad + 8), c.y() - math.sin(cap) * (rad + 8)))
+        a = math.pi * (1 - v)
+        p.setPen(QPen(theme.TEXT, 2.2))
+        p.drawLine(c, QPointF(c.x() + math.cos(a) * (rad - 12), c.y() - math.sin(a) * (rad - 12)))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(theme.TEXT)
+        p.drawEllipse(c, 3.5, 3.5)
+        p.setPen(theme.TEXT)
+        p.setFont(font(12, QFont.Weight.Bold))
+        p.drawText(QRectF(c.x() - 40, c.y() + 4, 80, 18), Qt.AlignmentFlag.AlignCenter,
+                   f"{v * 100:.0f} %" if busy > 0.02 else "idle: 0 %")
+        self._small(p, QRectF(108, 22, 62, 14), "limit", theme.ERROR)
+
+
 class Celebration(Clock):
     """Big check mark with a burst of confetti."""
 
@@ -238,19 +395,22 @@ class Celebration(Clock):
 class PowerArt(Clock):
     """Small looping animations for the power moves."""
 
-    FPS = 20
+    FPS = 30
     LOOP = 4.0
 
     def __init__(self, kind: str, parent=None):
         super().__init__(parent)
         self.kind = kind
+        self.loop = 5.0 if kind == "undo" else self.LOOP
         self.setFixedSize(QSize(260, 120))
 
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        t = self.t % self.LOOP
+        t = self.t % self.loop
+        if self.kind == "undo":  # a story with an end: fade between rounds instead of jumping
+            p.setOpacity(ease_out(phase(t, 0, 0.3)) * (1 - ease_in_out(phase(t, self.loop - 0.4, self.loop))))
         getattr(self, f"_{self.kind}")(p, t)
         p.end()
 
@@ -296,41 +456,116 @@ class PowerArt(Clock):
             p.drawText(r.adjusted(10, 0, 0, 0), Qt.AlignmentFlag.AlignVCenter, it)
         paint_cursor(p, QPointF(menu.right() - 30, menu.top() + 16 + sel * 24), 0.9)
 
+    def _bin(self, p, c: QPointF, lid: float, shake: float):
+        """A recycle bin; ``lid`` 0 shut .. 1 open."""
+        p.save()
+        p.translate(c.x() + math.sin(shake * math.pi * 6) * 2.2 * (1 - shake), c.y())
+        body = QPainterPath()
+        body.moveTo(-17, -20)
+        body.lineTo(17, -20)
+        body.lineTo(13, 22)
+        body.quadTo(12.5, 25, 9, 25)
+        body.lineTo(-9, 25)
+        body.quadTo(-12.5, 25, -13, 22)
+        body.closeSubpath()
+        p.setPen(QPen(theme.DIM, 1.6))
+        p.setBrush(theme.SURFACE2)
+        p.drawPath(body)
+        for x in (-7, 0, 7):
+            p.drawLine(QPointF(x, -12), QPointF(x * 0.85, 18))
+        p.save()
+        p.translate(-20, -24)
+        p.rotate(-38 * lid)
+        p.setBrush(theme.SURFACE2)
+        p.drawRoundedRect(QRectF(0, -2, 40, 6), 2, 2)
+        p.drawRoundedRect(QRectF(14, -7, 12, 5), 2, 2)
+        p.restore()
+        p.restore()
+
     def _undo(self, p, t):
-        card = QRectF(10, 18, 190, 84)
-        gone = ease_in_out(phase(t, 1.5, 2.2))
+        """Saved card -> click Undo -> the new file drops into the Recycle Bin; the original stays."""
+        undone = t >= 1.25
+        card = QRectF(6, 10, 168, 100)
         p.setPen(QPen(theme.LINE, 1))
         p.setBrush(theme.SURFACE)
         p.drawRoundedRect(card, 10, 10)
-        p.setFont(font(11, QFont.Weight.DemiBold))
-        p.setPen(theme.SUCCESS if t < 1.5 else theme.DIM)
-        p.drawText(QRectF(24, 26, 160, 20), Qt.AlignmentFlag.AlignVCenter, "Saved" if t < 1.5 else "Undone")
-        icon = QRectF(24 + 190 * gone, 50 - 12 * math.sin(gone * math.pi), 30 * (1 - 0.5 * gone), 38 * (1 - 0.5 * gone))
-        paint_file_icon(p, icon, "image", "")
-        btn = QRectF(120, 58, 66, 28)
-        self._chip(p, btn, "Undo", 0.9 < t < 1.6)
-        # the recycle bin
-        bin_ = QRectF(214, 46, 32, 40)
-        p.setPen(QPen(theme.DIM, 1.6))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(bin_, 4, 4)
-        p.drawLine(QPointF(bin_.left() - 4, bin_.top()), QPointF(bin_.right() + 4, bin_.top()))
-        if 0.9 < t < 1.6:
-            paint_cursor(p, QPointF(150, 70), 0.9)
+        # status line
+        if undone:
+            p.setPen(theme.DIM)
+            p.setFont(font(11.5, QFont.Weight.DemiBold))
+            p.drawText(QRectF(18, 16, 150, 20), Qt.AlignmentFlag.AlignVCenter, "Undone")
+        else:
+            paint_check(p, QPointF(26, 26), 18, 1.0, ring=False)
+            p.setPen(theme.SUCCESS)
+            p.setFont(font(11.5, QFont.Weight.DemiBold))
+            p.drawText(QRectF(38, 16, 130, 20), Qt.AlignmentFlag.AlignVCenter, "Saved")
+        # the file row: the new file, then (after Undo) the original that was never touched
+        if not undone:
+            paint_file_icon(p, QRectF(18, 44, 26, 32), "image")
+            p.setPen(theme.TEXT)
+            p.setFont(font(11, QFont.Weight.DemiBold))
+            p.drawText(QRectF(52, 44, 118, 18), Qt.AlignmentFlag.AlignVCenter, "beach.webp")
+            p.setPen(theme.DIM)
+            p.setFont(font(10))
+            p.drawText(QRectF(52, 60, 118, 16), Qt.AlignmentFlag.AlignVCenter, "next to beach.heic")
+        else:
+            a = ease_out(phase(t, 2.3, 2.7))
+            p.save()
+            p.setOpacity(p.opacity() * a)
+            paint_file_icon(p, QRectF(18, 44, 26, 32), "image")
+            p.setPen(theme.TEXT)
+            p.setFont(font(11, QFont.Weight.DemiBold))
+            p.drawText(QRectF(52, 44, 118, 18), Qt.AlignmentFlag.AlignVCenter, "beach.heic")
+            p.setPen(theme.SUCCESS)
+            p.setFont(font(10, QFont.Weight.DemiBold))
+            p.drawText(QRectF(52, 60, 118, 16), Qt.AlignmentFlag.AlignVCenter, "original, untouched")
+            p.restore()
+        # the Undo button
+        pressed = 0.95 <= t < 1.25
+        btn = QRectF(102, 80, 62, 24) if not undone else None
+        if btn is not None:
+            self._chip(p, btn.adjusted(0, 1, 0, 1) if pressed else btn, "Undo", pressed)
+        # the new file flies into the bin
+        fly = ease_in_out(phase(t, 1.25, 2.15))
+        if 0 < fly < 1:
+            sx, sy, ex, ey = 31, 60, 222, 50
+            x = sx + (ex - sx) * fly
+            y = sy + (ey - sy) * fly - math.sin(math.pi * fly) * 38
+            s = 1 - 0.45 * fly
+            paint_file_icon(p, QRectF(x - 13 * s, y - 16 * s, 26 * s, 32 * s), "image")
+        lid = ease_out(phase(t, 1.1, 1.4)) * (1 - ease_in_out(phase(t, 2.15, 2.4)))
+        self._bin(p, QPointF(222, 72), lid, phase(t, 2.35, 2.9))
+        p.setPen(theme.DIM)
+        p.setFont(font(9.5, QFont.Weight.DemiBold))
+        p.drawText(QRectF(186, 100, 72, 16), Qt.AlignmentFlag.AlignCenter, "Recycle Bin")
+        # the pointer
+        path = [(0.0, (160, 116)), (0.3, (160, 116)), (0.9, (140, 94)), (1.6, (140, 94)), (2.3, (250, 24)),
+                (self.loop, (250, 24))]
+        for (t0, a), (t1, b) in zip(path, path[1:]):
+            if t <= t1:
+                k = ease_in_out(phase(t, t0, t1))
+                pt = QPointF(a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k)
+                break
+        ring = phase(t, 0.95, 1.4)
+        if 0 < ring < 1:
+            p.setPen(QPen(with_alpha(theme.ACCENT, 1 - ring), 2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(pt, 5 + 14 * ring, 5 + 14 * ring)
+        paint_cursor(p, pt, 0.9)
 
     def _presets(self, p, t):
         c = QPointF(130, 60)
         p.setPen(QPen(with_alpha(theme.TEXT, 0.18), 1, Qt.PenStyle.DashLine))
         p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawEllipse(c, 92, 46)
+        p.drawEllipse(c, 74, 42)
         p.setPen(QPen(theme.LINE, 1))
         p.setBrush(theme.SURFACE2)
         p.drawEllipse(c, 22, 22)
         names = ["WhatsApp photo", "College PDF", "Exam photo"]
         for k, n in enumerate(names):
             a = t * 0.6 + k * 2 * math.pi / 3
-            pos = QPointF(c.x() + math.cos(a) * 92, c.y() + math.sin(a) * 46)
-            w = 96
+            pos = QPointF(c.x() + math.cos(a) * 74, c.y() + math.sin(a) * 42)
+            w = 100
             self._chip(p, QRectF(pos.x() - w / 2, pos.y() - 12, w, 24), n, k == int(t / (self.LOOP / 3)) % 3, 10)
         p.setPen(theme.ACCENT)
         p.setBrush(theme.ACCENT)
@@ -412,6 +647,8 @@ class HeroPage(Page):
 
 
 class HowPage(Page):
+    """Select, tap, point, saved: acted out in a File Explorer window, with the steps alongside."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         lay = QVBoxLayout(self)
@@ -420,30 +657,68 @@ class HowPage(Page):
         t, s = _heading("How it works", "No app to open, nothing to upload. It all happens right where your files are.")
         lay.addWidget(t)
         lay.addWidget(s)
-        lay.addSpacing(10)
-        demo = DemoScene(width=700, height=385)
-        lay.addWidget(demo, 0, Qt.AlignmentFlag.AlignHCenter)
         lay.addStretch(1)
-        self.anim_items = [t, s, demo]
+        self.demo = DemoScene(width=960, height=420, steps=True)
+        lay.addWidget(self.demo, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addStretch(2)
+        self.anim_items = [t, s, self.demo]
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        w = max(560, min(1000, self.width() - 72))
+        self.demo.setFixedSize(QSize(w, max(300, min(int(w * 0.44), self.height() - 110))))
 
 
 class UniversePage(Page):
+    """Every kind of file, and what it becomes: a steady map, counted live."""
+
     def __init__(self, worlds, n_types, n_actions, parent=None):
         super().__init__(parent)
-        from .universe import Universe
+        from .universe import FormatMap
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(36, 4, 36, 0)
         lay.setSpacing(4)
-        t, s = _heading("A whole universe, one shortcut",
-                        "Everything Tapshift converts, counted live. Point at a world to see what goes in and what "
-                        "comes out; click to keep it.")
+        t, s = _heading("Every format, one shortcut",
+                        "Counted live from the picker. Point at a kind of file to see what goes in and what comes out.")
         lay.addWidget(t)
         lay.addWidget(s)
-        uni = Universe(worlds, n_types, n_actions, QSize(900, 440))
-        lay.addWidget(uni, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addSpacing(16)
+        self.map = FormatMap(worlds, n_types, n_actions, QSize(980, 450))
+        lay.addWidget(self.map, 0, Qt.AlignmentFlag.AlignHCenter)
         lay.addStretch(1)
         self.anim_items = [t, s]
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self.map.setFixedSize(QSize(max(720, min(1000, self.width() - 72)), max(360, min(470, self.height() - 110))))
+
+
+class ShowcasePage(Page):
+    """Every conversion acted out: scroll through, and they all play at once."""
+
+    def __init__(self, worlds, parent=None):
+        super().__init__(parent)
+        from .showcase import Showcase
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(36, 4, 24, 0)
+        lay.setSpacing(4)
+        t, s = _heading("Watch them work", "Every kind of conversion, acted out. Scroll down: they all play at once.")
+        lay.addWidget(t)
+        lay.addWidget(s)
+        lay.addSpacing(10)
+        self.show_ = Showcase(worlds)
+        lay.addWidget(self.show_, 1)
+        self.anim_items = [t, s]
+
+    def enter(self):
+        super().enter()
+        self.show_.verticalScrollBar().setValue(0)
+        self.show_.start()
+
+    def leave(self):
+        self.show_.stop()
 
 
 class PlaygroundPage(Page):
@@ -564,14 +839,16 @@ class PowerPage(Page):
 
 class SafePage(Page):
     ROWS = [
-        ("Your original is never touched", "Tapshift only reads it. The new file is saved next to it with its own "
-                                           "name, and nothing is ever overwritten."),
-        ("Every result is double-checked", "The new file is opened again and compared with the original: pixels, "
-                                           "pages, words, cell values, subtitle timings, sound length. If anything "
-                                           "is off, it's thrown away and you're told why."),
-        ("Private and offline", "Nothing is uploaded. Tapshift only goes online when you click Check for updates."),
-        ("Light on your laptop", "A capped slice of the processor at low priority; no CPU at all when idle. Heavy "
-                                 "jobs like re-encoding video are left out on purpose."),
+        ("original", "Your original is never touched", "Tapshift only reads it. The new file is saved next to it with "
+                                                       "its own name, and nothing is ever overwritten."),
+        ("checked", "Every result is double-checked", "The new file is opened again and compared with the original: "
+                                                      "pixels, pages, words, cell values, subtitle timings, sound "
+                                                      "length. If anything is off, it's thrown away and you're told "
+                                                      "why."),
+        ("offline", "Private and offline", "Nothing is uploaded. Tapshift only goes online when you click Check for "
+                                           "updates."),
+        ("light", "Light on your laptop", "A capped slice of the processor at low priority; no CPU at all when idle. "
+                                          "Heavy jobs like re-encoding video are left out on purpose."),
     ]
 
     def __init__(self, parent=None):
@@ -582,74 +859,137 @@ class SafePage(Page):
         t, s = _heading("Safe by design", "Built so a conversion can never cost you a file.")
         lay.addWidget(t)
         lay.addWidget(s)
-        lay.addSpacing(16)
+        lay.addSpacing(14)
         self.anim_items = [t, s]
-        for i, (title, text) in enumerate(self.ROWS):
-            row = QHBoxLayout()
-            row.setSpacing(14)
-            row.addWidget(CheckDot(0.35 + i * 0.25), 0, Qt.AlignmentFlag.AlignTop)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(14)
+        grid.setVerticalSpacing(12)
+        for i, (kind, title, text) in enumerate(self.ROWS):
+            card = QFrame()
+            card.setObjectName("scard")
+            card.setStyleSheet(f"QFrame#scard {{ background: {theme.rgba(with_alpha(theme.SURFACE, 0.6))};"
+                               f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: {theme.RADIUS_CARD}px; }}")
+            row = QHBoxLayout(card)
+            row.setContentsMargins(12, 12, 16, 12)
+            row.setSpacing(16)
+            art = SafeArt(kind)
+            row.addWidget(art, 0, Qt.AlignmentFlag.AlignVCenter)
             col = QVBoxLayout()
-            col.setSpacing(2)
+            col.setSpacing(4)
+            col.addStretch(1)
             col.addWidget(label(title, 15, QFont.Weight.DemiBold))
-            col.addWidget(label(text, 13, dim=True))
+            col.addWidget(label(text, 12.5, dim=True))
+            col.addStretch(1)
             row.addLayout(col, 1)
-            holder = QWidget()
-            holder.setLayout(row)
-            lay.addWidget(holder)
-            lay.addSpacing(8)
-            self.anim_items.append(holder)
+            grid.addWidget(card, i // 2, i % 2)
+            self.anim_items.append(card)
+        holder = QWidget()
+        holder.setLayout(grid)
+        lay.addWidget(holder)
         lay.addStretch(1)
 
 
 class SetupPage(Page):
+    """Everything worth choosing on day one, each with a line on what it does."""
+
     def __init__(self, choices: dict, parent=None):
         super().__init__(parent)
         self.choices = choices
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(36, 4, 36, 0)
+        lay.setContentsMargins(36, 4, 24, 0)
         lay.setSpacing(4)
-        t, s = _heading("Make it yours", "You can change any of this later in Settings.")
+        t, s = _heading("Make it yours", "Applied when you finish. You can change any of this later in Settings.")
         lay.addWidget(t)
         lay.addWidget(s)
-        lay.addSpacing(14)
+        lay.addSpacing(10)
         self.anim_items = [t, s]
 
-        auto = Toggle(choices["autostart"])
-        auto.toggled.connect(lambda v: choices.__setitem__("autostart", v))
-        theme_ctl = Segmented([("auto", "Auto"), ("dark", "Dark"), ("light", "Light")], choices["theme"])
-        theme_ctl.changed.connect(lambda v: choices.__setitem__("theme", v))
-        cpu = Segmented(CPU_CHOICES, str(choices["cpu"]))
+        def seg(key, options, fallback):
+            value = str(choices.get(key, fallback))
+            ctl = Segmented(options, value if value in {v for v, _ in options} else fallback)
+            ctl.changed.connect(lambda v: choices.__setitem__(key, v))
+            return ctl
+
+        def toggle(key):
+            ctl = Toggle(bool(choices.get(key, False)))
+            ctl.toggled.connect(lambda v: choices.__setitem__(key, v))
+            return ctl
+
+        cpu = Segmented(CPU_CHOICES, str(choices["cpu"]) if str(choices["cpu"]) in CPU_TEXT else "25")
         self.cpu_text = label(CPU_TEXT.get(str(choices["cpu"]), CPU_TEXT["25"]), 12, dim=True)
         cpu.changed.connect(self._cpu)
-        keys = Segmented([("Ctrl+Shift", "Tap Ctrl + Shift"), ("Ctrl+Shift+Space", "Ctrl + Shift + Space")],
-                         choices["hotkey"] if choices["hotkey"] in ("Ctrl+Shift", "Ctrl+Shift+Space") else "Ctrl+Shift")
-        keys.changed.connect(lambda v: choices.__setitem__("hotkey", v))
+        quality = seg("quality", QUALITY_CHOICES, "high")
+        self.quality_text = label(QUALITY_TEXT.get(choices.get("quality", "high"), QUALITY_TEXT["high"]), 12, dim=True)
+        quality.changed.connect(lambda v: self.quality_text.setText(QUALITY_TEXT[v]))
 
-        rows = [
-            ("Start with Windows", "Tapshift waits quietly in the tray, ready whenever you tap the shortcut.", auto),
-            ("Shortcut", "A quick tap of both keys, or a three-key combo if Ctrl + Shift switches your keyboard layout.",
-             keys),
-            ("Appearance", "Auto follows your Windows light or dark setting.", theme_ctl),
-            ("Performance", None, cpu),
+        cards = [
+            ("Shortcut", "A quick tap of both keys, or a three-key combo if Ctrl + Shift switches your keyboard "
+             "layout.", seg("hotkey", [("Ctrl+Shift", "Tap Ctrl + Shift"), ("Ctrl+Shift+Space", "Ctrl+Shift+Space")],
+                            "Ctrl+Shift")),
+            ("Start with Windows", "Waits quietly in the tray, ready whenever you tap the shortcut.",
+             toggle("autostart")),
+            ("Appearance", "Auto follows your Windows light or dark setting.",
+             seg("theme", [("auto", "Auto"), ("dark", "Dark"), ("light", "Light")], "auto")),
+            ("Accent color", "Windows uses the accent you chose in Windows Settings.",
+             seg("palette", ACCENT_CHOICES, "verdant")),
+            ("Picker size", "How big the web of choices opens. Compact suits small screens.",
+             seg("picker_size", PICKER_CHOICES, "normal")),
+            ("Performance", self.cpu_text, cpu),
+            ("Photo quality", self.quality_text, quality),
+            ("Recent actions in the centre", "What you used last sits closest to the middle of the picker.",
+             toggle("quick_recents")),
+            ("Right-click menu", "Adds Convert with Tapshift to files' right-click menu.", toggle("context_menu")),
+            ("Keep the original's date", "New files get the same modified date as the file they came from.",
+             toggle("keep_modified_date")),
+            ("Use copied files", "Nothing selected? Convert the files you copied with Ctrl + C.",
+             toggle("use_clipboard_fallback")),
+            ("Two files at a time", "Converts two at once when you pick many; the processor limit is shared.",
+             toggle("two_at_once")),
         ]
-        for title, text, ctl in rows:
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(12)
+        for i, (title, text, ctl) in enumerate(cards):
             box = QFrame()
             box.setObjectName("row")
             box.setStyleSheet(f"QFrame#row {{ background: {theme.rgba(with_alpha(theme.SURFACE, 0.7))};"
                               f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: 14px; }}")
-            bl = QHBoxLayout(box)
-            bl.setContentsMargins(16, 12, 16, 12)
-            col = QVBoxLayout()
-            col.setSpacing(2)
-            col.addWidget(label(title, 14, QFont.Weight.DemiBold))
-            col.addWidget(self.cpu_text if text is None else label(text, 12, dim=True))
-            bl.addLayout(col, 1)
-            bl.addSpacing(16)
-            bl.addWidget(ctl, 0, Qt.AlignmentFlag.AlignVCenter)
-            lay.addWidget(box)
-            lay.addSpacing(6)
+            bl = QVBoxLayout(box)
+            bl.setContentsMargins(16, 12, 16, 14)
+            bl.setSpacing(4)
+            head = QHBoxLayout()
+            head.addWidget(label(title, 14, QFont.Weight.DemiBold), 1)
+            if isinstance(ctl, Toggle):
+                head.addWidget(ctl, 0, Qt.AlignmentFlag.AlignVCenter)
+            bl.addLayout(head)
+            bl.addWidget(text if isinstance(text, QWidget) else label(text, 12, dim=True))
+            if not isinstance(ctl, Toggle):
+                bl.addSpacing(6)
+                bl.addWidget(ctl, 0, Qt.AlignmentFlag.AlignLeft)
+            bl.addStretch(1)
+            grid.addWidget(box, i // 3, i % 3)
             self.anim_items.append(box)
-        lay.addStretch(1)
+        for c in range(3):
+            grid.setColumnStretch(c, 1)
+        holder = QWidget()
+        holder.setStyleSheet("background: transparent;")
+        holder.setLayout(grid)
+        scroll = QScrollArea()
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidgetResizable(True)
+        from .showcase import scroll_qss
+
+        scroll.setStyleSheet(scroll_qss())
+        scroll.viewport().setAutoFillBackground(False)
+        scroll.setWidget(holder)
+        lay.addWidget(scroll, 1)
+
+    def enter(self):
+        for clock in self.findChildren(Clock):
+            clock.restart()
+        for i, w in enumerate(self.anim_items):  # quicker, so twelve cards don't take long to arrive
+            fade_in(w, delay_ms=40 + i * 35, duration=320, rise=10)
 
     def _cpu(self, v: str):
         self.choices["cpu"] = int(v)
@@ -725,7 +1065,8 @@ class TourWindow(ChromeWindow):
         ready = ReadyPage()
         ready.try_samples.connect(self.try_samples.emit)
         self.pages: list[Page] = [HeroPage(n_types, n_actions), HowPage(), UniversePage(worlds, n_types, n_actions),
-                                  PlaygroundPage(), PowerPage(), SafePage(), SetupPage(self.choices), ready]
+                                  ShowcasePage(worlds), PlaygroundPage(), PowerPage(), SafePage(),
+                                  SetupPage(self.choices), ready]
         for pg in self.pages:
             pg.setParent(self.stage)
             pg.hide()

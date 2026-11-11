@@ -155,7 +155,7 @@ Any of these works, and each removes everything (app, settings, logs):
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
 | Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
-| See it all | Tray icon → **Welcome tour**: the live picker, every format, and a playground |
+| See it all | Tray icon → **Welcome tour**: the live picker, every format, every conversion acted out, and a playground |
 | Many kinds of files at once | Select them all: each kind gets its own branch ("2 pictures", "1 PDF"), plus **Combine** and **ZIP** for everything |
 | Right-click menu | Right-click files → **Convert with Tapshift** (Windows 11: Show more options) |
 | Undo | Click **Undo** on the Saved card: the new files go to the Recycle Bin |
