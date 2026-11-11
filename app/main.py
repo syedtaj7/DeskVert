@@ -41,6 +41,16 @@ def setup_logging() -> None:
     root.setLevel(logging.INFO)
     root.addHandler(handler)
 
+    # The installed app has no console: an error inside a window or a card would otherwise vanish without
+    # a trace. Write it to the log instead (and keep running).
+    def log_uncaught(kind, value, tb):
+        if issubclass(kind, KeyboardInterrupt):
+            sys.__excepthook__(kind, value, tb)
+            return
+        logging.getLogger("tapshift").error("unexpected error", exc_info=(kind, value, tb))
+
+    sys.excepthook = log_uncaught
+
 
 def pretty_hotkey(combo: str) -> str:
     return " + ".join(p.strip().capitalize() if len(p.strip()) > 1 else p.strip().upper()

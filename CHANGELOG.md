@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.3
+
+### Fixes
+- **The progress and result card shows again.** In 1.9.2 the card's slide-in was cut short the moment a
+  conversion reported its first file, which left it fully transparent: there, but invisible, for the whole
+  conversion. It now always finishes appearing, however quickly things happen.
+- Unexpected errors inside Tapshift's windows are now written to the log (Settings > About > Log folder)
+  instead of disappearing silently.
+
 ## 1.9.2
 
 ### The result card, rebuilt
