@@ -590,11 +590,14 @@ class Controller(QObject):
         elif len(batch.results) == 1 and ok:
             r = ok[0]
             body = "  ".join(r.get("notes", [])[:2]) or "Checked against the original: everything matches."
-            self.panel.finish("success", f"Saved {Path(r['output']).name}", body, first_out, [r["output"]])
+            kind = Path(r["output"]).suffix.lstrip(".").upper() or batch.label
+            self.panel.finish("success", f"Saved as {kind}", body, first_out, [r["output"]],
+                              sources=list(r.get("sources") or []), name=Path(r["output"]).name)
         elif len(batch.results) == 1 and failed:
             r = failed[0]
-            self.panel.finish("error", f"Couldn't convert {Path(r['sources'][0]).name}",
-                              r.get("error", "Unknown error") + " Your original file is unchanged.")
+            self.panel.finish("error", "Couldn't convert this file",
+                              r.get("error", "Unknown error") + " Your original file is unchanged.",
+                              name=Path(r["sources"][0]).name)
         else:
             title = f"Converted {len(ok)} file{'s' if len(ok) != 1 else ''} to {batch.label}"
             lines = []
@@ -608,7 +611,8 @@ class Controller(QObject):
             if not lines:
                 lines.append("All checked against the originals.")
             self.panel.finish("error" if failed and not ok else ("warning" if failed else "success"),
-                              title, "\n".join(lines), first_out, [r["output"] for r in ok])
+                              title, "\n".join(lines), first_out, [r["output"] for r in ok],
+                              sources=[s for r in ok for s in (r.get("sources") or [])])
         QTimer.singleShot(3000, winutil.trim_memory)
 
     # ------------------------------------------------------------ exit

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.2
+
+### The result card, rebuilt
+- **Nothing cut off any more:** long file names are shortened in the middle (the full name shows when you point
+  at it) and every line of the message fits; before, the name and the "Checked against the original" line
+  could be clipped.
+- **Before and after:** see what changed at a glance, e.g. HEIC 2.4 MB → WEBP 380 KB, −84 %.
+- **More to do from it:** **Open** the new file, **Copy** it (then paste it straight into a chat, an e-mail or a
+  folder; pictures paste as pictures too), **Show in folder**, or **Undo**.
+- **Alive:** it slides in, the check mark draws itself, the progress bar glides and shimmers while it works, and
+  a ring around the close button shows when it will go away (pointing at the card holds it). It slides away
+  when done.
+
 ## 1.9.1
 
 ### New
