@@ -3,7 +3,10 @@
 Pages: a live web picker driven by a ghost cursor (take over with your mouse),
 how it works, a map of every format (counted live from the catalog, so new
 conversions appear here by themselves), every conversion acted out in a scrolling
-gallery, a playground with sample files, power moves, safety, setup and the finish.
+gallery, power moves and safety on one page, setup and the finish.
+
+Pages are built when first needed, and the formats are counted on a background thread,
+so the first page is up and moving at once.
 
 Every animation runs only while its page is showing, and stops when it's done.
 """
@@ -12,11 +15,12 @@ from __future__ import annotations
 
 import math
 import random
+import threading
 from pathlib import Path
 
 from PySide6.QtCore import (QEasingCurve, QEvent, QObject, QParallelAnimationGroup, QPoint, QPointF,
                             QPropertyAnimation, QRectF, QSize, Qt, QTimer, Signal)
-from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QCursor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QScrollArea, QVBoxLayout,
                                QWidget)
 
@@ -108,11 +112,24 @@ class Pilot(QObject):
     def stop(self):
         self.timer.stop()
 
+    def _inside(self, pos: QPointF) -> bool:
+        """Is this point on the picker's disc (not just somewhere in its window)?"""
+        o = self.orbit
+        c = o.orbit_center()
+        return math.hypot(pos.x() - c.x(), pos.y() - c.y()) <= o.DR * o.disc_s.v + 4
+
     def eventFilter(self, obj, e):
-        if obj is self.orbit and e.type() in (QEvent.Type.MouseMove, QEvent.Type.Enter) and e.spontaneous():
-            self.paused_for = 4.0  # you're driving now
-            self.ghost.pos_ = None
-            self.ghost.update()
+        if obj is not self.orbit or not e.spontaneous():
+            return False
+        kind = e.type()
+        if kind in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonRelease):
+            if self._inside(e.position()):
+                self.paused_for = 1.5  # you're driving now
+                self.ghost.pos_ = None
+                self.ghost.update()
+                return False
+            # outside the circle: the ghost keeps driving, so the picker ignores this pointer
+            return self.paused_for <= 0
         return False
 
     def _target(self) -> QPointF | None:
@@ -141,8 +158,12 @@ class Pilot(QObject):
         dt = 0.033
         if self.paused_for > 0:
             self.paused_for -= dt
-            if self.paused_for <= 0 and not self.orbit.underMouse():
-                self.step = 0
+            if self.paused_for <= 0:
+                if self._inside(QPointF(self.orbit.mapFromGlobal(QCursor.pos()))):
+                    self.paused_for = 0.5  # still pointing at it: wait
+                else:
+                    self.step = 0
+                    self.dwell = 0.3
             return
         if self.dwell > 0:
             self.dwell -= dt
@@ -210,9 +231,11 @@ class SafeArt(Clock):
     LOOP = 5.0
     ZOOM = 1.2  # drawn in a 170 x 92 box, shown a little larger
 
-    def __init__(self, kind: str, parent=None):
+    def __init__(self, kind: str, zoom: float | None = None, parent=None):
         super().__init__(parent)
         self.kind = kind
+        if zoom is not None:
+            self.ZOOM = zoom
         self.setFixedSize(QSize(int(170 * self.ZOOM), int(92 * self.ZOOM)))
 
     def paintEvent(self, _):
@@ -398,11 +421,12 @@ class PowerArt(Clock):
     FPS = 30
     LOOP = 4.0
 
-    def __init__(self, kind: str, parent=None):
+    def __init__(self, kind: str, zoom: float = 1.0, parent=None):
         super().__init__(parent)
         self.kind = kind
+        self.zoom = zoom
         self.loop = 5.0 if kind == "undo" else self.LOOP
-        self.setFixedSize(QSize(260, 120))
+        self.setFixedSize(QSize(round(260 * zoom), round(120 * zoom)))
 
     def paintEvent(self, _):
         p = QPainter(self)
@@ -411,6 +435,7 @@ class PowerArt(Clock):
         t = self.t % self.loop
         if self.kind == "undo":  # a story with an end: fade between rounds instead of jumping
             p.setOpacity(ease_out(phase(t, 0, 0.3)) * (1 - ease_in_out(phase(t, self.loop - 0.4, self.loop))))
+        p.scale(self.zoom, self.zoom)
         getattr(self, f"_{self.kind}")(p, t)
         p.end()
 
@@ -599,7 +624,7 @@ def _heading(title: str, sub: str) -> tuple[QWidget, QWidget]:
 class HeroPage(Page):
     """The real picker, alive, with a ghost cursor showing the web. Move your mouse in to take over."""
 
-    def __init__(self, n_types: int, n_actions: int, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         row = QHBoxLayout(self)
         row.setContentsMargins(40, 0, 8, 0)
@@ -614,10 +639,10 @@ class HeroPage(Page):
         for w in (sub,):
             w.setFixedWidth(300)
             w.setFixedHeight(w.heightForWidth(300) + 4)
-        stats = label(f"<b>{n_types}</b> file types &nbsp;·&nbsp; <b>{n_actions}</b> ways to convert &nbsp;·&nbsp; "
-                      "nothing leaves your PC", 13, dim=True)
+        stats = self.stats = label("Hundreds of file types &nbsp;·&nbsp; nothing leaves your PC", 13, dim=True)
+        stats.setTextFormat(Qt.TextFormat.RichText)  # the counts arrive later, in bold
         stats.setFixedWidth(300)
-        stats.setFixedHeight(stats.heightForWidth(300) + 4)
+        stats.setFixedHeight(stats.heightForWidth(300) + 24)
         try_it = label("← The web on the right is the real picker. Move your mouse onto it.", 12, dim=True)
         try_it.setFixedWidth(300)
         try_it.setFixedHeight(try_it.heightForWidth(300) + 4)
@@ -638,8 +663,12 @@ class HeroPage(Page):
             self.pilot = Pilot(self.orbit)
             self.row.addWidget(self.orbit, 0, Qt.AlignmentFlag.AlignVCenter)
             self.row.addStretch(1)
-            fade_in(self.orbit, 120, 420, 0)
-        QTimer.singleShot(900, self.pilot.start)
+            fade_in(self.orbit, 0, 320, 0)
+        QTimer.singleShot(350, self.pilot.start)
+
+    def set_counts(self, n_types: int, n_actions: int):
+        self.stats.setText(f"<b>{n_types}</b> file types &nbsp;·&nbsp; <b>{n_actions}</b> ways to convert &nbsp;·&nbsp; "
+                           "nothing leaves your PC")
 
     def leave(self):
         if self.pilot is not None:
@@ -721,172 +750,95 @@ class ShowcasePage(Page):
         self.show_.stop()
 
 
-class PlaygroundPage(Page):
-    """Pick a sample file and play with the real picker for it. Nothing is converted here."""
+class MovesPage(Page):
+    """Power moves and the safety promises, side by side on one page."""
 
-    SAMPLES = ["Holiday.heic", "Notes.pdf", "Song.wav", "Trip.gpx", "Rocket.stl", "Contacts.vcf", "Film.srt",
-               "Novel.epub", "Brand.ttf", "Plan.dxf"]
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(36, 4, 36, 0)
-        lay.setSpacing(4)
-        t, s = _heading("Try it here", "Pick a file. This is the real picker, so point around: groups open into "
-                                       "webs, and clicking shows what you'd get. Nothing is converted here.")
-        lay.addWidget(t)
-        lay.addWidget(s)
-        chips = QHBoxLayout()
-        chips.setSpacing(6)
-        self.buttons = []
-        for name in self.SAMPLES:
-            b = PillButton(name, "ghost", min_width=60)
-            b.setFixedHeight(32)
-            b.clicked.connect(lambda _=False, n=name: self.show_sample(n))
-            chips.addWidget(b)
-            self.buttons.append(b)
-        chips.addStretch(1)
-        holder = QWidget()
-        holder.setLayout(chips)
-        lay.addWidget(holder)
-        self.area = QHBoxLayout()
-        self.area.setContentsMargins(0, 0, 0, 0)
-        self.area.addStretch(1)
-        self.area.addStretch(1)  # the picker goes between these, centred
-        area_w = QWidget()
-        area_w.setLayout(self.area)
-        lay.addWidget(area_w, 1)
-        self.toast = label("", 13, QFont.Weight.DemiBold)
-        self.toast.setStyleSheet(f"color: {theme.rgba(theme.ACCENT)}; background: transparent;")
-        lay.addWidget(self.toast)
-        self.orbit = None
-        self.anim_items = [t, s, holder]
-
-    def show_sample(self, name: str):
-        from .orbit import out_name
-
-        if self.orbit is not None:
-            self.area.removeWidget(self.orbit)
-            self.orbit.deleteLater()
-        self.orbit = live_orbit(name, "Point to explore  ·  this is the real picker", self.width() - 72,
-                                self.height() - 118)
-        self.area.insertWidget(1, self.orbit, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        def chosen(node):
-            o = node.offer
-            if o is not None:
-                self.toast.setText(f"In real use: “{out_name(o, (node.preset or {}).get('name_suffix'))}” would be "
-                                   "saved next to the original, then checked.")
-
-        self.orbit.activated.connect(chosen)
-        self.orbit.options_requested.connect(
-            lambda n: self.toast.setText(f"Right-click opens the options for {n.label} (quality, pages, size...)."))
-        self.toast.setText(f"{name}: point at anything. Groups open their own webs.")
-        fade_in(self.orbit, 0, 360, 10)
-
-    def enter(self):
-        super().enter()
-        if self.orbit is None:
-            QTimer.singleShot(250, lambda: self.show_sample(self.SAMPLES[0]))
-
-
-class PowerPage(Page):
-    MOVES = [
-        ("repeat", "Tap twice to repeat", "Did the same thing yesterday? Select new files and tap Ctrl + Shift twice: "
-                                          "the last action runs again, with the same settings."),
-        ("menu", "Right-click works too", "Right-click files → Convert with Tapshift (on Windows 11 under Show more "
-                                          "options). Same web, no shortcut needed."),
-        ("undo", "Undo, any time", "Changed your mind? Undo on the Saved card sends the new file to the Recycle Bin. "
-                                   "Your original was never touched."),
-        ("presets", "Your favourites in the centre", "Presets like WhatsApp photo or College PDF under 300 KB, and "
-                                                     "what you use most, sit closest to the middle."),
+    POWER = [
+        ("repeat", "Tap twice to repeat", "Select new files and tap Ctrl + Shift twice: the last action runs again, "
+                                          "with the same settings."),
+        ("menu", "Right-click works too", "Convert with Tapshift is in files' right-click menu (on Windows 11, under "
+                                          "Show more options)."),
+        ("undo", "Undo, any time", "Undo on the Saved card sends the new file to the Recycle Bin. The original "
+                                   "stays."),
+        ("presets", "Favourites in the centre", "Presets like WhatsApp photo, and what you use most, sit closest to "
+                                                "the middle."),
     ]
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(36, 4, 36, 0)
-        lay.setSpacing(4)
-        t, s = _heading("Power moves", "Small things that make it fast after day one.")
-        lay.addWidget(t)
-        lay.addWidget(s)
-        lay.addSpacing(10)
-        grid = QGridLayout()
-        grid.setSpacing(12)
-        self.anim_items = [t, s]
-        for k, (kind, title, text) in enumerate(self.MOVES):
-            card = QFrame()
-            card.setObjectName("pcard")
-            card.setStyleSheet(f"QFrame#pcard {{ background: {theme.rgba(theme.SURFACE)};"
-                               f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: {theme.RADIUS_CARD}px; }}")
-            cl = QHBoxLayout(card)
-            cl.setContentsMargins(14, 12, 14, 12)
-            cl.addWidget(PowerArt(kind), 0, Qt.AlignmentFlag.AlignVCenter)
-            col = QVBoxLayout()
-            col.setSpacing(4)
-            col.addWidget(label(title, 15, QFont.Weight.DemiBold))
-            txt = label(text, 12, dim=True)
-            col.addWidget(txt)
-            col.addStretch(1)
-            cl.addLayout(col, 1)
-            grid.addWidget(card, k // 2, k % 2)
-            self.anim_items.append(card)
-        holder = QWidget()
-        holder.setLayout(grid)
-        lay.addWidget(holder)
-        lay.addStretch(1)
-
-
-class SafePage(Page):
-    ROWS = [
-        ("original", "Your original is never touched", "Tapshift only reads it. The new file is saved next to it with "
-                                                       "its own name, and nothing is ever overwritten."),
-        ("checked", "Every result is double-checked", "The new file is opened again and compared with the original: "
-                                                      "pixels, pages, words, cell values, subtitle timings, sound "
-                                                      "length. If anything is off, it's thrown away and you're told "
-                                                      "why."),
-        ("offline", "Private and offline", "Nothing is uploaded. Tapshift only goes online when you click Check for "
-                                           "updates."),
-        ("light", "Light on your laptop", "A capped slice of the processor at low priority; no CPU at all when idle. "
-                                          "Heavy jobs like re-encoding video are left out on purpose."),
+    SAFE = [
+        ("original", "Your original is never touched", "Only read. The new file gets its own name next to it; "
+                                                       "nothing is overwritten."),
+        ("checked", "Every result is double-checked", "Reopened and compared: pixels, pages, words, cells, timings. "
+                                                      "If anything is off, it's thrown away."),
+        ("offline", "Private and offline", "Nothing is uploaded. The only thing it asks the internet is "
+                                           "whether a newer Tapshift exists."),
+        ("light", "Light on your laptop", "A capped slice of the processor at low priority, and none at all when "
+                                          "idle."),
     ]
+    ART = QSize(196, 92)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(36, 4, 36, 0)
+        lay.setContentsMargins(36, 4, 24, 0)
         lay.setSpacing(4)
-        t, s = _heading("Safe by design", "Built so a conversion can never cost you a file.")
+        t, s = _heading("Fast, and safe", "Small things that make it quick after day one, and the promises behind "
+                                          "every conversion.")
         lay.addWidget(t)
         lay.addWidget(s)
-        lay.addSpacing(14)
+        lay.addSpacing(8)
         self.anim_items = [t, s]
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
-        grid.setVerticalSpacing(12)
-        for i, (kind, title, text) in enumerate(self.ROWS):
-            card = QFrame()
-            card.setObjectName("scard")
-            card.setStyleSheet(f"QFrame#scard {{ background: {theme.rgba(with_alpha(theme.SURFACE, 0.6))};"
-                               f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: {theme.RADIUS_CARD}px; }}")
-            row = QHBoxLayout(card)
-            row.setContentsMargins(12, 12, 16, 12)
-            row.setSpacing(16)
-            art = SafeArt(kind)
-            row.addWidget(art, 0, Qt.AlignmentFlag.AlignVCenter)
-            col = QVBoxLayout()
-            col.setSpacing(4)
-            col.addStretch(1)
-            col.addWidget(label(title, 15, QFont.Weight.DemiBold))
-            col.addWidget(label(text, 12.5, dim=True))
-            col.addStretch(1)
-            row.addLayout(col, 1)
-            grid.addWidget(card, i // 2, i % 2)
-            self.anim_items.append(card)
-        holder = QWidget()
-        holder.setLayout(grid)
-        lay.addWidget(holder)
-        lay.addStretch(1)
+        grid.setVerticalSpacing(8)
+        for col, (heading, rows) in enumerate((("POWER MOVES", self.POWER), ("SAFE BY DESIGN", self.SAFE))):
+            head = label(heading, 11.5, QFont.Weight.Bold, dim=True)
+            grid.addWidget(head, 0, col)
+            self.anim_items.append(head)
+            for r, (kind, title, text) in enumerate(rows):
+                card = QFrame()
+                card.setObjectName("mcard")
+                card.setStyleSheet(f"QFrame#mcard {{ background: {theme.rgba(theme.SURFACE)};"
+                                   f" border: 1px solid {theme.rgba(theme.LINE)}; border-radius: {theme.RADIUS_CARD}px; }}")
+                row = QHBoxLayout(card)
+                row.setContentsMargins(10, 8, 14, 8)
+                row.setSpacing(14)
+                art = PowerArt(kind, zoom=0.74) if col == 0 else SafeArt(kind, zoom=0.98)
+                holder = QWidget()
+                holder.setFixedSize(self.ART)
+                hl = QHBoxLayout(holder)
+                hl.setContentsMargins(0, 0, 0, 0)
+                hl.addWidget(art, 0, Qt.AlignmentFlag.AlignCenter)
+                row.addWidget(holder, 0, Qt.AlignmentFlag.AlignVCenter)
+                txt = QVBoxLayout()
+                txt.setSpacing(3)
+                txt.addStretch(1)
+                txt.addWidget(label(title, 14, QFont.Weight.DemiBold))
+                txt.addWidget(label(text, 12, dim=True))
+                txt.addStretch(1)
+                row.addLayout(txt, 1)
+                grid.addWidget(card, r + 1, col)
+                self.anim_items.append(card)
+        for c in range(2):
+            grid.setColumnStretch(c, 1)
+        box = QWidget()
+        box.setStyleSheet("background: transparent;")
+        box.setLayout(grid)
+        from .showcase import scroll_qss
+
+        scroll = QScrollArea()
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet(scroll_qss())
+        scroll.viewport().setAutoFillBackground(False)
+        scroll.setWidget(box)
+        lay.addWidget(scroll, 1)
+
+    def enter(self):
+        for clock in self.findChildren(Clock):
+            clock.restart()
+            clock._timer.start()
+        for i, w in enumerate(self.anim_items):
+            fade_in(w, delay_ms=40 + i * 40, duration=340, rise=10)
 
 
 class SetupPage(Page):
@@ -939,8 +891,8 @@ class SetupPage(Page):
             ("Recent actions in the centre", "What you used last sits closest to the middle of the picker.",
              toggle("quick_recents")),
             ("Right-click menu", "Adds Convert with Tapshift to files' right-click menu.", toggle("context_menu")),
-            ("Keep the original's date", "New files get the same modified date as the file they came from.",
-             toggle("keep_modified_date")),
+            ("Tell me about updates", "Lets you know when a new version is out. It only asks GitHub for the "
+             "latest version number.", toggle("auto_update_check")),
             ("Use copied files", "Nothing selected? Convert the files you copied with Ctrl + C.",
              toggle("use_clipboard_fallback")),
             ("Two files at a time", "Converts two at once when you pick many; the processor limit is shared.",
@@ -1047,29 +999,42 @@ class _Stage(QWidget):
 class TourWindow(ChromeWindow):
     finished = Signal(dict)
     try_samples = Signal()
+    _counted = Signal(object)  # (worlds, n_types, n_actions), from the background thread
 
     def __init__(self, choices: dict, office: dict[str, bool]):
         from PySide6.QtGui import QGuiApplication
 
         avail = QGuiApplication.primaryScreen().availableGeometry()
         super().__init__("Tapshift", QSize(min(1120, avail.width() - 60), min(780, avail.height() - 60)))
-        from .universe import gather
-
         self.choices = dict(choices)
-        worlds, n_types, n_actions = gather()  # counted from the catalog: new conversions show up by themselves
+        # Counted from the catalog (new conversions show up by themselves), on a thread: it takes a moment,
+        # and the first page shouldn't wait for it.
+        self._world_data = None
+        self._world_ready = threading.Event()
+        self._counted.connect(self._on_counted)
+
+        def count():
+            from .universe import gather
+
+            try:
+                data = gather()
+            except Exception:  # noqa: BLE001 - the tour must still open
+                data = ([], 0, 0)
+            self._world_data = data
+            self._world_ready.set()
+            self._counted.emit(data)
+
+        threading.Thread(target=count, daemon=True).start()
         lay = QVBoxLayout(self.body)
         lay.setContentsMargins(0, 0, 8, 0)
         lay.setSpacing(12)
         self.stage = _Stage()
         lay.addWidget(self.stage, 1)
-        ready = ReadyPage()
-        ready.try_samples.connect(self.try_samples.emit)
-        self.pages: list[Page] = [HeroPage(n_types, n_actions), HowPage(), UniversePage(worlds, n_types, n_actions),
-                                  ShowcasePage(worlds), PlaygroundPage(), PowerPage(), SafePage(),
-                                  SetupPage(self.choices), ready]
-        for pg in self.pages:
-            pg.setParent(self.stage)
-            pg.hide()
+        self._factories = [HeroPage, HowPage, lambda: UniversePage(*self._worlds()),
+                           lambda: ShowcasePage(self._worlds()[0]), MovesPage, lambda: SetupPage(self.choices),
+                           self._ready_page]
+        self.pages: list[Page | None] = [None] * len(self._factories)
+        self._page(0)
 
         foot = QHBoxLayout()
         foot.setContentsMargins(16, 0, 8, 0)
@@ -1088,6 +1053,34 @@ class TourWindow(ChromeWindow):
         self._group: QParallelAnimationGroup | None = None
         self._done = False
 
+    def _worlds(self):
+        self._world_ready.wait()
+        return self._world_data
+
+    def _on_counted(self, data):
+        hero = self.pages[0]
+        if hero is not None and data[1]:
+            hero.set_counts(data[1], data[2])
+
+    def _ready_page(self):
+        ready = ReadyPage()
+        ready.try_samples.connect(self.try_samples.emit)
+        return ready
+
+    def _page(self, i: int) -> Page:
+        """Build a page the first time it's needed."""
+        if self.pages[i] is None:
+            pg = self._factories[i]()
+            pg.setParent(self.stage)
+            pg.hide()
+            self.pages[i] = pg
+        return self.pages[i]
+
+    def _prebuild(self, i: int):
+        """Get the next page ready while you look at this one (so Next is instant)."""
+        if 0 <= i < len(self.pages) and self.pages[i] is None and (i < 2 or self._world_ready.is_set()):
+            self._page(i)
+
     def present(self):
         super().present()
         QTimer.singleShot(30, lambda: self.go(0))  # after the layout has given the stage its size
@@ -1104,7 +1097,7 @@ class TourWindow(ChromeWindow):
         if self._group and self._group.state() == QParallelAnimationGroup.State.Running:
             self._group.stop()
         old = self.pages[self.idx] if self.idx >= 0 else None
-        new = self.pages[i]
+        new = self._page(i)
         direction = 1 if i > self.idx else -1
         rect = self.stage.rect()
         new.setGeometry(rect)
@@ -1145,6 +1138,7 @@ class TourWindow(ChromeWindow):
         self.stage.current = new
         new.enter()
         self.dots.set_index(i)
+        QTimer.singleShot(1500, lambda n=i + 1: self._prebuild(n))
         self.back.setVisible(i > 0)
         self.next.setText("Get started" if i == 0 else ("Finish" if i == len(self.pages) - 1 else "Next"))
 
@@ -1167,6 +1161,7 @@ class TourWindow(ChromeWindow):
             self._done = True
             self.finished.emit(self.choices)
         for pg in self.pages:
-            pg.leave()
+            if pg is not None:
+                pg.leave()
         super().closeEvent(e)
 

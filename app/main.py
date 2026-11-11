@@ -7,6 +7,8 @@ import logging
 import os
 import subprocess
 import sys
+import threading
+import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -14,7 +16,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
-from . import __version__, selection, winutil
+from . import __version__, selection, updater, winutil
 from .catalog import describe_selection, explain_unsupported, office_installed
 from .hotkey import is_modifier_tap, make_listener
 from .jobs import Batch, JobManager, clean_stale_workdirs
@@ -25,6 +27,11 @@ from .ui.panels import Notice, ProgressPanel
 from .ui.popup import Popup
 
 log = logging.getLogger("tapshift")
+
+UPDATE_FIRST_MS = 90_000  # first look for a new version a minute and a half after start (not during start-up)
+UPDATE_POLL_MS = 30 * 60_000  # then wake every half hour to see whether it's time to look again
+UPDATE_EVERY_S = 6 * 3600  # ...which is every six hours
+NOTICE_AGAIN_S = 24 * 3600  # remind about the same version at most once a day
 
 
 def setup_logging() -> None:
@@ -53,6 +60,7 @@ class Controller(QObject):
     hotkey_pressed = Signal(int)
     show_requested = Signal()  # Tapshift was started again while running
     pick_requested = Signal()  # files arrived from the right-click menu
+    update_checked = Signal(object)  # a Release from GitHub (or None), from the background check
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -118,6 +126,53 @@ class Controller(QObject):
             self.panel.message("error", "The shortcut couldn't be started",
                                f"{err} Choose another shortcut in Settings.", 12000)
         QTimer.singleShot(6000, winutil.trim_memory)
+        # New versions: a quiet look at GitHub soon after start, then every few hours (Settings > General).
+        self.available_update = None
+        self.update_checked.connect(self._on_update_checked)
+        self.update_timer = QTimer(self)
+        self.update_timer.setInterval(UPDATE_POLL_MS)
+        self.update_timer.timeout.connect(self._auto_check_updates)
+        self.update_timer.start()
+        QTimer.singleShot(UPDATE_FIRST_MS, self._auto_check_updates)
+
+    # ------------------------------------------------------------ updates
+    def _auto_check_updates(self, force: bool = False) -> None:
+        """Ask GitHub (in the background) whether a newer Tapshift exists. At most every few hours."""
+        s = self.settings
+        if not s.auto_update_check and not force:
+            return
+        if not force and time.time() - s.last_update_check < UPDATE_EVERY_S:
+            return
+        s.last_update_check = time.time()
+        s.save()
+
+        def work():
+            try:
+                self.update_checked.emit(updater.fetch_latest())
+            except Exception as e:  # noqa: BLE001 - offline, rate-limited...: just try again later
+                log.info("update check: %s", e)
+                self.update_checked.emit(None)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _on_update_checked(self, rel) -> None:
+        if rel is None or not updater.is_newer(rel.version):
+            return
+        log.info("update available: %s", rel.version)
+        self.available_update = rel
+        self.update_action.setText(f"Update to Tapshift {rel.version}\u2026")
+        self.tray.setToolTip(f"{APP_NAME} {__version__} \u00b7 {rel.version} is available")
+        # Tell you once a day at most for the same version, not every few hours.
+        seen, _, when = self.settings.update_noticed.partition("@")
+        if seen == rel.version and time.time() - float(when or 0) < NOTICE_AGAIN_S:
+            return
+        what = rel.notes[0] if rel.notes else "Improvements and fixes."
+        shown = self.panel.offer("info", f"Tapshift {rel.version} is available",
+                                 f"You have {__version__}. New: {what}", "Update",
+                                 lambda: self.show_settings(5, check_updates=True))
+        if shown:
+            self.settings.update_noticed = f"{rel.version}@{time.time():.0f}"
+            self.settings.save()
 
     @property
     def key_label(self) -> str:
@@ -202,7 +257,10 @@ class Controller(QObject):
         self.pause_action.setCheckable(True)
         self.pause_action.toggled.connect(lambda v: setattr(self, "paused", v))
         m.addAction("About Tapshift", lambda: self.show_settings(5))
-        m.addAction("Check for updates\u2026", lambda: self.show_settings(5, check_updates=True))
+        self.update_action = m.addAction("Check for updates\u2026", lambda: self.show_settings(5, check_updates=True))
+        rel = getattr(self, "available_update", None)
+        if rel is not None:
+            self.update_action.setText(f"Update to Tapshift {rel.version}\u2026")
         if winutil.uninstaller() is not None:
             m.addAction("Uninstall Tapshift\u2026", self.uninstall)
         m.addAction("Quit", self.quit)
@@ -242,7 +300,8 @@ class Controller(QObject):
                    "theme": s.theme, "cpu": s.max_cpu_percent, "hotkey": s.hotkey, "palette": s.palette,
                    "picker_size": s.picker_size, "quality": s.quality_level, "quick_recents": s.quick_recents,
                    "context_menu": s.context_menu, "keep_modified_date": s.keep_modified_date,
-                   "use_clipboard_fallback": s.use_clipboard_fallback, "two_at_once": s.max_workers >= 2}
+                   "use_clipboard_fallback": s.use_clipboard_fallback, "two_at_once": s.max_workers >= 2,
+                   "auto_update_check": s.auto_update_check}
         office = {k: office_installed(k) for k in ("word", "excel", "powerpoint")}
         w = self._window("tour", lambda: TourWindow(choices, office))
         if w is None:
@@ -264,7 +323,7 @@ class Controller(QObject):
         s.picker_size = choices.get("picker_size", s.picker_size)
         if choices.get("quality", s.quality_level) != s.quality_level:
             s.set_quality_level(choices["quality"])
-        for key in ("quick_recents", "keep_modified_date", "use_clipboard_fallback"):
+        for key in ("quick_recents", "keep_modified_date", "use_clipboard_fallback", "auto_update_check"):
             setattr(s, key, bool(choices.get(key, getattr(s, key))))
         workers = max(2, s.max_workers) if choices.get("two_at_once", s.max_workers >= 2) else 1
         if workers != s.max_workers:
@@ -324,6 +383,12 @@ class Controller(QObject):
 
     def _apply(self, key: str, value, save: bool = True) -> None:
         """Apply one setting change right away."""
+        if key == "auto_update_check":
+            setattr(self.settings, key, bool(value))
+            self.settings.save()
+            if value:
+                self._auto_check_updates()
+            return
         if key == "context_menu":
             setattr(self.settings, key, bool(value))
             self.settings.save()

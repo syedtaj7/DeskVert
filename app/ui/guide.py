@@ -288,7 +288,8 @@ def build_guide_sections(sections: Sections) -> list[str]:
                                 "are kept when the new format supports them."),
         ("Office runs locked down", "Documents are opened read-only with macros disabled, in a hidden copy of "
                                     "Office that closes when done. Your Office settings are never changed."),
-        ("Nothing leaves your computer", "No uploads, no account, no internet needed."),
+        ("Nothing leaves your computer", "No uploads, no account, no internet needed (it only asks GitHub "
+                                         "whether a newer version exists)."),
     ])
     for w in (a, b):
         lay.addWidget(w)

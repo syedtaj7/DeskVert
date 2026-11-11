@@ -520,6 +520,16 @@ def paint_cursor(p: QPainter, tip: QPointF, scale: float = 1.0):
 # ---------------------------------------------------------------- entrance effects
 
 
+def shiboken_valid(obj) -> bool:
+    """False once Qt has deleted the object behind a Python wrapper."""
+    try:
+        import shiboken6
+
+        return shiboken6.isValid(obj)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def fade_in(widget: QWidget, delay_ms: int = 0, duration: int = 420, rise: int = 14):
     """Fade a widget in while it rises into place."""
     eff = QGraphicsOpacityEffect(widget)
@@ -553,12 +563,39 @@ def fade_in(widget: QWidget, delay_ms: int = 0, duration: int = 420, rise: int =
         a.finished.connect(done)
         a.start()
         if rise:
-            m = QPropertyAnimation(widget, b"pos", widget)
-            end = widget.pos()
+            # Rise by an offset from wherever the layout puts the widget. If the layout moves it while
+            # rising (a panel above it grows, say), follow the new place instead of pinning the old one;
+            # pinning it left text overlapping the update panel on the About page.
+            state = {"base": widget.pos(), "set": None}
+            m = QVariantAnimation(widget)
             m.setDuration(duration)
-            m.setStartValue(end + QPointF(0, rise).toPoint())
-            m.setEndValue(end)
+            m.setStartValue(float(rise))
+            m.setEndValue(0.0)
             m.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+            def step(off):
+                if not shiboken_valid(widget):
+                    return
+                if state["set"] is not None and widget.pos() != state["set"]:
+                    state["base"] = widget.pos()  # the layout moved it
+                target = state["base"] + QPointF(0, float(off)).toPoint()
+                state["set"] = target
+                widget.move(target)
+
+            def settle():
+                if not shiboken_valid(widget):
+                    return
+                if state["set"] is not None and widget.pos() != state["set"]:
+                    state["base"] = widget.pos()
+                widget.move(state["base"])
+                parent = widget.parentWidget()
+                if parent is not None and parent.layout() is not None:
+                    parent.layout().invalidate()  # and let the layout have the last word
+                    parent.layout().activate()
+
+            m.valueChanged.connect(step)
+            m.finished.connect(settle)
+            step(float(rise))
             m.start()
 
     QTimer.singleShot(delay_ms, go)

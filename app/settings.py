@@ -26,6 +26,9 @@ class Settings:
     theme: str = "auto"  # auto (follow Windows) | dark | light
     palette: str = "verdant"  # verdant (green) | signal (orange) | native (your Windows accent color)
     picker_size: str = "normal"  # compact | normal | large (how big the web of choices opens)
+    auto_update_check: bool = True  # ask GitHub now and then whether a newer Tapshift exists
+    last_update_check: float = 0.0  # when it last asked (time.time())
+    update_noticed: str = ""  # "<version>@<time>": the last update we told you about, and when
     onboarded: bool = False  # the welcome tour has been shown
     settings_version: int = 3
     jpeg_quality: int = 92

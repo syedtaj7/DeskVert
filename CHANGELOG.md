@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.9.1
+
+### New
+- **Know when there's an update.** Tapshift asks GitHub for the newest version number a minute and a half after
+  it starts and then every six hours. When there's a new version, a card with an **Update** button appears
+  (once a day at most for the same version) and the tray menu says **Update to Tapshift x.y.z**. Nothing about
+  you or your files is sent. Turn it off in Settings > General > Tell me about updates (or in the tour).
+
+### Fixes
+- **About page:** when an update was found while the page was still sliding in, its notes covered the text
+  below. Page items now follow the layout while they animate, so nothing overlaps.
+- **Welcome tour opens at once:** the first page is up in a fraction of a second (it used to wait for every
+  page to be built and every format to be counted). Pages are now built when needed, and formats are counted
+  in the background.
+- **The live picker on the first page** only steps aside when your pointer is on the circle itself, not when
+  it's merely nearby, and picks up again shortly after you leave.
+
+### The tour
+- **Every format, one shortcut**, redesigned: each kind of file gets a live story of what Tapshift does with it,
+  its numbers, and every format it takes and gives as chips (no more "+20 more" on the results). The list has
+  a colour for each kind, and a quiet marker shows when it will move on.
+- **Fast, and safe:** power moves and the safety promises share one page.
+- The "Try it here" page is gone; the first page already has the real picker to play with.
+
 ## 1.9.0
 
 ### The welcome tour, redone

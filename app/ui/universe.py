@@ -1,4 +1,4 @@
-"""Everything Tapshift converts, counted live from the catalog, and drawn as a map.
+"""Everything Tapshift converts, counted live from the catalog, shown kind by kind.
 
 Nothing here is hard-coded: the worlds, their file types and their actions are
 read from what the picker would offer, so every new conversion shows up in the
@@ -7,15 +7,14 @@ welcome tour by itself.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QFont, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
 
 from . import theme
-from .fx import Clock, clamp, ease_out, font, mix, phase, with_alpha
+from .fx import Clock, clamp, ease_in_out, ease_out, font, mix, phase, with_alpha
 
 
 @dataclass
@@ -93,23 +92,40 @@ def gather() -> tuple[list[World], int, int]:
 # ====================================================================== the map
 
 
-class FormatMap(Clock):
-    """Every kind of file in a steady list; the chosen one's formats flow in through Tapshift
-    and out as everything it can become. Nothing drifts or wobbles: the list and the chips stay
-    put (drawn once into a picture), and only small dots travel along the threads.
+WORLD_COLOR = {"pictures": "image", "pdf": "pdf", "office": "doc", "ebooks": "book", "data": "data", "sound": "audio",
+               "subtitles": "sub", "text": "md", "mail": "mail", "maps": "map", "models": "model", "drawings": "cad",
+               "fonts": "font", "archives": "zip"}
 
-    Point at a kind to see it (it also steps through them by itself); click to keep one."""
+
+class FormatMap(Clock):
+    """Every kind of file in a list; the chosen one gets a live story of what Tapshift does with it,
+    its numbers, and every format it takes and gives, as chips.
+
+    It steps through the kinds by itself, one full story each; point at a kind to see it, click to
+    keep it. The list and chips are drawn once into a picture; only the story is drawn every frame."""
 
     FPS = 30
-    CYCLE = 3.6  # seconds per kind while you just watch
+    CYCLE = 5.0  # one full story per kind (the stories are five seconds long)
     LIST_W = 236
+    CHIP_H, LINE = 26.0, 32.0
     picked = Signal(object)  # World
 
     def __init__(self, worlds: list[World], n_types: int, n_actions: int, size=QSize(980, 450), parent=None):
         super().__init__(parent)
+        from types import SimpleNamespace
+
+        from . import showcase
+
         self.setFixedSize(size)
         self.setMouseTracking(True)
         self.worlds, self.n_types, self.n_actions = worlds, n_types, n_actions
+        self._sc = showcase
+        first = {}
+        for wkey, story, *_ in showcase.CARDS:
+            first.setdefault(wkey, story)
+        self.stories = [showcase.STORIES.get(first.get(w.key, ""), showcase.a_generic) for w in worlds]
+        self.story_cards = [SimpleNamespace(cycle=showcase._short_formats(w.actions), src=(w.exts or ["FILE"])[0])
+                            for w in worlds]
         self.sel = 0
         self.sel_since = 0.0
         self.hover = -1
@@ -122,11 +138,11 @@ class FormatMap(Clock):
         self.f_cap = font(11)
         self.f_row = font(13, QFont.Weight.DemiBold)
         self.f_row_n = font(11)
-        self.f_head = font(22, QFont.Weight.Bold, display=True)
+        self.f_head = font(26, QFont.Weight.Bold, display=True)
         self.f_tag = font(13)
-        self.f_chip = font(11, QFont.Weight.DemiBold)
-        self.f_hub = font(13, QFont.Weight.Bold, display=True)
-        self._layout()
+        self.f_num = font(28, QFont.Weight.Bold, display=True)
+        self.f_label = font(11, QFont.Weight.Bold)
+        self.f_chip = font(11.5, QFont.Weight.DemiBold)
 
     def restart(self):
         super().restart()
@@ -134,36 +150,64 @@ class FormatMap(Clock):
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
-        self._layout()
         self._static = None
 
     # ------------------------------------------------------------ geometry
-    def _layout(self) -> None:
-        w, h = self.width(), self.height()
-        n = len(self.worlds)
-        self.list_top = 84
-        self.row_h = min(28.0, (h - self.list_top - 4) / max(1, n))
-        self.in_cols, self.in_w, self.in_h, self.gap = 3, 66.0, 26.0, 6.0
-        self.out_cols, self.out_w = 2, 150.0
-        self.in_x = self.LIST_W + 28
-        self.out_x = w - (self.out_cols * self.out_w + (self.out_cols - 1) * 8)
-        self.in_right = self.in_x + self.in_cols * self.in_w + (self.in_cols - 1) * self.gap
-        self.hub = QPointF(round((self.in_right + self.out_x) / 2), round(60 + (h - 70) / 2 + 6))
-        self.hub_r = 46.0
+    @property
+    def x0(self) -> float:
+        return self.LIST_W + 32
+
+    @property
+    def list_top(self) -> float:
+        return 84.0
+
+    @property
+    def row_h(self) -> float:
+        return min(28.0, (self.height() - self.list_top - 4) / max(1, len(self.worlds)))
 
     def _row_rect(self, i: int) -> QRectF:
         return QRectF(0, round(self.list_top + i * self.row_h), self.LIST_W, round(self.row_h) - 2)
 
-    def _grid(self, words: list[str], x: float, cols: int, cw: float, max_rows: int = 8):
-        """Chip rectangles, centred on the hub's height: (rects with words, how many left out, rows, top)."""
-        cap = cols * max_rows
-        shown = words if len(words) <= cap else words[:cap - 1]
-        rows = max(1, (len(shown) + cols - 1) // cols)
-        top = round(self.hub.y() - (rows * self.in_h + (rows - 1) * self.gap) / 2)
-        step = cw + (8 if cols == 2 else self.gap)
-        rects = [(QRectF(x + (k % cols) * step, top + (k // cols) * (self.in_h + self.gap), cw, self.in_h), word)
-                 for k, word in enumerate(shown)]
-        return rects, len(words) - len(shown), rows, top
+    def _story_rect(self) -> QRectF:
+        return QRectF(self.x0, 0, 330, 165)
+
+    def _flow(self, words: list[str], top: float, lines: int, out: bool):
+        """Chips wrapped into at most ``lines`` lines; the last one says how many more there are."""
+        fm = QFontMetricsF(self.f_chip)
+        left, right = self.x0, self.width() - 2
+        widths = [min(fm.horizontalAdvance(w) + 24, 200) for w in words]
+        placed, x, line = [], left, 0
+        for k, (word, wd) in enumerate(zip(words, widths)):
+            if x + wd > right:
+                line += 1
+                x = left
+            if line >= lines:
+                break
+            placed.append([QRectF(x, top + line * self.LINE, wd, self.CHIP_H), word])
+            x += wd + 6
+        more = len(words) - len(placed)
+        if more > 0:
+            tag = f"+{more} more"
+            wd = fm.horizontalAdvance(tag) + 24
+            while placed and placed[-1][0].right() + 6 + wd > right:  # make room on the last line
+                placed.pop()
+                more += 1
+                tag = f"+{more} more"
+                wd = fm.horizontalAdvance(tag) + 24
+            last = placed[-1][0] if placed else QRectF(left - 6, top, 0, 0)
+            placed.append([QRectF(last.right() + 6, last.top(), wd, self.CHIP_H), tag])
+        return placed, more
+
+    def _sections(self):
+        """(label y, chips) for what goes in and what comes out, fitted to the height there is."""
+        w = self.worlds[self.sel]
+        y_in = 186.0
+        ins, more_in = self._flow(w.exts, y_in + 22, 2, False)
+        used = max(1, round((ins[-1][0].top() - (y_in + 22)) / self.LINE) + 1) if ins else 1
+        y_out = y_in + 22 + used * self.LINE + 12
+        room = max(1, int((self.height() - (y_out + 22)) // self.LINE))
+        outs, more_out = self._flow(w.actions, y_out + 22, room, True)
+        return (y_in, ins, more_in), (y_out, outs, more_out)
 
     # ------------------------------------------------------------ interaction
     def _row_at(self, pos: QPointF) -> int:
@@ -208,7 +252,7 @@ class FormatMap(Clock):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        k = phase(t, self.sel_since, self.sel_since + 0.45)
+        k = phase(t, self.sel_since, self.sel_since + 0.6)
         count = ease_out(phase(t, 0.1, 1.2))
         if k < 1 or count < 1:  # changing: draw it all
             self._paint_static(p, k, count)
@@ -229,6 +273,33 @@ class FormatMap(Clock):
         self._paint_live(p, t, k)
         p.end()
 
+    def _mini_icon(self, p: QPainter, r: QRectF, col: QColor) -> None:
+        """A small file shape in the kind's colour."""
+        fold = r.width() * 0.34
+        path = QPainterPath()
+        path.moveTo(r.left() + 2, r.top())
+        path.lineTo(r.right() - fold, r.top())
+        path.lineTo(r.right(), r.top() + fold)
+        path.lineTo(r.right(), r.bottom() - 2)
+        path.quadTo(r.right(), r.bottom(), r.right() - 2, r.bottom())
+        path.lineTo(r.left() + 2, r.bottom())
+        path.quadTo(r.left(), r.bottom(), r.left(), r.bottom() - 2)
+        path.lineTo(r.left(), r.top() + 2)
+        path.quadTo(r.left(), r.top(), r.left() + 2, r.top())
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(col)
+        p.drawPath(path)
+        corner = QPainterPath()
+        corner.moveTo(r.right() - fold, r.top())
+        corner.lineTo(r.right() - fold, r.top() + fold)
+        corner.lineTo(r.right(), r.top() + fold)
+        corner.closeSubpath()
+        p.setBrush(QColor(255, 255, 255, 110))
+        p.drawPath(corner)
+
+    def _color(self, i: int) -> QColor:
+        return self._sc.COL.get(WORLD_COLOR.get(self.worlds[i].key, ""), theme.ACCENT)
+
     def _paint_static(self, p: QPainter, k: float, count: float) -> None:
         w = self.worlds[self.sel]
         left = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
@@ -241,7 +312,7 @@ class FormatMap(Clock):
         p.setPen(theme.DIM)
         p.drawText(QRectF(0, 44, 110, 18), left, "file types in")
         p.drawText(QRectF(118, 44, 118, 18), left, "ways out")
-        # the list of kinds
+        # the list of kinds, each with its colour
         for i, world in enumerate(self.worlds):
             r = self._row_rect(i)
             on = i == self.sel
@@ -249,113 +320,108 @@ class FormatMap(Clock):
                 p.setPen(Qt.PenStyle.NoPen)
                 p.setBrush(with_alpha(theme.ACCENT, 0.13) if on else theme.HOVER)
                 p.drawRoundedRect(r, 7, 7)
-            if on:
-                p.setBrush(theme.ACCENT)
-                p.drawRoundedRect(QRectF(r.left(), r.top() + 5, 3, r.height() - 10), 1.5, 1.5)
+            if on:  # the marker's track; _paint_live fills it as this kind's time runs
+                p.setBrush(with_alpha(theme.ACCENT, 0.3))
+                p.drawRoundedRect(self._marker(r), 2, 2)
+            self._mini_icon(p, QRectF(r.left() + 13, r.center().y() - 7, 11, 14), self._color(i))
             p.setFont(self.f_row)
             p.setPen(theme.ACCENT if on else theme.TEXT)
-            p.drawText(r.adjusted(12, 0, -70, 0), Qt.AlignmentFlag.AlignVCenter, world.title)
+            p.drawText(r.adjusted(32, 0, -70, 0), Qt.AlignmentFlag.AlignVCenter, world.title)
             p.setFont(self.f_row_n)
             p.setPen(theme.ACCENT if on else theme.DIM)
             p.drawText(r.adjusted(0, 0, -10, 0), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
                        f"{len(world.exts)} → {len(world.actions)}")
-        # the chosen kind: what goes in, what comes out
+        # the story's frame (the story itself moves, so _paint_live draws it)
+        sr = self._story_rect()
+        p.setPen(QPen(theme.LINE, 1))
+        p.setBrush(theme.SURFACE)
+        p.drawRoundedRect(sr, 14, 14)
+        # the chosen kind: title, what it is, its numbers
         a = ease_out(k)
-        x0 = self.in_x
+        hx = sr.right() + 24
+        hw = self.width() - hx
+        p.save()
         p.setOpacity(a)
+        self._mini_icon(p, QRectF(hx, 8, 22, 28), self._color(self.sel))
         p.setFont(self.f_head)
         p.setPen(theme.TEXT)
-        p.drawText(QRectF(x0, 0, self.width() - x0, 34), Qt.AlignmentFlag.AlignVCenter, w.title)
+        p.drawText(QRectF(hx + 34, 2, hw - 34, 40), Qt.AlignmentFlag.AlignVCenter, w.title)
         p.setFont(self.f_tag)
         p.setPen(theme.DIM)
-        hint = "   ·   kept here (click again to move on)" if self.pinned else "   ·   click a kind to keep it"
-        p.drawText(QRectF(x0, 34, self.width() - x0, 22), Qt.AlignmentFlag.AlignVCenter, w.tagline + hint)
-        p.setOpacity(1.0)
-        ins, more_in, rows_in, top_in = self._grid(w.exts, self.in_x, self.in_cols, self.in_w)
-        outs, more_out, rows_out, top_out = self._grid(w.actions, self.out_x, self.out_cols, self.out_w)
-        # threads: one per row of chips, into the hub and out of it
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.setPen(QPen(with_alpha(theme.TEXT, 0.14 * a), 1.3))
-        for path in self._threads(ins, outs):
-            p.drawPath(path)
-        for idx, (r, word) in enumerate(ins):
-            self._chip(p, r, word, False, ease_out(clamp(k * 1.8 - idx * 0.02)))
-        for idx, (r, word) in enumerate(outs):
-            self._chip(p, r, word, True, ease_out(clamp(k * 1.8 - 0.25 - idx * 0.02)))
-        p.setOpacity(a)
-        p.setFont(self.f_cap)
-        p.setPen(theme.DIM)
-        if more_in > 0:
-            p.drawText(QRectF(self.in_x, top_in + rows_in * (self.in_h + self.gap), 200, 18),
-                       Qt.AlignmentFlag.AlignVCenter, f"+{more_in} more")
-        if more_out > 0:
-            p.drawText(QRectF(self.out_x, top_out + rows_out * (self.in_h + self.gap), 200, 18),
-                       Qt.AlignmentFlag.AlignVCenter, f"+{more_out} more")
-        p.setFont(font(11, QFont.Weight.DemiBold))
-        p.drawText(QRectF(self.in_x, 66, 200, 18), Qt.AlignmentFlag.AlignVCenter, "GOES IN")
-        p.drawText(QRectF(self.out_x, 66, 200, 18), Qt.AlignmentFlag.AlignVCenter, "COMES OUT")
-        p.setOpacity(1.0)
-        # the hub
-        p.setPen(QPen(theme.ACCENT, 2))
-        p.setBrush(theme.SURFACE)
-        p.drawEllipse(self.hub, self.hub_r, self.hub_r)
-        p.setFont(self.f_hub)
-        p.setPen(theme.TEXT)
-        p.drawText(QRectF(self.hub.x() - self.hub_r, self.hub.y() - 18, 2 * self.hub_r, 20),
-                   Qt.AlignmentFlag.AlignCenter, "Tapshift")
-        p.setFont(self.f_cap)
-        p.setPen(theme.DIM)
-        p.drawText(QRectF(self.hub.x() - self.hub_r, self.hub.y() + 2, 2 * self.hub_r, 16),
-                   Qt.AlignmentFlag.AlignCenter, "and checked")
+        p.drawText(QRectF(hx, 46, hw, 40), int(Qt.AlignmentFlag.AlignTop.value) | int(Qt.TextFlag.TextWordWrap.value),
+                   w.tagline + ".")
+        for j, (num, what) in enumerate(((len(w.exts), "file types in"), (len(w.actions), "ways out"))):
+            x = hx + j * 128
+            p.setFont(self.f_num)
+            p.setPen(theme.ACCENT if j else theme.TEXT)
+            p.drawText(QRectF(x, 92, 120, 40), left, str(num))
+            p.setFont(self.f_cap)
+            p.setPen(theme.DIM)
+            p.drawText(QRectF(x, 130, 120, 18), left, what)
+        hint = "Kept here. Click it again to move on." if self.pinned else "Click a kind to keep it here."
+        p.drawText(QRectF(hx, 148, hw, 18), left, hint)
+        p.restore()
+        # every format in, every result out
+        (y_in, ins, _), (y_out, outs, _) = self._sections()
+        for y, label_, chips, out in ((y_in, "GOES IN", ins, False), (y_out, "COMES OUT", outs, True)):
+            p.save()
+            p.setOpacity(a)
+            p.setFont(self.f_label)
+            p.setPen(theme.DIM)
+            p.drawText(QRectF(self.x0, y, 200, 18), left, label_)
+            p.restore()
+            for idx, (r, word) in enumerate(chips):
+                e = ease_out(clamp(k * 2.2 - (0.35 if out else 0.0) - idx * 0.025))
+                if e <= 0:
+                    continue
+                rr = r.translated(0, 8 * (1 - e))
+                self._chip(p, rr, word, out, e, more=word.startswith("+") and word.endswith("more"))
 
-    def _chip(self, p: QPainter, r: QRectF, word: str, out: bool, a: float) -> None:
-        if a <= 0:
-            return
+    def _chip(self, p: QPainter, r: QRectF, word: str, out: bool, a: float, more: bool = False) -> None:
         p.save()
         p.setOpacity(p.opacity() * a)
-        p.setPen(QPen(with_alpha(theme.ACCENT, 0.55) if out else theme.LINE, 1.1))
-        p.setBrush(mix(theme.SURFACE, theme.ACCENT, 0.07) if out else theme.SURFACE)
+        if more:
+            p.setPen(QPen(theme.LINE, 1, Qt.PenStyle.DashLine))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+        elif out:
+            p.setPen(QPen(with_alpha(theme.ACCENT, 0.5), 1.1))
+            p.setBrush(mix(theme.SURFACE, theme.ACCENT, 0.08))
+        else:
+            p.setPen(QPen(theme.LINE, 1.1))
+            p.setBrush(theme.SURFACE)
         p.drawRoundedRect(r, r.height() / 2, r.height() / 2)
         p.setFont(self.f_chip)
         fm = QFontMetricsF(self.f_chip)
         readable = theme.contrast(theme.ACCENT, theme.SURFACE) >= 4.5
-        p.setPen(theme.ACCENT if out and readable else theme.TEXT)
-        p.drawText(r, Qt.AlignmentFlag.AlignCenter, fm.elidedText(word, Qt.TextElideMode.ElideRight, r.width() - 12))
+        p.setPen(theme.DIM if more else (theme.ACCENT if out and readable else theme.TEXT))
+        p.drawText(r, Qt.AlignmentFlag.AlignCenter, fm.elidedText(word, Qt.TextElideMode.ElideRight, r.width() - 14))
         p.restore()
 
-    def _threads(self, ins, outs) -> list[QPainterPath]:
-        paths = []
-        hub, hr = self.hub, self.hub_r
-        for y in sorted({r.center().y() for r, _ in ins}):
-            a, b = QPointF(self.in_right + 6, y), QPointF(hub.x() - hr, hub.y())
-            mid = (a.x() + b.x()) / 2
-            path = QPainterPath(a)
-            path.cubicTo(QPointF(mid, a.y()), QPointF(mid, b.y()), b)
-            paths.append(path)
-        for y in sorted({r.center().y() for r, _ in outs}):
-            a, b = QPointF(hub.x() + hr, hub.y()), QPointF(self.out_x - 6, y)
-            mid = (a.x() + b.x()) / 2
-            path = QPainterPath(a)
-            path.cubicTo(QPointF(mid, a.y()), QPointF(mid, b.y()), b)
-            paths.append(path)
-        return paths
-
     def _paint_live(self, p: QPainter, t: float, k: float) -> None:
-        """What moves every frame: dots along the threads, and the time left on this kind."""
-        w = self.worlds[self.sel]
-        ins, *_ = self._grid(w.exts, self.in_x, self.in_cols, self.in_w)
-        outs, *_ = self._grid(w.actions, self.out_x, self.out_cols, self.out_w)
+        """What moves every frame: the chosen kind's story, and the time left on it."""
+        sr = self._story_rect().adjusted(6, 6, -6, -6)
+        s = min(sr.width() / 300, sr.height() / 150)
+        st = (t - self.sel_since) % self._sc.LOOP
+        n = int((t - self.sel_since) // self._sc.LOOP)
+        p.save()
+        clip = QPainterPath()
+        clip.addRoundedRect(sr, 10, 10)
+        p.setClipPath(clip)
+        p.translate(sr.center().x() - 150 * s, sr.center().y() - 75 * s)
+        p.scale(s, s)
+        p.setOpacity(ease_out(k) * (1 - ease_in_out(phase(st, self._sc.LOOP - 0.4, self._sc.LOOP))))
+        try:
+            self.stories[self.sel](p, st, n, self.story_cards[self.sel])
+        except Exception:  # noqa: BLE001 - a drawing problem must not break the tour
+            pass
+        p.restore()
+        # the chosen row's marker fills top to bottom while it waits to move on (full when kept or pointed at)
+        m = self._marker(self._row_rect(self.sel))
+        done = 1.0 if (self.pinned or self.inside) else clamp((t - self.cycle_from) / self.CYCLE)
         p.setPen(Qt.PenStyle.NoPen)
-        a = ease_out(k)
-        for j, path in enumerate(self._threads(ins, outs)):
-            f = (t * 0.55 + j * 0.173) % 1.0
-            p.setBrush(with_alpha(theme.ACCENT, a * (0.3 + 0.7 * math.sin(math.pi * f))))
-            p.drawEllipse(path.pointAtPercent(f), 3.0, 3.0)
-        r = self._row_rect(self.sel)
-        if self.pinned:
-            p.setBrush(theme.ACCENT)
-            p.drawEllipse(QPointF(r.right() - 64, r.center().y()), 3, 3)
-        elif not self.inside:
-            done = clamp((t - self.cycle_from) / self.CYCLE)
-            p.setBrush(with_alpha(theme.ACCENT, 0.5))
-            p.drawRoundedRect(QRectF(r.left() + 12, r.bottom() - 3, (r.width() - 24) * done, 2), 1, 1)
+        p.setBrush(theme.ACCENT)
+        p.drawRoundedRect(QRectF(m.left(), m.top(), m.width(), max(m.width(), m.height() * done)), 2, 2)
+
+    @staticmethod
+    def _marker(r: QRectF) -> QRectF:
+        return QRectF(r.left() + 1, r.top() + 4, 4, r.height() - 8)

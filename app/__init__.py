@@ -1,6 +1,6 @@
 """Tapshift: select files, tap Ctrl + Shift, pick a format. Converted next to the original."""
 
-__version__ = "1.9.0"
+__version__ = "1.9.1"
 
 # Set this to your GitHub repository ("owner/name") before publishing a release.
 GITHUB_REPO = "syedtaj7/TapShift"
