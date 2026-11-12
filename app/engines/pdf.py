@@ -8,6 +8,8 @@
 - pages / rotate: keep, remove or turn chosen pages
 - lock / unlock: AES-256 password
 - numbers / watermark: text stamped on every page
+- tables: every table found, one Excel sheet each
+- blank: blank pages removed (no text, and nothing visible when drawn)
 
 """
 
@@ -933,6 +935,117 @@ def to_html(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
 
 
 TOOLS.update({"tiff": to_tiff, "longimg": long_image, "md": to_markdown, "html": to_html})
+
+# ---------------------------------------------------------------- tables, blank pages
+
+def _cell(v):
+    """A table cell for Excel: numbers as numbers when they're plainly numbers, text otherwise."""
+    from .data import _csv_value
+
+    text = " ".join(str(v).split()) if v is not None else ""
+    return _csv_value(text) if text else None
+
+
+def _cell_text(page_words, box) -> str:
+    """The words whose middle lies in this cell, line by line."""
+    x0, y0, x1, y1 = box
+    inside = [w for w in page_words if x0 <= (w[0] + w[2]) / 2 <= x1 and y0 <= (w[1] + w[3]) / 2 <= y1]
+    inside.sort(key=lambda w: (w[5], w[6], w[7]))
+    lines: dict[tuple[int, int], list[str]] = {}
+    for w in inside:
+        lines.setdefault((w[5], w[6]), []).append(w[4])
+    return " ".join(" ".join(ws) for ws in lines.values())
+
+
+def tables(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """Every table PyMuPDF finds, each on its own sheet ("Page 2", "Page 2 (2)"...)."""
+    from openpyxl import Workbook, load_workbook
+
+    found: list[tuple[str, list[list]]] = []
+    with _open(src) as d:
+        for pno, page in enumerate(d, 1):
+            try:
+                tabs = page.find_tables()
+            except Exception:  # noqa: BLE001 - a page the table finder can't handle: skip it
+                continue
+            page_words = page.get_text("words")  # (x0, y0, x1, y1, word, block, line, n): keeps "1.20" whole
+            for k, t in enumerate(tabs.tables, 1):
+                # The table finder gives the cells; their text comes from the page's words (the finder's own
+                # text reading splits numbers like 1.20 into "1 20" and ".").
+                rows = [[_cell(_cell_text(page_words, c)) if c is not None else None for c in row.cells]
+                        for row in t.rows]
+                rows = [r for r in rows if any(c not in (None, "") for c in r)]
+                keep = [i for i in range(max((len(r) for r in rows), default=0))
+                        if any(i < len(r) and r[i] not in (None, "") for r in rows)]
+                rows = [[r[i] if i < len(r) else None for i in keep] for r in rows]  # no empty spacer columns
+                if len(rows) >= 2 and max(len(r) for r in rows) >= 2:
+                    found.append((f"Page {pno}" + (f" ({k})" if k > 1 else ""), rows))
+    if not found:
+        raise ConversionError("No tables were found in this PDF. Tables need lines or clear columns; scanned "
+                              "pages are pictures and have none.")
+    wb = Workbook(write_only=True)
+    for name, rows in found[:250]:
+        ws = wb.create_sheet(name[:31])
+        for r in rows:
+            ws.append(r)
+    wb.save(long_path(out))
+    def trim(r) -> list:
+        r = list(r)
+        while r and r[-1] in (None, ""):
+            r.pop()
+        return r
+
+    back = load_workbook(long_path(out), read_only=True)
+    try:
+        if len(back.worksheets) != min(len(found), 250):
+            raise VerificationError("a table's sheet is missing")
+        for (name, rows), ws in zip(found, back.worksheets):
+            if [trim(r) for r in ws.iter_rows(values_only=True)] != [trim(r) for r in rows]:
+                raise VerificationError(f"the table on {name} doesn't match")
+    finally:
+        back.close()
+    cells = sum(len(r) for _n, rows in found for r in rows)
+    notes.append(f"Checked: {len(found)} table{'s' if len(found) != 1 else ''} ({cells:,} cells), one sheet each, "
+                 "named after their page.")
+    if len(found) > 250:
+        notes.append("Only the first 250 tables were saved.")
+    notes.append("Check merged cells and headings that span columns: PDFs don't store tables, so they're "
+                 "reconstructed from the lines and text positions.")
+
+
+BLANK_DPI = 30
+BLANK_INK = 0.0015  # share of non-white pixels a page may have and still count as blank (specks, scan dust)
+
+
+def _is_blank(page) -> bool:
+    if page.get_text().strip():
+        return False
+    pix = page.get_pixmap(dpi=BLANK_DPI, colorspace="gray", alpha=False)
+    data = pix.samples
+    inked = sum(1 for v in data if v < 235)
+    return inked <= max(1, len(data) * BLANK_INK)
+
+
+def remove_blank(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    with _open(src) as d:
+        blank = [i for i, page in enumerate(d) if _is_blank(page)]
+        if not blank:
+            raise ConversionError("This PDF has no blank pages.")
+        if len(blank) == d.page_count:
+            raise ConversionError("Every page of this PDF is blank.")
+        keep = [i for i in range(d.page_count) if i not in blank]
+        texts = [d[i].get_text() for i in keep]
+        looks = _looks(d, keep)
+        d.select(keep)
+        _save(d, out)
+    _check_same(out, texts, "blank pages removed", looks=looks)
+    shown = ", ".join(str(i + 1) for i in blank[:12]) + (" and more" if len(blank) > 12 else "")
+    notes.append(f"Removed {len(blank)} blank page{'s' if len(blank) != 1 else ''} (page {shown}). Checked: the "
+                 f"other {len(keep)} look and read exactly as before.")
+
+
+TOOLS.update({"tables": tables, "blank": remove_blank})
+
 
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:

@@ -543,7 +543,7 @@ class Controller(QObject):
         except OSError:
             pass
         options = dict(options)
-        if self._roots and offer.target.engine == "archive" and offer.target.combine:
+        if self._roots and offer.target.engine in ("archive", "hash") and offer.target.combine:
             options["_roots"] = [str(r) for r in self._roots]  # keep the folders' structure inside the archive
         dest = ""
         if self.settings.save_to == "ask":

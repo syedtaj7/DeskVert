@@ -31,16 +31,16 @@ def _definitions():
     from .. import catalog, toolbox
 
     pictures = set(catalog.IMAGE_EXTS)
-    office = set(catalog.WORD_EXTS) | set(catalog.EXCEL_EXTS) | set(catalog.PPT_EXTS)
+    office = set(catalog.WORD_EXTS) | set(catalog.EXCEL_EXTS) | set(catalog.PPT_EXTS) | set(toolbox.APPLE_EXTS)
     return [
         ("pictures", "Pictures", "Phone photos, screenshots, RAW, icons", pictures),
         ("pdf", "PDF", "Compress, split, protect, convert", {".pdf"}),
-        ("office", "Documents", "Word, Excel, PowerPoint", office),
+        ("office", "Documents", "Word, Excel, PowerPoint, Pages", office),
         ("ebooks", "E-books", "EPUB, Kindle-free, comics", set(toolbox.EBOOK_EXTS)),
-        ("data", "Data", "CSV, Excel, JSON, YAML, contacts", set(toolbox.DATA_EXTS)),
+        ("data", "Data", "CSV, JSON, databases, calendars, contacts", set(toolbox.DATA_EXTS)),
         ("sound", "Sound", "Music, recordings, video soundtracks", set(toolbox.AUDIO_EXTS) | set(toolbox.VIDEO_EXTS)),
         ("subtitles", "Subtitles", "Every caption format", set(toolbox.SUBTITLE_EXTS)),
-        ("text", "Markdown", "Notes into clean documents", set(toolbox.MARKDOWN_EXTS)),
+        ("text", "Notes", "Markdown and Jupyter notebooks", set(toolbox.MARKDOWN_EXTS) | set(toolbox.NOTEBOOK_EXTS)),
         ("mail", "Mail & pages", "Saved e-mails and web pages", set(toolbox.MAIL_EXTS)),
         ("maps", "Maps", "GPS tracks, places, routes", set(toolbox.MAP_EXTS)),
         ("models", "3D models", "Print, view, share", set(toolbox.MODEL_EXTS)),
