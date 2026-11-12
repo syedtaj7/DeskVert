@@ -101,17 +101,22 @@ class SettingsWindow(ChromeWindow):
         dates.toggled.connect(lambda v: self.changed.emit("keep_modified_date", v))
         menu = Toggle(s.context_menu)
         menu.toggled.connect(lambda v: self.changed.emit("context_menu", v))
+        save_to = Segmented([("same", "Same folder"), ("subfolder", "Converted"), ("ask", "Ask")],
+                            s.save_to if s.save_to in ("same", "subfolder", "ask") else "same")
+        save_to.changed.connect(lambda v: self.changed.emit("save_to", v))
         auto_upd = Toggle(s.auto_update_check)
         auto_upd.toggled.connect(lambda v: self.changed.emit("auto_update_check", v))
         tour = PillButton("Show the welcome tour", "ghost", min_width=200)
         tour.clicked.connect(self.show_tour.emit)
         rows = [setting_row("Start with Windows", "Wait in the tray, ready for the shortcut.", auto),
+                setting_row("Save new files", "Next to the original, in a “Converted” folder beside it, or ask each time.", save_to),
                 setting_row("Use copied files", "If nothing is selected, convert files you copied with Ctrl + C.",
                             clip),
                 setting_row("Keep the original's date", "Give new files the same 'modified' date as the original.",
                             dates),
-                setting_row("Right-click menu", "Adds “Convert with Tapshift” to files' right-click menu "
-                            "(on Windows 11: Show more options).", menu),
+                setting_row("Right-click menu and Send to", "Adds “Convert with Tapshift” to the right-click "
+                            "menu of files and folders (Windows 11: Show more options), and Tapshift to Send to.",
+                            menu),
                 setting_row("Tell me about updates", "Every few hours, asks GitHub for the newest version number "
                             "and lets you know when there is one. Nothing about you or your files is sent.",
                             auto_upd),

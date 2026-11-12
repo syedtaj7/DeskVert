@@ -6,8 +6,14 @@ The full every-format-to-every-format matrix only runs with ``--full``.
 """
 
 import os
+import tempfile
 
 os.environ.setdefault("TAPSHIFT_THREADS", "2")
+# Never touch the real settings, logs or scratch space: importing the UI loads (and saves) settings.
+_home = tempfile.mkdtemp(prefix="tapshift-tests-")
+os.environ["APPDATA"] = os.path.join(_home, "Roaming")
+os.environ["LOCALAPPDATA"] = os.path.join(_home, "Local")
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # windows are built and driven, never shown
 
 from app.lowimpact import cap_this_process  # noqa: E402
 

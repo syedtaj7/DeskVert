@@ -40,13 +40,24 @@ class Batch:
     results: list[dict] = field(default_factory=list)
 
 
-def build_jobs(offer: Offer, options: dict, settings: Settings) -> list[dict]:
+def build_jobs(offer: Offer, options: dict, settings: Settings, dest: str = "") -> list[dict]:
+    """One job per output. ``dest`` is a folder the user picked for this run ("Ask each time");
+    otherwise new files go next to their original, or into a "Converted" folder beside it."""
+    from .settings import SUBFOLDER
     from .toolbox import output_ext
 
     t = offer.target
 
-    def job(sources: list[Path], stem: str) -> dict:
+    def where(anchor: Path, beside: bool = False) -> str:
+        if dest:
+            return dest
+        if settings.save_to == "subfolder":
+            return str(anchor.parent / SUBFOLDER)
+        return str(anchor.parent) if beside else ""  # "" = next to the first source
+
+    def job(sources: list[Path], stem: str, out_dir: str | None = None) -> dict:
         return {
+            "dest": where(sources[0]) if out_dir is None else out_dir,
             "id": uuid.uuid4().hex[:12],
             "sources": [str(s) for s in sources],
             "target": t.key,
@@ -61,6 +72,12 @@ def build_jobs(offer: Offer, options: dict, settings: Settings) -> list[dict]:
     if t.folder:
         return [job([s], f"{s.stem} ({t.folder})") for s in offer.sources]
     if t.combine:
+        roots = [Path(r) for r in options.get("_roots") or []]
+        if roots:  # selected folders: the archive is named after the folder and saved beside it, not inside it
+            inside = lambda p: any(str(p).lower().startswith(str(r).lower() + "\\") for r in roots)  # noqa: E731
+            tops = len(roots) + sum(1 for s in offer.sources if not inside(s))
+            stem = roots[0].name if tops == 1 else f"{roots[0].name} and {tops - 1} more"
+            return [job(offer.sources, stem + t.suffix, where(roots[0], beside=True))]
         first = offer.sources[0]
         stem = first.stem if len(offer.sources) == 1 else f"{first.stem} and {len(offer.sources) - 1} more"
         return [job(offer.sources, stem + t.suffix)]
@@ -96,8 +113,8 @@ class JobManager(QObject):
     def busy(self) -> bool:
         return self._busy.is_set() or not self._queue.empty()
 
-    def submit(self, offer: Offer, options: dict) -> None:
-        jobs = build_jobs(offer, options, self.settings)
+    def submit(self, offer: Offer, options: dict, dest: str = "") -> None:
+        jobs = build_jobs(offer, options, self.settings, dest)
         self._queue.put(Batch(offer.target.label, jobs, offer.skipped_same))
 
     def cancel(self) -> None:

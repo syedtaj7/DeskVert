@@ -52,7 +52,12 @@ def run_job(job: dict) -> dict:
         for s in sources:
             if not os.path.isfile(long_path(s)):
                 raise ConversionError(f"{s.name} no longer exists.")
-        workdir = make_workdir(sources[0].parent, job["id"])
+        dest = Path(job["dest"]) if job.get("dest") else sources[0].parent
+        try:
+            os.makedirs(long_path(dest), exist_ok=True)  # e.g. the "Converted" folder
+        except OSError:
+            dest = sources[0].parent
+        workdir = make_workdir(dest, job["id"])
         folder_out = bool(job.get("folder"))  # e.g. one image per page, in a new folder
         tmp = workdir / ("output" if folder_out else f"output{job['ext']}")
         engine = importlib.import_module(f"app.engines.{engine_name}")
@@ -65,7 +70,7 @@ def run_job(job: dict) -> dict:
         elif not tmp.exists() or tmp.stat().st_size == 0:
             raise VerificationError("the output file is empty")
         final, fallback = commit(tmp, sources[0], job["out_stem"], "" if folder_out else job["ext"],
-                                 job.get("keep_modified_date", True))
+                                 job.get("keep_modified_date", True), dest)
         if fallback:
             notes.append(f"The folder couldn't be written to, so it was saved in {final.parent}.")
         result.update(ok=True, output=str(final), notes=notes)

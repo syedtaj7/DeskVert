@@ -875,7 +875,9 @@ class SetupPage(Page):
         quality.changed.connect(lambda v: self.quality_text.setText(QUALITY_TEXT[v]))
 
         cards = [
-            ("Shortcut", "A quick tap of both keys, or a three-key combo if Ctrl + Shift switches your keyboard "
+            ("Shortcut", "On this PC, Ctrl + Shift already switches the keyboard layout, so the three-key combo "
+             "is selected." if choices.get("layout_clash") else
+             "A quick tap of both keys, or a three-key combo if Ctrl + Shift switches your keyboard "
              "layout.", seg("hotkey", [("Ctrl+Shift", "Tap Ctrl + Shift"), ("Ctrl+Shift+Space", "Ctrl+Shift+Space")],
                             "Ctrl+Shift")),
             ("Start with Windows", "Waits quietly in the tray, ready whenever you tap the shortcut.",
@@ -890,7 +892,8 @@ class SetupPage(Page):
             ("Photo quality", self.quality_text, quality),
             ("Recent actions in the centre", "What you used last sits closest to the middle of the picker.",
              toggle("quick_recents")),
-            ("Right-click menu", "Adds Convert with Tapshift to files' right-click menu.", toggle("context_menu")),
+            ("Right-click menu and Send to", "Adds Tapshift to the right-click menu of files and folders.",
+             toggle("context_menu")),
             ("Tell me about updates", "Lets you know when a new version is out. It only asks GitHub for the "
              "latest version number.", toggle("auto_update_check")),
             ("Use copied files", "Nothing selected? Convert the files you copied with Ctrl + C.",

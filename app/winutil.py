@@ -119,6 +119,73 @@ def watch_show_requests(callback) -> None:
 
 PICK_EVENT = "Local\\Tapshift.Pick"
 MENU_KEY = r"Software\Classes\*\shell\Tapshift"
+FOLDER_MENU_KEY = r"Software\Classes\Directory\shell\Tapshift"
+
+
+def ctrl_shift_switches_layout() -> bool:
+    """True when tapping Ctrl+Shift already means "next keyboard layout" on this PC (so it's a poor
+    shortcut for Tapshift here). That needs two or more layouts and Windows set to switch with it."""
+    try:
+        import winreg
+
+        user32 = ctypes.windll.user32
+        n = user32.GetKeyboardLayoutList(0, None)
+        if n < 2:
+            return False
+        buf = (ctypes.c_void_p * n)()
+        user32.GetKeyboardLayoutList(n, buf)
+        languages = {(h or 0) & 0xFFFF for h in buf}
+        keys = {}
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Keyboard Layout\Toggle") as k:
+                for name in ("Hotkey", "Language Hotkey", "Layout Hotkey"):
+                    try:
+                        keys[name] = str(winreg.QueryValueEx(k, name)[0])
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+        # Windows' defaults: Alt+Shift ("1") between languages, Ctrl+Shift ("2") between layouts of one language.
+        language_key = keys.get("Language Hotkey", keys.get("Hotkey", "1"))
+        layout_key = keys.get("Layout Hotkey", "2")
+        if language_key == "2" and len(languages) > 1:
+            return True
+        return layout_key == "2" and len(languages) < n
+    except Exception:  # noqa: BLE001 - a guess that fails is just "no"
+        return False
+
+
+def sendto_link() -> Path:
+    base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+    return Path(base) / "Microsoft" / "Windows" / "SendTo" / "Tapshift.lnk"
+
+
+def set_sendto(enabled: bool, link: Path | None = None) -> None:
+    """Add (or remove) Tapshift in the right-click "Send to" menu. Unlike our own menu entry, Send to
+    is on Windows 11's short menu, and it hands over every selected file or folder at once."""
+    link = link or sendto_link()
+    if not enabled:
+        try:
+            link.unlink()
+        except OSError:
+            pass
+        return
+    import win32com.client
+
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if getattr(sys, "frozen", False):
+        target, args = sys.executable, "--pick"
+    else:
+        pythonw = Path(sys.executable).with_name("pythonw.exe")
+        script = Path(__file__).resolve().parent.parent / "run.pyw"
+        target, args = str(pythonw if pythonw.exists() else sys.executable), f'"{script}" --pick'
+    sc = win32com.client.Dispatch("WScript.Shell").CreateShortCut(str(link))
+    sc.Targetpath = target
+    sc.Arguments = args
+    sc.Description = "Convert with Tapshift"
+    if getattr(sys, "frozen", False):
+        sc.IconLocation = f"{sys.executable},0"
+    sc.save()
 
 
 def pick_spool() -> Path:
@@ -172,20 +239,26 @@ def set_context_menu(enabled: bool) -> None:
     Per user, no admin rights. On Windows 11 it's under "Show more options"."""
     import winreg
 
+    try:
+        set_sendto(enabled)
+    except Exception:  # noqa: BLE001 - the menu entry still works without it
+        pass
     if not enabled:
-        for sub in (MENU_KEY + r"\command", MENU_KEY):
-            try:
-                winreg.DeleteKey(winreg.HKEY_CURRENT_USER, sub)
-            except OSError:
-                pass
+        for key in (MENU_KEY, FOLDER_MENU_KEY):
+            for sub in (key + r"\command", key):
+                try:
+                    winreg.DeleteKey(winreg.HKEY_CURRENT_USER, sub)
+                except OSError:
+                    pass
         return
     exe = sys.executable if getattr(sys, "frozen", False) else str(Path(sys.executable).with_name("pythonw.exe"))
-    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, MENU_KEY) as k:
-        winreg.SetValueEx(k, None, 0, winreg.REG_SZ, "Convert with Tapshift")
-        winreg.SetValueEx(k, "Icon", 0, winreg.REG_SZ, f'"{exe}",0')
-        winreg.SetValueEx(k, "MultiSelectModel", 0, winreg.REG_SZ, "Player")  # many files at once
-    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, MENU_KEY + r"\command") as k:
-        winreg.SetValueEx(k, None, 0, winreg.REG_SZ, launch_command('--pick "%1"'))
+    for key in (MENU_KEY, FOLDER_MENU_KEY):  # files, and folders (everything inside them)
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key) as k:
+            winreg.SetValueEx(k, None, 0, winreg.REG_SZ, "Convert with Tapshift")
+            winreg.SetValueEx(k, "Icon", 0, winreg.REG_SZ, f'"{exe}",0')
+            winreg.SetValueEx(k, "MultiSelectModel", 0, winreg.REG_SZ, "Player")  # many at once
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key + r"\command") as k:
+            winreg.SetValueEx(k, None, 0, winreg.REG_SZ, launch_command('--pick "%1"'))
 
 
 # ---------------------------------------------------------------- recycle bin

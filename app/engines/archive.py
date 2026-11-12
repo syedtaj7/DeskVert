@@ -89,15 +89,8 @@ def _write_zip(items: list[tuple[Path, str]], out: Path, notes: list[str]) -> No
     notes.append(f"Checked: {n} file{'s' if n != 1 else ''}, {_human(total)} → {_human(after)}.")
 
 
-def make_zip(sources: list[Path], out: Path, notes: list[str]) -> None:
-    items, used = [], set()
-    for p in sources:
-        name, k = p.name, 2
-        while name.lower() in used:  # same name from different folders
-            name, k = f"{p.stem} ({k}){p.suffix}", k + 1
-        used.add(name.lower())
-        items.append((p, name))
-    _write_zip(items, out, notes)
+def make_zip(sources: list[Path], out: Path, notes: list[str], roots: list[str] | None = None) -> None:
+    _write_zip(_named(sources, roots), out, notes)
 
 
 # ---------------------------------------------------------------- extract
@@ -208,15 +201,29 @@ def to_zip(src: Path, out: Path, notes: list[str]) -> None:
     _write_zip([(p, _rel(p, unpacked)) for p in files], out, notes)
 
 
-def _named(sources: list[Path]) -> list[tuple[Path, str]]:
+def _named(sources: list[Path], roots: list[str] | None = None) -> list[tuple[Path, str]]:
+    """(file, its name inside the archive). Files from a selected folder keep their place in it
+    ("Trip/day 1/a.jpg"); loose files go in by name, and same names from different places get (2), (3)."""
+    tops = [Path(r) for r in roots or []]
     items, used = [], set()
     for p in sources:
-        name, k = p.name, 2
+        base = next((r for r in tops if _inside(p, r)), None)
+        name = _rel(p, base.parent) if base is not None else p.name
+        stem, k = name, 2
         while name.lower() in used:
-            name, k = f"{p.stem} ({k}){p.suffix}", k + 1
+            head, dot, ext = stem.rpartition(".")
+            name, k = (f"{head} ({k}).{ext}" if dot and "/" not in ext else f"{stem} ({k})"), k + 1
         used.add(name.lower())
         items.append((p, name))
     return items
+
+
+def _inside(p: Path, folder: Path) -> bool:
+    try:
+        Path(os.path.abspath(p)).relative_to(os.path.abspath(folder))
+        return True
+    except ValueError:
+        return False
 
 
 def _write_targz(items: list[tuple[Path, str]], out: Path, notes: list[str]) -> None:
@@ -256,6 +263,7 @@ def _write_7z(items: list[tuple[Path, str]], out: Path, notes: list[str]) -> Non
         stage = out.parent / "stage7z"
         stage.mkdir()
         for path, name in items:
+            (stage / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(long_path(path), long_path(stage / name))
         args += ["-C", str(stage)] + [name for _p, name in items]
     else:
@@ -288,16 +296,17 @@ def _repack(src: Path, out: Path, writer, notes: list[str]) -> None:
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     notes: list[str] = []
+    roots = opts.get("_roots")
     if fmt == "7z":
-        _write_7z(_named(sources), out, notes)
+        _write_7z(_named(sources, roots), out, notes)
     elif fmt == "targz":
-        _write_targz(_named(sources), out, notes)
+        _write_targz(_named(sources, roots), out, notes)
     elif fmt == "to7z":
         _repack(sources[0], out, _write_7z, notes)
     elif fmt == "totargz":
         _repack(sources[0], out, _write_targz, notes)
     elif fmt == "zip":
-        make_zip(sources, out, notes)
+        make_zip(sources, out, notes, roots)
     elif fmt == "extract":
         extract(sources[0], out, notes)
     elif fmt == "tozip":

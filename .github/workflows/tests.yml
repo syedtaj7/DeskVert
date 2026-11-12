@@ -1,0 +1,31 @@
+name: Tests
+
+# Every pull request (and every push to main) runs the test suite on Windows before anything is released.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      QT_QPA_PLATFORM: offscreen   # windows are built and driven, never shown
+      TAPSHIFT_TEST_CPU: "100"     # the 25 % cap is for people's laptops, not for CI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Run the tests
+        run: python -m pytest -q
