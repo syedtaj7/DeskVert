@@ -52,6 +52,8 @@ def build_jobs(offer: Offer, options: dict, settings: Settings, dest: str = "") 
         if dest:
             return dest
         if settings.save_to == "subfolder":
+            if anchor.parent.name.lower() == SUBFOLDER.lower():  # already in one: not Converted\Converted
+                return str(anchor.parent)
             return str(anchor.parent / SUBFOLDER)
         return str(anchor.parent) if beside else ""  # "" = next to the first source
 

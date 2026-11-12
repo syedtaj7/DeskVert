@@ -103,6 +103,12 @@ def _make_extras(folder: Path) -> dict[str, Path]:
                               '"# Sales for the month of November"}, {"cell_type": "code", "source": '
                               '"print(3 + 4)", "outputs": [{"output_type": "stream", "text": "7"}]}]}',
                               encoding="utf-8")
+    files["page"] = folder / "Prices page.html"  # a saved web page with a table (1.12)
+    files["page"].write_text("<html><body><h1>Prices</h1><table><tr><th>Item</th><th>Price</th></tr>"
+                             "<tr><td>Apple</td><td>1.20</td></tr><tr><td>Pear</td><td>0.80</td></tr></table>"
+                             "</body></html>", encoding="utf-8")
+    files["link"] = folder / "Tapshift.url"
+    files["link"].write_text("[InternetShortcut]\nURL=https://github.com/syedtaj7/TapShift\n", encoding="utf-8")
     return files
 
 
@@ -218,6 +224,10 @@ def run(folder: Path) -> int:
         case([samples / "Mountains.jpg"], "Passport sheet")
         case([samples / "Mountains.jpg"], "Watermark", {"text": "Tapshift"})
         case([samples / "Mountains.jpg"], "Checksum")
+        # 1.12: from the browser (saved page tables, QR codes for links, website icons)
+        case([extras["page"]], "Tables", name="html table->Tables (XLSX)")
+        case([extras["link"]], "QR code", name="url->QR code")
+        case([samples / "Sunset.png"], "Website icons", name="png->Website icons")
         if pdf:
             case([pdf], "Remove blank", name="pdf->Remove blank (none, must say so)", expect_fail=True)
         arial = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
@@ -227,6 +237,20 @@ def run(folder: Path) -> int:
             font = folder / "samples" / "arial.ttf"
             shutil.copyfile(arial, font)
             case([font], "WOFF", name="arial.ttf->WOFF")
+    # 1.12: drag and convert (the drop target's COM pieces are bundled; a dropped picture is saved and named)
+    try:
+        import win32com.server.util  # noqa: F401 - loaded only when the drop circle first appears
+
+        from . import browserurl, dropread  # noqa: F401
+        from .ui import dropzone  # noqa: F401
+
+        png = (folder / "samples" / "Sunset.png").read_bytes()
+        saved = dropread.save("dropped.jpg", png, folder / "dropped")  # a misnamed picture: named for what it is
+        ok = saved.suffix == ".png" and saved.read_bytes() == png
+        results.append({"case": "drag and convert pieces", "ok": ok, "output": str(saved), "error": None if ok else
+                        "the dropped picture wasn't saved as PNG", "notes": []})
+    except Exception as e:  # noqa: BLE001
+        results.append({"case": "drag and convert pieces", "ok": False, "error": repr(e), "notes": []})
     report = {"ok": all(r["ok"] for r in results), "seconds": round(time.perf_counter() - t0, 1),
               "frozen": bool(getattr(sys, "frozen", False)), "results": results}
     (folder / "selftest.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

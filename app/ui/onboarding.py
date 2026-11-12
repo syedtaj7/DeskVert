@@ -28,7 +28,8 @@ from . import theme
 from .chrome import ChromeWindow, label
 from .demo import DemoScene
 from .fx import (Clock, GradientTitle, PillButton, Segmented, StepDots, Toggle, ease_back, ease_in_out,
-                 ease_out, fade_in, font, paint_check, paint_cursor, paint_file_icon, paint_keycap, phase, with_alpha)
+                 ease_out, fade_in, font, mix, paint_check, paint_cursor, paint_file_icon, paint_keycap, phase,
+                 with_alpha)
 
 CPU_CHOICES = [("15", "Gentle"), ("25", "Balanced"), ("50", "Faster")]
 CPU_TEXT = {
@@ -635,7 +636,7 @@ class HeroPage(Page):
         title = GradientTitle("Tapshift", 56, align=Qt.AlignmentFlag.AlignLeft)
         tag = label("Tap. Shift. Done.", 22, QFont.Weight.Bold, display=True)
         sub = label("Select files, tap <b>Ctrl + Shift</b>, and a web of choices opens right where you are. "
-                    "Point, click, and the new file appears next to the original.", 15)
+                    "Or hold it while you drag anything out of your browser. Point, click, done.", 15)
         for w in (sub,):
             w.setFixedWidth(300)
             w.setFixedHeight(w.heightForWidth(300) + 4)
@@ -696,6 +697,132 @@ class HowPage(Page):
         super().resizeEvent(e)
         w = max(560, min(1000, self.width() - 72))
         self.demo.setFixedSize(QSize(w, max(300, min(int(w * 0.44), self.height() - 110))))
+
+
+class _WebCard(QWidget):
+    """One animated browser feature: a story from the gallery, smaller, with its title."""
+
+    def __init__(self, story, title: str, line: str, offset: float, scale: float = 0.70):
+        super().__init__()
+        self.story, self.title, self.line, self.offset, self.s = story, title, line, offset, scale
+        self.now = 0.0
+        self.hover = 0.0  # 0..1: lifts toward you while the pointer is on it
+        self._hover_to = 0.0
+        self.setFixedSize(QSize(int(300 * scale) + 16, int(150 * scale) + 88))
+
+    def enterEvent(self, _):
+        self._hover_to = 1.0
+
+    def leaveEvent(self, _):
+        self._hover_to = 0.0
+
+    def step(self, now: float) -> None:
+        self.now = now
+        self.hover += (self._hover_to - self.hover) * 0.22
+        self.update()
+
+    def paintEvent(self, _):
+        from .showcase import LOOP, soft_shadow
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        h = self.hover
+        p.translate(0, 3 - 3 * h)  # rests 3 px low; rises as you point at it
+        r = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -4.5)
+        soft_shadow(p, r, theme.RADIUS_CARD, 0.15 + 1.1 * h)
+        p.setPen(QPen(mix(theme.LINE, theme.ACCENT, 0.75 * h), 1 + 0.4 * h))
+        p.setBrush(theme.SURFACE)
+        p.drawRoundedRect(r, theme.RADIUS_CARD, theme.RADIUS_CARD)
+        art = QRectF(8, 8, 300 * self.s, 150 * self.s)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(theme.BG)
+        p.drawRoundedRect(art, 8, 8)
+        tt = self.now + self.offset
+        p.save()
+        p.setClipRect(art)
+        p.translate(art.topLeft())
+        p.scale(self.s, self.s)
+        t = tt % LOOP
+        p.setOpacity(ease_out(phase(t, 0.0, 0.3)) * (1 - ease_in_out(phase(t, LOOP - 0.45, LOOP))))
+        try:
+            self.story(p, t, int(tt // LOOP), None)
+        except Exception:  # noqa: BLE001
+            pass
+        p.restore()
+        p.setPen(mix(theme.TEXT, theme.ACCENT, 0.8 * h))
+        p.setFont(font(13.5, QFont.Weight.DemiBold))
+        p.drawText(QRectF(12, art.bottom() + 8, self.width() - 20, 20), Qt.AlignmentFlag.AlignVCenter, self.title)
+        p.setPen(theme.DIM)
+        p.setFont(font(11.5))
+        p.drawText(QRectF(12, art.bottom() + 30, self.width() - 22, 44),
+                   int(Qt.AlignmentFlag.AlignTop.value) | int(Qt.TextFlag.TextWordWrap.value), self.line)
+        p.end()
+
+
+class BrowserPage(Page):
+    """The highlight: everything Tapshift does straight from a browser, acted out."""
+
+    CARDS = [("web_drag", "Drag from any browser", "Hold Ctrl + Shift while dragging; drop on the circle."),
+             ("web_table", "Web tables to Excel", "Select a table on any page, drag it in."),
+             ("web_clip", "Clip any text", "Select text on a page, tap Ctrl + Shift: PDF, Word, text."),
+             ("web_page", "Save the whole page", "Tap Ctrl + Shift on the browser: PDF or a long picture."),
+             ("web_qr", "QR code for any link", "Drag a link in; scan it with a phone."),
+             ("web_cloud", "Shared links become files", "Google Drive, Dropbox, OneDrive links."),
+             ("web_copied", "Screenshots in a tap", "Win + Shift + S, then tap Ctrl + Shift."),
+             ("web_webp", "WEBP downloads to JPG", "Optional: Downloads gets a JPG copy by itself.")]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from .showcase import STORIES
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(36, 4, 24, 0)
+        lay.setSpacing(4)
+        t, s = _heading("Straight from your browser",
+                        "Edge, Chrome, Brave, Firefox: no extension to install. Hold Ctrl + Shift while you drag "
+                        "anything, or tap it on a browser window.")
+        lay.addWidget(t)
+        lay.addWidget(s)
+        lay.addSpacing(12)
+        self.anim_items = [t, s]
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(12)
+        self.cards = []
+        for i, (story, title, line) in enumerate(self.CARDS):
+            card = _WebCard(STORIES[story], title, line, offset=i * 0.55)
+            grid.addWidget(card, i // 4, i % 4)
+            self.cards.append(card)
+            self.anim_items.append(card)
+        box = QWidget()
+        box.setStyleSheet("background: transparent;")
+        box.setLayout(grid)
+        lay.addWidget(box, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addStretch(1)
+        self._t0 = 0.0
+        self.timer = QTimer(self)
+        self.timer.setInterval(40)  # 25 fps: smooth, and light with eight cards moving
+        self.timer.timeout.connect(self._tick)
+
+    def enter(self):
+        import time as _time
+
+        for i, w in enumerate(self.anim_items):
+            fade_in(w, delay_ms=40 + i * 45, duration=340, rise=10)
+        self._t0 = _time.perf_counter()
+        self.timer.start()
+
+    def leave(self):
+        self.timer.stop()
+
+    def _tick(self):
+        import time as _time
+
+        now = _time.perf_counter() - self._t0
+        for c in self.cards:
+            c.step(now)
 
 
 class UniversePage(Page):
@@ -768,8 +895,8 @@ class MovesPage(Page):
                                                        "nothing is overwritten."),
         ("checked", "Every result is double-checked", "Reopened and compared: pixels, pages, words, cells, timings. "
                                                       "If anything is off, it's thrown away."),
-        ("offline", "Private and offline", "Nothing is uploaded. The only thing it asks the internet is "
-                                           "whether a newer Tapshift exists."),
+        ("offline", "Private and offline", "Nothing is uploaded. It only goes online to check for a new "
+                                           "version, and to fetch a picture you drag in from a web page."),
         ("light", "Light on your laptop", "A capped slice of the processor at low priority, and none at all when "
                                           "idle."),
     ]
@@ -900,6 +1027,10 @@ class SetupPage(Page):
              toggle("use_clipboard_fallback")),
             ("Two files at a time", "Converts two at once when you pick many; the processor limit is shared.",
              toggle("two_at_once")),
+            ("WEBP downloads to JPG", "Pictures you download as WEBP or AVIF get a JPG copy next to them, by "
+             "themselves.", toggle("auto_jpg_downloads")),
+            ("Browser pages", "Tap Ctrl + Shift on a browser window: the page as PDF, a picture or a QR code.",
+             toggle("browser_actions")),
         ]
         grid = QGridLayout()
         grid.setHorizontalSpacing(12)
@@ -1033,7 +1164,7 @@ class TourWindow(ChromeWindow):
         lay.setSpacing(12)
         self.stage = _Stage()
         lay.addWidget(self.stage, 1)
-        self._factories = [HeroPage, HowPage, lambda: UniversePage(*self._worlds()),
+        self._factories = [HeroPage, HowPage, BrowserPage, lambda: UniversePage(*self._worlds()),
                            lambda: ShowcasePage(self._worlds()[0]), MovesPage, lambda: SetupPage(self.choices),
                            self._ready_page]
         self.pages: list[Page | None] = [None] * len(self._factories)

@@ -34,8 +34,8 @@ BRANCHES = {
     "image": [
         ("Edit", "turn, crop, resize", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip",
                                         "imgedit.crop", "imgedit.resize", "imgedit.gray", "imgedit.wmark",
-                                        "imgedit.clean", "imgedit.dpi", "imgedit.passport", "imgedit.stitch",
-                                        "imgedit.anim"]),
+                                        "imgedit.clean", "imgedit.dpi", "imgedit.passport", "favicon.set",
+                                        "imgedit.stitch", "imgedit.anim"]),
         ("More formats", "every image format", ["image.heic", "image.avif", "image.ico", "image.tiff", "image.gif",
                                                 "image.bmp", "image.jp2", "image.icns", "image.tga", "image.qoi",
                                                 "image.dds", "image.pcx", "image.ppm", "image.sgi", "image.xbm",
@@ -61,7 +61,8 @@ KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "docume
               "mail": ("e-mail or page", "e-mails or pages"), "map": ("map file", "map files"),
               "vector": ("drawing", "drawings"), "audio": ("sound file", "sound files"),
               "video": ("video", "videos"), "apple": ("Apple file", "Apple files"),
-              "notebook": ("notebook", "notebooks")}
+              "notebook": ("notebook", "notebooks"), "weblink": ("web link", "web links"),
+              "clip": ("selection", "selections")}
 # Every kind of file: the ways to pack them.
 PACK = ("Pack", "ZIP, 7Z, checksum", ["archive.zip", "archive.7z", "archive.targz", "hash.sha256"])
 REPACK = ("Repack", "ZIP, 7Z, TAR.GZ", ["archive.tozip", "archive.to7z", "archive.totargz"])
@@ -79,7 +80,7 @@ SUBGROUPS = {
         ("Turn", "rotate, mirror", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip"]),
         ("Fix", "crop, size, color", ["imgedit.crop", "imgedit.resize", "imgedit.gray", "imgedit.wmark",
                                       "imgedit.clean"]),
-        ("Print", "passport sheet, DPI", ["imgedit.passport", "imgedit.dpi"]),
+        ("Make", "passport sheet, site icons", ["imgedit.passport", "favicon.set", "imgedit.dpi"]),
         ("Combine", "several in one", ["imgedit.stitch", "imgedit.anim"]),
     ],
     ("pdf", "Convert"): [
@@ -291,6 +292,8 @@ FAVOURITE_CHOICES = [
     ("imgedit.crop", "Pictures: crop to a shape"), ("imgedit.wmark", "Pictures: watermark"),
     ("imgedit.passport", "Pictures: passport photo sheet"), ("pdf.tables", "PDF: tables to Excel"),
     ("pdf.blank", "PDF: remove blank pages"), ("hash.sha256", "Any files: checksum"),
+    ("webpage.pdf", "Web page: as PDF"), ("qr.png", "Web link: QR code"), ("webtable.xlsx", "Web tables: to Excel"),
+    ("favicon.set", "Pictures: website icons"),
 ]
 FAVOURITE_NAMES = dict(FAVOURITE_CHOICES)
 

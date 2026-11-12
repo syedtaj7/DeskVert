@@ -727,6 +727,7 @@ class Popup(QWidget):
         self._default_hint()
 
         self.wheel.activated.connect(self._wheel_activate)
+        self.wheel.dismissed.connect(self.close)
         self.wheel.options_requested.connect(self._wheel_options)
         self.list_page.activated.connect(lambda o: self._choose(o, None))
         self.list_page.options_requested.connect(self._show_options)
@@ -896,7 +897,14 @@ class Popup(QWidget):
     def _check_outside_click(self):
         from ..winutil import mouse_button_down
 
-        if mouse_button_down() and not self.frameGeometry().contains(QCursor.pos()):
+        if not mouse_button_down():
+            return
+        pos = QCursor.pos()
+        if not self.frameGeometry().contains(pos):
+            self.close()
+        elif self.stack.currentIndex() == 0 and not self.orbit.solid_at(QPointF(self.orbit.mapFromGlobal(pos))):
+            # The window is a big see-through square around the round web. A click in that empty space goes
+            # straight through to the app below, so it counts as a click elsewhere.
             self.close()
 
     def event(self, e):

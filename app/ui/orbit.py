@@ -186,6 +186,15 @@ BLURBS = {
     "notebook.py": "Just the code, as a script",
     "subtitle.shift": "Fix subtitles that are out of sync",
     "hash.sha256": "A fingerprint to check files later",
+    "webpage.pdf": "The whole page, sharp and searchable",
+    "webpage.png": "The whole page as one long picture",
+    "qr.png": "A code any phone camera opens",
+    "clip.pdf": "Just your selection, as a clean PDF",
+    "clip.png": "Your selection as one sharp picture",
+    "clip.txt": "Only the words, no formatting",
+    "webtable.xlsx": "Every table on the page, in Excel",
+    "webtable.csv": "The biggest table, as CSV",
+    "favicon.set": "favicon.ico and every app icon size",
 }
 
 TOOL_ENGINES = {"compress", "archive", "ocr"}
@@ -337,6 +346,7 @@ class OrbitView(QWidget):
 
     activated = Signal(object)  # a leaf Node to run
     options_requested = Signal(object)
+    dismissed = Signal()  # a click on empty space around the web: close the picker
     hovered = Signal(object)  # Node or None
 
     MAX_SCALE = 1.16
@@ -461,6 +471,22 @@ class OrbitView(QWidget):
 
     def orbit_center(self) -> QPointF:
         return QPointF(self.ox + self.E, self.E)
+
+    def solid_at(self, pos: QPointF) -> bool:
+        """Is this point on the picker itself (its disc, the note under it, or the side card while it shows),
+        rather than the empty, see-through space around it?"""
+        c = self.orbit_center()
+        dx, dy = pos.x() - c.x(), pos.y() - c.y()
+        r = self.DR * max(0.5, self.disc_s.v)
+        if dx * dx + dy * dy <= r * r:
+            return True
+        if pos.y() >= 2 * self.E - 6 and abs(dx) <= self.E * 0.6:  # the note under the web
+            return True
+        if self.card_a.v > 0.05:  # the side card, while it's showing
+            x0 = 0 if self.side == "left" else self.ox + 2 * self.E + self.CARD_GAP
+            if x0 - 4 <= pos.x() <= x0 + self.CARD_W + 4:
+                return True
+        return False
 
     def node_at(self, i: int):
         return self.items[i] if 0 <= i < len(self.items) else None
@@ -1303,6 +1329,8 @@ class OrbitView(QWidget):
             i = self.hover  # clicked in a gap of the fan while one of its choices is lit
         node = self.node_at(i)
         if node is None:
+            if not self.solid_at(e.position()):
+                self.dismissed.emit()  # empty space around the web: like clicking anywhere else
             return
         self._aim.stop()
         if node.children:  # a branch only opens; its choices do the work

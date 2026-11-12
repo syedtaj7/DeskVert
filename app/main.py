@@ -71,6 +71,10 @@ class Controller(QObject):
     show_requested = Signal()  # Tapshift was started again while running
     pick_requested = Signal()  # files arrived from the right-click menu
     update_checked = Signal(object)  # a Release from GitHub (or None), from the background check
+    drag_started = Signal()  # Ctrl+Shift held during a drag (from the listener thread)
+    drop_ready = Signal(object, str)  # files saved from a drop (or an error message), from a worker thread
+    page_found = Signal(str, str)  # (address, title) of the page in the browser where Ctrl+Shift was tapped
+    selection_found = Signal(object)  # the browser's selected text, saved as a web clip (a Path)
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -84,6 +88,20 @@ class Controller(QObject):
         self._last_output: str | None = None
         self._label = ""
         self.hotkey = None
+        self.drag_listener = None
+        self.dropzone = None
+        self.drag_started.connect(self.show_dropzone)
+        self.drop_ready.connect(self._drop_ready)
+        self.page_found.connect(self._page_found)
+        self.selection_found.connect(self._selection_found)
+        self._own_clip_until = 0.0  # Tapshift's own copy of a selection (and putting the clipboard back)
+        self._drop_notes: list[str] = []
+        self._drop_site = ""
+        self._clip_changed = 0.0  # when the clipboard last got a picture (a screenshot, "Copy image"...)
+        self._clip_saved: tuple[str, Path] | None = None  # (fingerprint, file): the same copy isn't saved twice
+        self._text_copied = 0.0  # when text or a table was last copied (from a web page, it becomes a clip)
+        self._text_used = ""  # fingerprint of the copied clip already opened: the next tap gives the page again
+        app.clipboard().dataChanged.connect(self._clipboard_changed)
         self._roots: list[Path] = []  # folders in the current selection (their files are what's converted)
         self._last_batch = None
         self.layout_clash = False
@@ -156,6 +174,14 @@ class Controller(QObject):
         self.update_timer.timeout.connect(self._auto_check_updates)
         self.update_timer.start()
         QTimer.singleShot(UPDATE_FIRST_MS, self._auto_check_updates)
+        # WEBP and AVIF downloads -> JPG (Settings > General), watched only while turned on.
+        self._watcher = None
+        self._watch_seen: dict[str, int] = {}
+        self._watch_timer = QTimer(self)
+        self._watch_timer.setSingleShot(True)
+        self._watch_timer.setInterval(1500)
+        self._watch_timer.timeout.connect(self._scan_downloads)
+        self._set_download_watch(self.settings.auto_jpg_downloads)
 
     # ------------------------------------------------------------ updates
     def _auto_check_updates(self, force: bool = False) -> None:
@@ -204,12 +230,23 @@ class Controller(QObject):
     def _start_hotkey(self) -> tuple[bool, str | None]:
         if self.hotkey is not None:
             self.hotkey.stop()
+        if self.drag_listener is not None:
+            self.drag_listener.stop()
+            self.drag_listener = None
+        on_drag = self.drag_started.emit if self.settings.drag_convert else None
         try:
-            self.hotkey = make_listener(self.settings.hotkey, self.hotkey_pressed.emit)
+            self.hotkey = make_listener(self.settings.hotkey, self.hotkey_pressed.emit, on_drag)
             ok = self.hotkey.start()
             err = self.hotkey.error
         except ValueError as e:
             ok, err = False, str(e)
+        if on_drag is not None and not is_modifier_tap(self.settings.hotkey):
+            # A three-key shortcut doesn't read the keyboard itself: a small listener just for the drag gesture.
+            from .hotkey import make_drag_listener
+
+            self.drag_listener = make_drag_listener(on_drag)
+            if not self.drag_listener.start():
+                log.warning("drag listener: %s", self.drag_listener.error)
         self.tray.setToolTip(f"{APP_NAME} - {'tap' if is_modifier_tap(self.settings.hotkey) else 'press'} "
                              f"{self.key_label}")
         if hasattr(self, "head_action"):
@@ -324,7 +361,8 @@ class Controller(QObject):
                    "picker_size": s.picker_size, "quality": s.quality_level, "quick_recents": s.quick_recents,
                    "context_menu": s.context_menu, "keep_modified_date": s.keep_modified_date,
                    "use_clipboard_fallback": s.use_clipboard_fallback, "two_at_once": s.max_workers >= 2,
-                   "auto_update_check": s.auto_update_check, "layout_clash": self.layout_clash}
+                   "auto_update_check": s.auto_update_check, "layout_clash": self.layout_clash,
+                   "auto_jpg_downloads": s.auto_jpg_downloads, "browser_actions": s.browser_actions}
         office = {k: office_installed(k) for k in ("word", "excel", "powerpoint")}
         w = self._window("tour", lambda: TourWindow(choices, office))
         if w is None:
@@ -346,8 +384,11 @@ class Controller(QObject):
         s.picker_size = choices.get("picker_size", s.picker_size)
         if choices.get("quality", s.quality_level) != s.quality_level:
             s.set_quality_level(choices["quality"])
-        for key in ("quick_recents", "keep_modified_date", "use_clipboard_fallback", "auto_update_check"):
+        for key in ("quick_recents", "keep_modified_date", "use_clipboard_fallback", "auto_update_check",
+                    "browser_actions"):
             setattr(s, key, bool(choices.get(key, getattr(s, key))))
+        if bool(choices.get("auto_jpg_downloads", s.auto_jpg_downloads)) != s.auto_jpg_downloads:
+            self._apply("auto_jpg_downloads", bool(choices["auto_jpg_downloads"]))
         workers = max(2, s.max_workers) if choices.get("two_at_once", s.max_workers >= 2) else 1
         if workers != s.max_workers:
             self._apply("max_workers", workers, save=False)
@@ -406,6 +447,16 @@ class Controller(QObject):
 
     def _apply(self, key: str, value, save: bool = True) -> None:
         """Apply one setting change right away."""
+        if key == "auto_jpg_downloads":
+            setattr(self.settings, key, bool(value))
+            self.settings.save()
+            self._set_download_watch(bool(value))
+            return
+        if key == "drag_convert":
+            setattr(self.settings, key, bool(value))
+            self.settings.save()
+            self._start_hotkey()  # the listener watches for the gesture only when it's on
+            return
         if key == "auto_update_check":
             setattr(self.settings, key, bool(value))
             self.settings.save()
@@ -495,7 +546,18 @@ class Controller(QObject):
                               "The selected folders have no files in them.", "info")
             return
         if not files:
-            if cls not in selection.EXPLORER_CLASSES | selection.DESKTOP_CLASSES:
+            in_files = cls in selection.EXPLORER_CLASSES | selection.DESKTOP_CLASSES
+            if self.settings.use_clipboard_fallback and self._copied_picture(fresh_only=not in_files):
+                return
+            if self.settings.browser_actions and not in_files:
+                from . import browserurl
+
+                if browserurl.is_browser(hwnd):
+                    self._read_page(hwnd)  # the selected text if there is some, otherwise the page
+                    return
+                if self._copied_clip():  # text copied from a page, then a tap in another app
+                    return
+            if not in_files:
                 return  # tapped in another app (e.g. switching keyboard layout): stay quiet
             how = "tap" if is_modifier_tap(self.settings.hotkey) else "press"
             self._show_notice("No file selected",
@@ -555,6 +617,254 @@ class Controller(QObject):
                 return  # cancelled: nothing is converted
         self.jobs.submit(offer, options, dest)
 
+    # ------------------------------------------------------------ drag and convert
+    def show_dropzone(self) -> None:
+        """Ctrl+Shift held while dragging: a "Drop to convert" circle under the pointer."""
+        if self.paused or not self.settings.drag_convert:
+            return
+        if _alive(self.popup):
+            self.popup.close()
+        if self.dropzone is None:
+            from .ui.dropzone import DropZone
+
+            self.dropzone = DropZone()
+            self.dropzone.dropped.connect(self._dropped)
+            self.dropzone.failed.connect(lambda msg: self._show_notice("Couldn't use that", msg, "info"))
+            self.dropzone.missed.connect(self._drop_missed)
+        if not self.dropzone.show_at():
+            log.warning("the drop target couldn't be shown")
+
+    def _drop_missed(self) -> None:
+        """The circle showed but nothing was dragged in: most often selected text, where Shift + press changes
+        the selection instead of picking it up. Say what works (at most every few minutes)."""
+        if time.monotonic() - getattr(self, "_missed_said", -1e9) < 300:
+            return
+        self._missed_said = time.monotonic()
+        log.info("drop circle: nothing was dragged in")
+        self._show_notice("Nothing was dragged in",
+                          f"For text, no drag is needed: select it and tap {self.key_label}.", "info")
+
+    def _dropped(self, dropped) -> None:
+        """Something was let go on the circle. Real files open the picker at once; anything else is saved
+        (or fetched) into Downloads\\Tapshift first, off the UI thread."""
+        from . import dropread
+
+        self._drop_site = dropped.from_video_site  # a video site's thumbnail: say so in the picker
+
+        if dropped.files:
+            files, roots, cut = selection.expand_selection(dropped.files)
+            log.info("drop: %d file(s) from %d item(s)", len(files), len(dropped.files))
+            if files:
+                self.open_picker(files, "drop", roots, cut)
+            else:
+                self._show_notice("Nothing to convert in there", "The dropped folder has no files in it.", "info")
+            return
+        if dropped.url and not dropped.blobs:
+            host = dropped.url.split("/")[2] if dropped.url.lower().startswith(("http://", "https://")) else ""
+            self.panel.message("info", "Fetching what you dropped",
+                               f"From {host}. It's saved in Downloads\\Tapshift, then the picker opens."
+                               if host else "Saving it in Downloads\\Tapshift.", 30000)
+
+        def work():
+            try:
+                files, how = dropread.to_files(dropped)
+                self._drop_notes = list(dropped.notes)
+                self.drop_ready.emit(files, how)
+            except dropread.DropError as e:
+                self.drop_ready.emit([], str(e))
+            except Exception as e:  # noqa: BLE001
+                log.exception("saving a drop failed")
+                self.drop_ready.emit([], f"Couldn't save what was dropped ({e}).")
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _drop_ready(self, files: list, how: str) -> None:
+        if not files:
+            self.panel.hide()
+            self._show_notice("Couldn't use that", how, "info")
+            return
+        log.info("drop: %s %d file(s) into %s", how, len(files), files[0].parent)
+        self.panel.hide()
+        self.open_picker(list(files), how)
+
+    # ------------------------------------------------------------ copied pictures, browser pages
+    def _clipboard_changed(self) -> None:
+        if time.monotonic() < self._own_clip_until:
+            return  # reading a browser's selection, then putting the clipboard back: not a copy of yours
+        try:
+            data = self.app.clipboard().mimeData()
+            if data.hasImage():
+                self._clip_changed = time.monotonic()
+            elif data.hasHtml():
+                self._text_copied = time.monotonic()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _copied_picture(self, fresh_only: bool) -> bool:
+        """A picture on the clipboard (a screenshot, a browser's "Copy image"): saved in Downloads\\Tapshift,
+        then the picker. Outside File Explorer only if it was copied in the last few minutes."""
+        if fresh_only and time.monotonic() - self._clip_changed > 300:
+            return False
+        from . import dropread
+
+        data = dropread.clipboard_picture()
+        if not data:
+            return False
+        import hashlib
+
+        mark = hashlib.sha256(data).hexdigest()
+        if self._clip_saved and self._clip_saved[0] == mark and self._clip_saved[1].exists():
+            path = self._clip_saved[1]
+        else:
+            try:
+                path = dropread.save(f"Copied picture {time.strftime('%Y-%m-%d %H.%M.%S')}.png", data)
+            except Exception:  # noqa: BLE001
+                log.exception("couldn't save the copied picture")
+                return False
+            self._clip_saved = (mark, path)
+        log.info("copied picture -> %s", path.name)
+        self._drop_notes, self._drop_site = [], ""
+        self.open_picker([path], "copied")
+        return True
+
+    def _copied_clip(self) -> bool:
+        """Text or a table just copied from a web page (Ctrl + C): saved as a web clip, then the picker.
+        Dragging selected text is awkward (Shift + click changes the selection), so copy, then tap."""
+        if time.monotonic() - self._text_copied > 120:
+            return False
+        from . import dropread
+
+        clip = dropread.clipboard_clip()
+        if clip is None:
+            return False
+        import hashlib
+
+        mark = hashlib.sha256((clip.source + "|" + clip.html).encode("utf-8", "ignore")).hexdigest()
+        if mark == self._text_used:
+            return False  # already opened once: this tap is for the page itself
+        try:
+            path = dropread.save_clip(clip)
+        except Exception:  # noqa: BLE001
+            log.exception("couldn't save the copied text")
+            return False
+        self._text_used = mark
+        log.info("copied text -> %s", path.name)
+        self._drop_notes, self._drop_site = [], ""
+        self.open_picker([path], "clip")
+        return True
+
+    def _read_page(self, hwnd: int) -> None:
+        """Tapped on a browser: its selected text or table if there is one, otherwise the page itself
+        (off the UI thread; it takes a moment)."""
+        from . import browserurl
+
+        title = browserurl.page_title(hwnd)
+        self._own_clip_until = time.monotonic() + 3.0
+
+        def work():
+            import pythoncom
+
+            from . import browsercopy, dropread
+
+            try:
+                clip = browsercopy.copy_selection(hwnd)
+                if clip is not None:
+                    self.selection_found.emit(dropread.save_clip(clip))
+                    return
+            except Exception:  # noqa: BLE001
+                log.exception("reading the browser's selection failed")
+            finally:
+                self._own_clip_until = time.monotonic() + 0.5  # the last clipboard changes are ours too
+            pythoncom.CoInitialize()
+            try:
+                url = browserurl.page_url(hwnd)
+            except Exception:  # noqa: BLE001
+                log.exception("reading the browser's address failed")
+                url = ""
+            finally:
+                pythoncom.CoUninitialize()
+            self.page_found.emit(url, title)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _selection_found(self, path) -> None:
+        log.info("browser selection -> %s", path.name)
+        self._drop_notes, self._drop_site = [], ""
+        self.open_picker([path], "clip")
+
+    def _page_found(self, url: str, title: str) -> None:
+        from . import dropread
+
+        if not url.lower().startswith(("http://", "https://")):
+            self._show_notice("Couldn't read this page's address",
+                              "Tapshift reads it from the browser's address bar. Try again once the page has loaded, "
+                              "or drag the padlock icon next to the address onto the circle instead.", "info")
+            return
+        try:
+            shortcut = dropread._page_shortcut(url, title, None)
+        except Exception as e:  # noqa: BLE001
+            self._show_notice("Couldn't save the link", str(e), "info")
+            return
+        log.info("browser page -> %s", shortcut.name)
+        dropped = dropread.Dropped(url=url, link=url)
+        self._drop_notes, self._drop_site = [], dropped.from_video_site
+        self.open_picker([shortcut], "page")
+
+    # ------------------------------------------------------------ WEBP / AVIF downloads -> JPG
+    def _set_download_watch(self, on: bool) -> None:
+        from PySide6.QtCore import QFileSystemWatcher
+
+        from .dropread import downloads_dir
+
+        if self._watcher is not None:
+            self._watcher.deleteLater()
+            self._watcher = None
+        if not on:
+            return
+        folder = downloads_dir().parent  # the Downloads folder itself
+        self._watch_since = time.time()
+        self._watch_seen = {}
+        self._watcher = QFileSystemWatcher([str(folder)], self)
+        self._watcher.directoryChanged.connect(lambda _p: self._watch_timer.start())
+        log.info("watching Downloads for WEBP / AVIF pictures")
+
+    def _scan_downloads(self) -> None:
+        """New WEBP / AVIF files that have finished downloading (same size twice in a row) get a JPG copy."""
+        from .catalog import offers_for
+        from .dropread import downloads_dir
+
+        folder = downloads_dir().parent
+        waiting = False
+        try:
+            entries = list(os.scandir(folder))
+        except OSError:
+            return
+        for e in entries:
+            name = e.name.lower()
+            if not e.is_file() or not name.endswith((".webp", ".avif")):
+                continue
+            try:
+                st = e.stat()
+            except OSError:
+                continue
+            if st.st_mtime < self._watch_since or self._watch_seen.get(e.path) == -1:
+                continue
+            if self._watch_seen.get(e.path) != st.st_size:  # still arriving: look again in a moment
+                self._watch_seen[e.path] = st.st_size
+                waiting = True
+                continue
+            self._watch_seen[e.path] = -1  # done (converted once, even if it's renamed or deleted later)
+            jpg = Path(e.path).with_suffix(".jpg")
+            if jpg.exists():
+                continue
+            offers, _ = offers_for([Path(e.path)], self.settings)
+            offer = next((o for o in offers if o.target.key == "image.jpg"), None)
+            if offer is not None:
+                log.info("download watch: %s -> JPG", e.name)
+                self.jobs.submit(offer, {o.key: o.default for o in offer.options})
+        if waiting:
+            self._watch_timer.start()
+
     def show_results(self) -> None:
         """Every file of the last batch, with what happened to it (the card's Details button)."""
         from .ui.results import ResultsWindow
@@ -590,6 +900,22 @@ class Controller(QObject):
         notes = []
         if where == "clipboard":
             notes.append("From files copied to the clipboard.")
+        site = getattr(self, "_drop_site", "")
+        if where in ("saved", "downloaded"):
+            if site:
+                notes.append(f"This is the {site} video's thumbnail picture: videos on streaming sites can't be "
+                             "downloaded.")
+            notes += getattr(self, "_drop_notes", [])
+            notes.append("Saved in Downloads\\Tapshift" + (" from the web" if where == "downloaded" else "")
+                         + "; the new file goes next to it.")
+        elif where == "page":
+            if site:
+                notes.append(f"A {site} page: save it or make a QR code. The video itself can't be downloaded.")
+            notes.append("The link is kept in Downloads\\Tapshift; what you make goes next to it.")
+        elif where == "clip":
+            notes.append("Your selection is saved as a web clip in Downloads\\Tapshift, with where it came from.")
+        elif where == "copied":
+            notes.append("The copied picture is saved in Downloads\\Tapshift; the new file goes next to it.")
         if self._roots:
             n = len(self._roots)
             notes.append(f"{'This folder' if n == 1 else f'These {n} folders'}: {len(files)} "
