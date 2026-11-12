@@ -20,6 +20,13 @@ from app.lowimpact import cap_this_process  # noqa: E402
 cap_this_process(int(os.environ.get("TAPSHIFT_TEST_CPU", "25")))
 
 
+# One Qt application for the whole run, created before any test loads the image libraries: starting
+# Qt after them aborts the process (seen on CI and locally), and the app itself never does that either.
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+_qt_app = QApplication.instance() or QApplication([])
+
+
 def pytest_addoption(parser):
     parser.addoption("--full", action="store_true", help="run the complete conversion matrix (heavy)")
 
