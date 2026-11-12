@@ -78,6 +78,15 @@ def test_converted_subfolder_setting(tmp_path):
     assert outs == [trip / SUBFOLDER / "a.jpg"]
 
 
+def test_converted_folder_is_not_nested(tmp_path):
+    trip = _tree(tmp_path)
+    s = Settings()
+    s.save_to = "subfolder"
+    (first,) = _run(build_jobs(_offer([trip / "a.png"], "JPG", s), {}, s))
+    (again,) = _run(build_jobs(_offer([first], "PNG", s), {}, s))
+    assert again.parent == trip / SUBFOLDER  # not Converted\Converted
+
+
 def test_chosen_folder_is_used(tmp_path):
     trip = _tree(tmp_path)
     dest = tmp_path / "elsewhere"

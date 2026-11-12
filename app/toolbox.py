@@ -22,6 +22,7 @@ DATA_EXTS = {".csv": "csv", ".tsv": "tsv", ".json": "json", ".yaml": "yaml", ".y
              ".ini": "ini", ".properties": "properties", ".env": "env", ".ics": "ics"}
 APPLE_EXTS = {".pages", ".numbers", ".key"}
 NOTEBOOK_EXTS = {".ipynb"}
+WEBLINK_EXTS = {".url"}  # internet shortcuts: dragged links, and pages saved with Ctrl+Shift
 WORD_FREE_EXTS = {".docx", ".docm", ".dotx", ".odt"}  # read without Microsoft Word
 
 
@@ -241,6 +242,15 @@ NB_MD = Target("notebook.md", "Markdown", ".md")
 NB_PY = Target("notebook.py", "Python", ".py")
 SUB_SHIFT = Target("subtitle.shift", "Shift timing", "*", suffix=" (shifted)", ask=True)
 HASH = Target("hash.sha256", "Checksum", ".sha256", combine=True)
+PAGE_PDF = Target("webpage.pdf", "Page as PDF", ".pdf")
+PAGE_PNG = Target("webpage.png", "Page as picture", ".png")
+QR_PNG = Target("qr.png", "QR code", ".png", suffix=" (QR code)")
+CLIP_PDF = Target("clip.pdf", "PDF", ".pdf")  # a web clip (selected text), laid out by Edge / Chrome
+CLIP_PNG = Target("clip.png", "Picture", ".png")
+CLIP_TXT = Target("clip.txt", "Text", ".txt")
+WEB_TABLES = Target("webtable.xlsx", "Tables", ".xlsx", suffix=" (tables)")
+WEB_TABLE_CSV = Target("webtable.csv", "Table as CSV", ".csv", suffix=" (table)")
+FAVICON = Target("favicon.set", "Website icons", "", folder="website icons")
 
 OCR_TXT = Target("ocr.txt", "Read text", ".txt", suffix=" (text)")
 OCR_PDF = Target("ocr.pdf", "Searchable", ".pdf", suffix=" (searchable)")
@@ -321,6 +331,9 @@ def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
                                                                                  "Bottom right corner")),
             Option("opacity", "Strength %", "slider", 30, 10, 80),
         ], srcs),
+        _offer(FAVICON, "favicon and app icons", [
+            "favicon.ico and every icon size a website needs (up to 512 px), in a new folder, with the lines to "
+            "paste into your page."], [], srcs),
         _offer(IMG_PASSPORT, "print 4×6 sheet", [
             "Several passport photos on one 4×6 inch sheet to print at a photo shop or at home. The photo is cut "
             "from the middle: start with a picture where the face is centred."], [
@@ -349,6 +362,8 @@ def _svg_offers(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
     offers = []
     if svgs:
         offers.append(_offer(VEC_PDF, "sharp at any zoom", ["A vector PDF: lines and text stay sharp."], [], svgs))
+        offers.append(_offer(FAVICON, "favicon and app icons", [
+            "favicon.ico and every icon size a website needs, drawn sharp from the SVG, in a new folder."], [], svgs))
         plain = [p for p in svgs if p.suffix.lower() == ".svg"]
         packed = [p for p in svgs if p.suffix.lower() == ".svgz"]
         if plain:
@@ -730,6 +745,62 @@ def markdown_offers(files: list[Path], word_installed: bool) -> list[Offer]:
         offers.append(_offer(TEXT_DOCX, "Word", ["Created by Microsoft Word from the formatted text."], [], files))
     offers.append(_offer(TEXT_EPUB, "e-book", ["A reflowable EPUB; headings become chapters."], [], files))
     return offers
+
+
+WEB_CLIP_MARK = b'<meta name="generator" content="Tapshift web clip">'
+
+
+def is_web_clip(p: Path) -> bool:
+    """Text or a table taken from a web page (saved by Tapshift as a small .html with a marker)."""
+    if p.suffix.lower() not in (".html", ".htm"):
+        return False
+    try:
+        with open(p, "rb") as f:
+            return WEB_CLIP_MARK in f.read(2048)
+    except OSError:
+        return False
+
+
+def clip_offers(files: list[Path], word: Target | None) -> list[Offer]:
+    """Only what makes sense for a piece of a page: the text as a document, a picture of it, its tables."""
+    out = web_table_offers(files)
+    if out:
+        out[0] = _offer(WEB_TABLES, "into Excel", ["Every table in your selection, one sheet each."], [], files)
+    out.append(_offer(CLIP_PDF, "clean, searchable", ["Just your selection, laid out like the page; text stays "
+                                                       "text."], [], files))
+    if word is not None:
+        out.append(_offer(word, "to edit", ["Made by Microsoft Word, headings and lists kept."], [], files))
+    out.append(_offer(TEXT_MD, "for notes", ["Headings, lists, tables and links kept."], [], files))
+    out.append(_offer(CLIP_TXT, "just the words", ["Plain text, one paragraph per line."], [], files))
+    out.append(_offer(CLIP_PNG, "to share", ["Your selection as one picture, sharp at twice the size."], [], files))
+    return out
+
+
+def weblink_offers(files: list[Path]) -> list[Offer]:
+    """Web page links: the page saved by the browser already on this PC, or a QR code."""
+    how = ["Opened in a private, signed-out Edge or Chrome window (your browser data isn't used)."]
+    return [_offer(PAGE_PDF, "the whole page", ["Text stays text: sharp and searchable."] + how, [], files),
+            _offer(PAGE_PNG, "one long picture", ["The whole page as one picture, like a full screenshot."] + how,
+                   [], files),
+            _offer(QR_PNG, "scan with a phone", ["A QR code that opens this page; checked by reading it back."], [],
+                   files)]
+
+
+def has_table(p: Path) -> bool:
+    try:
+        with open(p, "rb") as f:
+            return b"<table" in f.read(4_000_000).lower()
+    except OSError:
+        return False
+
+
+def web_table_offers(files: list[Path]) -> list[Offer]:
+    pages = [p for p in files if p.suffix.lower() in (".htm", ".html", ".mht", ".mhtml") and has_table(p)]
+    if not pages:
+        return []
+    return [_offer(WEB_TABLES, "into Excel", ["Every table, one sheet each; merged cells spread out as they look."],
+                   [], pages),
+            _offer(WEB_TABLE_CSV, "the biggest table", ["Every cell as on the page."], [], pages)]
 
 
 def text_extra_offers(files: list[Path]) -> list[Offer]:

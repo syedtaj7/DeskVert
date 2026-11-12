@@ -348,6 +348,10 @@ def kind_of(path: Path) -> str | None:
         return "apple"
     if e in toolbox.NOTEBOOK_EXTS:
         return "notebook"
+    if e in toolbox.WEBLINK_EXTS:
+        return "weblink"
+    if toolbox.is_web_clip(path):
+        return "clip"
     if e in toolbox.MARKDOWN_EXTS:
         return "markdown"
     if e in toolbox.SUBTITLE_EXTS:
@@ -376,7 +380,7 @@ def pick_group(paths: list[Path]) -> tuple[str | None, list[Path], list[Path]]:
         return None, [], list(paths)
     order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4, "subtitle": 5, "ebook": 6, "font": 7,
              "model": 8, "drawing": 9, "mail": 10, "map": 11, "vector": 12, "audio": 13, "video": 14, "apple": 15,
-             "notebook": 16}
+             "notebook": 16, "weblink": 17, "clip": 18}
     kind = max(groups, key=lambda k: (len(groups[k]), -order[k]))
     chosen = groups[kind]
     return kind, chosen, [p for p in paths if p not in chosen]
@@ -410,6 +414,7 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
             simple = [p for p in groups["word"] if p.suffix.lower() in (".txt", ".htm", ".html")]
             offers = toolbox.text_fallback_offers(simple) if simple else []
         if main == "word":
+            offers = toolbox.web_table_offers(groups["word"]) + offers  # tables in web pages and web clips
             offers += toolbox.docfree_offers(groups["word"], office_installed("word"))
             offers += toolbox.text_extra_offers(groups["word"])
         if main == "excel":
@@ -432,13 +437,18 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         offers = toolbox.apple_offers(files)
     elif kind == "notebook":
         offers = toolbox.notebook_offers(files)
+    elif kind == "weblink":
+        offers = toolbox.weblink_offers(files)
+    elif kind == "clip":
+        word = next(t for t in WORD_TARGETS if t.key == "doc.docx") if office_installed("word") else None
+        offers = toolbox.clip_offers(files, word)
     elif kind in ("font", "model", "drawing", "mail", "map", "vector"):
         offers = {"font": toolbox.font_offers, "model": toolbox.model_offers, "drawing": toolbox.drawing_offers,
                   "mail": toolbox.mail_offers, "map": toolbox.map_offers, "vector": toolbox.vector_offers}[kind](files)
-    if paths and kind != "archive":
+    if paths and kind not in ("archive", "clip"):
         offers.append(toolbox.zip_offer(list(paths)))  # any files can be zipped
         offers += toolbox.pack_offers(list(paths))
-    if paths:
+    if paths and kind != "clip":
         offers.append(toolbox.hash_offer(list(paths)))  # and any files can get a checksum
     return offers, others
 
@@ -452,7 +462,7 @@ _COMING = {
 }
 _NEVER = {
     "program": {".exe", ".msi", ".dll", ".bat", ".cmd", ".ps1", ".sys", ".com", ".scr"},
-    "shortcut": {".lnk", ".url"},
+    "shortcut": {".lnk"},
 }
 
 

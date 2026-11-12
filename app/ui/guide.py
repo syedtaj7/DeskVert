@@ -205,7 +205,48 @@ def build_guide_sections(sections: Sections) -> list[str]:
     sections.add(page, [a, b, demo, c])
     names.append("Quick start")
 
-    # 2. The picker
+    # 2. From your browser: the highlight
+    page, lay = section_page()
+    a = h1("From your browser")
+    b = para("Works with Edge, Chrome, Brave, Firefox and Opera, with nothing to install in the browser. "
+             "Everything is saved in <b>Downloads\\Tapshift</b>.")
+    c = bullets([
+        ("Drag anything in", f"Hold {keys_html('Ctrl', 'Shift')} while you drag a picture, link or file out of a "
+                             "page. A circle appears: drop on it and pick a format. You always get the biggest "
+                             "picture the page offers, not the small preview."),
+        ("Selected text", f"Select text on a page and tap {keys_html('Ctrl', 'Shift')}: the picker offers only "
+                          "what fits a selection: a clean PDF, Word, Markdown, plain text or a picture of it, each "
+                          "with a line saying where it came from. Tapshift reads the selection by copying it and "
+                          "then puts your clipboard back exactly as it was."),
+        ("Tables to Excel", "Select a table the same way: <b>Tables</b> makes an Excel workbook, one sheet per "
+                            "table, or a CSV."),
+        ("Save the page", f"Tap {keys_html('Ctrl', 'Shift')} on a browser window with nothing selected: "
+                          "the page as a "
+                          "PDF, as one long picture, or as a QR code. It uses the Edge or Chrome already on your "
+                          "PC, with a fresh, empty profile (no cookies), so pages behind a sign-in show the "
+                          "sign-in page."),
+        ("QR code for a link", "Drag a link in and pick <b>QR code</b>. Tapshift reads the code back before saving "
+                               "it, so it always scans."),
+        ("Shared links become files", "Drag a Google Drive, Docs, Dropbox or OneDrive share link in: the file "
+                                      "itself downloads, with its real name. It must be shared with anyone who "
+                                      "has the link."),
+        ("Screenshots and copied pictures", f"Press {keys_html('Win', 'Shift', 'S')}, snip, then tap "
+                                            f"{keys_html('Ctrl', 'Shift')} anywhere: the snip opens in the "
+                                            "picker. Copied pictures from any app work the same way."),
+        ("Website icons", "Pick <b>Website icons</b> on a logo: favicon.ico, the PNG sizes phones use, and a "
+                          "page that shows the lines to paste into your site."),
+        ("WEBP downloads to JPG", "Optional, in Settings: pictures you download as WEBP or AVIF get a JPG copy next "
+                                  "to them, by themselves. The download itself is kept."),
+        ("Videos", "Dragging from YouTube or other video sites gives the thumbnail. Tapshift doesn't download "
+                   "streaming video."),
+    ])
+    for w in (a, b, c):
+        lay.addWidget(w)
+    lay.addStretch(1)
+    sections.add(page, [a, b, c])
+    names.append("From your browser")
+
+    # 3. The picker
     page, lay = section_page()
     a = h1("The picker")
     b = para("Tools circle on one orbit and formats on the other, and only ones that make sense for your "
@@ -227,7 +268,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
     sections.add(page, [a, b, wheel, c])
     names.append("The picker")
 
-    # 3. Formats
+    # 4. Formats
     page, lay = section_page()
     a = h1("What converts to what")
     t = table(["You select", "You can make"], [
@@ -243,19 +284,23 @@ def build_guide_sections(sections: Sections) -> list[str]:
         ["<b>Data</b>: CSV, TSV, JSON", "XLSX, JSON, CSV, Tidy or Minify JSON"],
         ["<b>Markdown</b>: MD", "PDF, HTML, DOCX (with Word)"],
         ["<b>Archives</b>: ZIP, 7Z, RAR, TAR, GZ, XZ, ISO…", "<b>Extract</b> into a folder, or repack as ZIP"],
+        ["<b>Audio</b>: MP3, M4A, WAV, FLAC, WMA…", "Into each other, with a quality choice"],
+        ["<b>Video</b>: MP4, MOV, MKV, AVI…", "<b>The sound only</b>, as MP3, M4A, WAV, FLAC or WMA"],
+        ["<b>Web</b>: links (.url), saved pages (HTML)", "Page as <b>PDF</b> or one long <b>picture</b>, "
+                                                         "<b>QR code</b>, <b>Tables</b> to Excel or CSV"],
         ["<b>Any files</b>", "<b>ZIP</b>: pack the selected files into one zip"],
     ])
     b = para("Word, Excel and PowerPoint conversions use your installed Microsoft Office, so the result looks "
              "exactly like it does in Office. Text recognition uses the one built into Windows. Every tool saves "
              "a new file next to the original, such as <b>photo (compressed).jpg</b>; the original is never "
-             "changed. Audio and video aren't supported.")
+             "changed. The picker shows the full list for whatever you select.")
     for w in (a, t, b):
         lay.addWidget(w)
     lay.addStretch(1)
     sections.add(page, [a, t, b])
     names.append("Formats")
 
-    # 4. Progress & results
+    # 5. Progress & results
     page, lay = section_page()
     a = h1("Progress and results")
     b = bullets([
@@ -275,7 +320,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
     sections.add(page, [a, b])
     names.append("Progress & results")
 
-    # 5. Safety
+    # 6. Safety
     page, lay = section_page()
     a = h1("Your files are safe")
     b = bullets([
@@ -288,8 +333,9 @@ def build_guide_sections(sections: Sections) -> list[str]:
                                 "are kept when the new format supports them."),
         ("Office runs locked down", "Documents are opened read-only with macros disabled, in a hidden copy of "
                                     "Office that closes when done. Your Office settings are never changed."),
-        ("Nothing leaves your computer", "No uploads, no account, no internet needed (it only asks GitHub "
-                                         "whether a newer version exists)."),
+        ("Nothing leaves your computer", "No uploads, no account. It only goes online to ask GitHub whether a "
+                                         "newer version exists, and to fetch something you drag in from a web "
+                                         "page."),
     ])
     for w in (a, b):
         lay.addWidget(w)
@@ -297,13 +343,13 @@ def build_guide_sections(sections: Sections) -> list[str]:
     sections.add(page, [a, b])
     names.append("Your files are safe")
 
-    # 6. Shortcut & settings
+    # 7. Shortcut & settings
     page, lay = section_page()
     a = h1("Shortcut and settings")
     b = bullets([
         ("The tap", f"{keys_html('Ctrl', 'Shift')}: press both, let go. It's ignored if you press another key or "
-                    "click while holding them (so Ctrl+Shift+T or Ctrl+Shift+click work as usual), and in apps "
-                    "other than File Explorer and the Desktop."),
+                    "click while holding them (so Ctrl+Shift+T or Ctrl+Shift+click work as usual). It acts in File "
+                    "Explorer, on the Desktop, on a browser window, and anywhere when you've copied a picture."),
         ("Keyboard layouts", "If Ctrl + Shift also switches your keyboard layout, choose "
                              f"{keys_html('Ctrl', 'Shift', 'Space')} in Settings instead."),
         ("Tray menu", "Right-click the Tapshift icon by the clock: recent conversions, cancel, pause the shortcut, "
@@ -311,6 +357,8 @@ def build_guide_sections(sections: Sections) -> list[str]:
         ("Performance", "Gentle, Balanced or Faster: how much of the processor conversions may use (15%, 25% or "
                         "50%). Windows enforces the limit."),
         ("Copied files", "If nothing is selected, Tapshift uses files you copied with Ctrl + C."),
+        ("Browser features", "Drag and convert, Browser pages and WEBP downloads to JPG can each be turned off "
+                             "in Settings → General."),
     ])
     for w in (a, b):
         lay.addWidget(w)
@@ -318,7 +366,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
     sections.add(page, [a, b])
     names.append("Shortcut & settings")
 
-    # 7. Troubleshooting
+    # 8. Troubleshooting
     page, lay = section_page()
     a = h1("Troubleshooting")
     b = bullets([

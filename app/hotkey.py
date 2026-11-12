@@ -6,6 +6,9 @@ Two kinds:
   delays them, unlike a keyboard hook) and costs nothing while you type.
 - Any other combination, e.g. "Ctrl+Shift+Space": registered with Windows'
   RegisterHotKey, so Windows itself watches for it.
+
+And one gesture: Ctrl+Shift held while dragging something (a picture in a browser,
+a file...) calls ``on_drag``, so a drop target can appear under the pointer.
 """
 
 from __future__ import annotations
@@ -106,13 +109,56 @@ class TapDetector:
             self.dirty = "a mouse button was pressed"  # Ctrl+Shift+click (e.g. range-select in Explorer)
 
 
+class DragGesture:
+    """Decides when "Ctrl+Shift held during a drag" happened. Pure logic, unit-tested.
+
+    - Already dragging, then Ctrl+Shift: fires as soon as both keys are down.
+    - Ctrl+Shift held first, then the mouse goes down: fires once the pointer has moved a little,
+      so a plain Ctrl+Shift+click (range-select in Explorer) never counts.
+    Fires once per hold."""
+
+    MOVE_PX = 10
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self) -> None:
+        self.armed_with_button = None  # was the button already down when both keys went down?
+        self.press_at: tuple[int, int] | None = None
+        self.fired = False
+
+    def update(self, keys_held: bool, button: bool, pos: tuple[int, int]) -> bool:
+        if not keys_held:
+            self.reset()
+            return False
+        if self.armed_with_button is None:
+            self.armed_with_button = button
+            if button:  # a drag was already going when Ctrl+Shift went down
+                self.fired = True
+                return True
+        if self.fired:
+            return False
+        if not button:
+            self.press_at = None
+            return False
+        if self.press_at is None:
+            self.press_at = pos
+            return False
+        if abs(pos[0] - self.press_at[0]) + abs(pos[1] - self.press_at[1]) >= self.MOVE_PX:
+            self.fired = True
+            return True
+        return False
+
+
 class ModifierTapListener:
     """Watches the keyboard with Windows Raw Input (read-only: keystrokes are
     never blocked or delayed, unlike a keyboard hook) and calls
-    ``on_press(foreground_hwnd)`` when Ctrl+Shift is tapped."""
+    ``on_press(foreground_hwnd)`` when Ctrl+Shift is tapped (if given), and
+    ``on_drag()`` when Ctrl+Shift is held during a drag (if given)."""
 
-    def __init__(self, on_press: Callable[[int], None]):
+    def __init__(self, on_press: Callable[[int], None] | None, on_drag: Callable[[], None] | None = None):
         self.on_press = on_press
+        self.on_drag = on_drag
         self._thread: threading.Thread | None = None
         self._tid = 0
         self._ready = threading.Event()
@@ -176,10 +222,23 @@ class ModifierTapListener:
         user32.GetAsyncKeyState.restype = ctypes.c_short
 
         det = TapDetector()
+        gesture = DragGesture()
+        pt = wintypes.POINT()
         buf = RAWINPUT()
         size = wintypes.UINT(ctypes.sizeof(RAWINPUT))
         hdr = ctypes.sizeof(RAWINPUTHEADER)
         state = {"timer": False}
+
+        def tick():
+            """While Ctrl+Shift are held: mouse buttons spoil a tap; a drag shows the drop target."""
+            left = bool(user32.GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+            for b in (VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2):
+                if user32.GetAsyncKeyState(b) & 0x8000:
+                    det.mouse_pressed()
+            if self.on_drag is not None:
+                user32.GetCursorPos(ctypes.byref(pt))
+                if gesture.update(det.ctrl and det.shift, left, (pt.x, pt.y)):
+                    self.on_drag()
 
         def wndproc(hwnd, msg, wparam, lparam):
             self.handled += 1
@@ -202,12 +261,12 @@ class ModifierTapListener:
                             elif not det.active and state["timer"]:
                                 user32.KillTimer(hwnd, 1)
                                 state["timer"] = False
-                            if fired:
+                            if fired and self.on_press is not None:
                                 self.on_press(user32.GetForegroundWindow())
+                            if det.active and self.on_drag is not None:
+                                tick()  # at once: a drag may already be going
                 elif msg == WM_TIMER:
-                    for b in (VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2):
-                        if user32.GetAsyncKeyState(b) & 0x8000:
-                            det.mouse_pressed()
+                    tick()
                     if not det.active:
                         user32.KillTimer(hwnd, 1)
                         state["timer"] = False
@@ -297,8 +356,15 @@ class HotkeyListener:
             user32.UnregisterHotKey(None, 1)
 
 
-def make_listener(combo: str, on_press: Callable[[int], None]):
-    """Ctrl+Shift alone -> tap listener; anything else -> RegisterHotKey."""
+def make_listener(combo: str, on_press: Callable[[int], None], on_drag: Callable[[], None] | None = None):
+    """Ctrl+Shift alone -> tap listener (which also watches for the drag gesture); anything else ->
+    RegisterHotKey. Windows gives raw keyboard input to one window per app, so there must never be
+    two raw-input listeners: with a combo, make_drag_listener is the only one."""
     if is_modifier_tap(combo):
-        return ModifierTapListener(on_press)
+        return ModifierTapListener(on_press, on_drag)
     return HotkeyListener(combo, on_press)
+
+
+def make_drag_listener(on_drag: Callable[[], None]) -> ModifierTapListener:
+    """Ctrl+Shift held during a drag, for any shortcut setting (it never fires a tap)."""
+    return ModifierTapListener(None, on_drag)

@@ -47,6 +47,7 @@ def _definitions():
         ("drawings", "Drawings", "CAD plans, Illustrator", set(toolbox.DRAWING_EXTS) | set(toolbox.VECTOR_EXTS)),
         ("fonts", "Fonts", "Desktop and web fonts", set(toolbox.FONT_EXTS)),
         ("archives", "Archives", "Unpack, repack, shrink", set(toolbox.ARCHIVE_EXTS)),
+        ("web", "From the web", "Pages, links, clips and tables", set(toolbox.WEBLINK_EXTS) | {".html", ".htm"}),
     ]
 
 

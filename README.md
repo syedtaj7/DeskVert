@@ -35,6 +35,26 @@ and the new file appears right next to the original, checked and ready.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
+## 🌐 Straight from your browser
+
+**New in 1.12.** Edge, Chrome, Brave, Firefox, Opera: nothing to install in the browser. Hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> while you drag anything out of a page, or tap it on a browser window.
+
+| You do | You get |
+|---|---|
+| **Drag a picture** with <kbd>Ctrl</kbd> + <kbd>Shift</kbd> held, drop it on the circle | The picker for that picture: JPG, PNG, PDF, compress, crop… Always the **biggest size the page offers**, not the small preview |
+| **Select some text** on a page, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | Choices made for a selection: a clean **PDF**, Word, Markdown, plain text or a picture of it, with a line saying where it came from |
+| **Select a table** the same way | **Excel**, one sheet per table (merged cells spread out, numbers as numbers), or CSV |
+| **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd> on a browser window with nothing selected | The page as a **PDF** or **one long picture** (made by the Edge or Chrome already on your PC), or a **QR code** of its address |
+| **Drag a link** in | A **QR code** that's read back before saving, so it always scans |
+| **Drag a Google Drive, Docs, Dropbox or OneDrive share link** | The **file itself**, with its real name (Docs, Sheets and Slides come as Word, Excel and PowerPoint) |
+| **Win + Shift + S**, then tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | Your snip (or any copied picture) in the picker: save it as PNG, JPG, PDF, read its text… |
+| Pick **Website icons** on a logo | favicon.ico, the PNG sizes phones use, a web manifest, and the lines to paste into your site |
+| Turn on **WEBP downloads to JPG** (Settings) | Pictures you download as WEBP or AVIF get a JPG copy next to them, by themselves |
+
+To read a selection, Tapshift copies it and then puts your clipboard back exactly as it was. Everything lands in **Downloads\Tapshift**, never overwriting anything. Videos on sites like YouTube are streams: dragging one gives its thumbnail, and Tapshift doesn't download streaming video.
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
 ## 🧰 Everyday tools
 
 <img src="docs/readme/tools.svg" width="100%" alt="Compress images, PDF toolkit, OCR, zip and extract, data files, Markdown">
@@ -159,6 +179,9 @@ Any of these works, and each removes everything (app, settings, logs):
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
 | Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
+| Convert from anywhere | While dragging a picture, link, table, text or file (from a browser, an e-mail, a chat...), hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> and drop it on the circle that appears |
+| Save a web page | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> while a browser window is in front: PDF, one long picture, or a QR code |
+| Convert a screenshot | Copy or snip a picture, then tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> anywhere |
 | See it all | Tray icon → **Welcome tour**: the live picker, every format, and every conversion acted out |
 | Many kinds of files at once | Select them all: each kind gets its own branch ("2 pictures", "1 PDF"), plus **Combine** and **ZIP** for everything |
 | Right-click menu | Right-click files → **Convert with Tapshift** (Windows 11: Show more options) |
@@ -178,7 +201,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Can it open password-protected files?** PDFs: yes, use **Unlock** (you need the password). Office files: remove the password in Office first.
 
-**Is anything sent to the internet?** Your files never are: conversions happen on your PC. The only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it.
+**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift goes online only for what you ask: a picture or shared file you drag in from a web page (only when the browser doesn't hand it over itself), and a page you save with the browser tap, which the Edge or Chrome on your PC opens with a fresh, empty profile (no cookies or sign-ins). Otherwise, the only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it.
 
 **Something failed. Where's the log?** Tray menu → Settings → About → Log folder. Please attach `app.log` when [reporting an issue](https://github.com/syedtaj7/TapShift/issues).
 

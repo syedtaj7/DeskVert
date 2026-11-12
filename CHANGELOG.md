@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.12.0
+
+### Straight from your browser
+Edge, Chrome, Brave, Firefox, Opera: nothing to install in the browser. All of it is in the welcome tour, the
+gallery and the guide.
+
+- **Drag and convert:** hold **Ctrl + Shift** while dragging a picture, link, table, text or file out of any
+  app: a **Drop to convert** circle appears under the pointer. Let go on it and the picker opens. Ctrl + Shift
+  can go down before the drag or during it. Outlook attachments and other "virtual files" work too.
+- **Always the biggest picture:** when a page offers several sizes of a picture, Tapshift takes the largest,
+  not the small preview.
+- **Selected text:** select text on a page and tap Ctrl + Shift. The picker offers only what fits a
+  selection: a clean PDF, Word, Markdown, plain text or a picture of it, each with a line saying which page
+  it came from. Tapshift reads the selection by copying it, then puts your clipboard back exactly as it was.
+  With nothing selected, the tap is about the page itself.
+- **Web tables to Excel:** select a table the same way: one sheet per table, merged cells spread out,
+  numbers as numbers. Or the biggest table as CSV. Saved web pages (.html) offer **Tables** too.
+- **Save the page:** tap Ctrl + Shift on a browser window with nothing selected: the page as a **PDF** or as **one
+  long picture**, made by the Edge or Chrome already on your PC (a fresh, empty profile; no cookies), or a
+  **QR code** of its address.
+- **QR codes:** for any link (.url shortcut or dragged link). Each one is read back before it's saved, so it
+  always scans.
+- **Shared links become files:** Google Drive, Docs, Sheets, Slides, Dropbox and OneDrive / SharePoint share
+  links download the file itself, with its real name.
+- **Screenshots in a tap:** press Win + Shift + S, then tap Ctrl + Shift anywhere: the snip (or any copied
+  picture) opens in the picker.
+- **Website icons:** pick it on a logo for favicon.ico (16, 32, 48), the PNG sizes phones use, a web
+  manifest and a page with the lines to paste into your site.
+- **WEBP downloads to JPG** (off by default, Settings > General): pictures you download as WEBP or AVIF get a
+  JPG copy next to them, by themselves. The download is kept.
+- What you drop is saved in **Downloads\Tapshift** (never overwriting anything) and the converted file goes
+  next to it. Files dragged from File Explorer are converted where they are, as usual.
+- Videos playing on sites like YouTube are streams: dragging one gives its thumbnail. A video file, or a link
+  straight to one (like .mp4), works, and its sound can be taken out as before.
+- Each part can be turned off in Settings > General: Drag and convert, Browser pages, WEBP downloads to JPG.
+
+### Fixes
+- The picker now closes when you click the empty space around it, not only further away.
+- Converting many files into a folder no longer makes a "Converted" folder inside another "Converted" folder.
+
+Tapshift now converts 196 kinds of files in 164 ways.
+
 ## 1.11.0
 
 ### New conversions (all light, nothing new to download)

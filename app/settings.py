@@ -42,6 +42,9 @@ class Settings:
     max_cpu_percent: int = 25  # hard limit on total CPU used by conversions (5-100)
     max_workers: int = 1  # files converted at the same time; the CPU cap is shared between them
     context_menu: bool = True  # "Convert with Tapshift" in the right-click menu
+    drag_convert: bool = True  # hold Ctrl+Shift while dragging something: a drop target appears
+    browser_actions: bool = True  # tap Ctrl+Shift on a browser window: the page as PDF, picture or QR code
+    auto_jpg_downloads: bool = False  # WEBP and AVIF pictures arriving in Downloads get a JPG copy
     quick_recents: bool = True  # recently used actions go on the picker's inner ring
     favourites: list = field(default_factory=list)  # action keys pinned to the inner ring
     recent_actions: list = field(default_factory=list)  # most recent first

@@ -104,6 +104,12 @@ class SettingsWindow(ChromeWindow):
         save_to = Segmented([("same", "Same folder"), ("subfolder", "Converted"), ("ask", "Ask")],
                             s.save_to if s.save_to in ("same", "subfolder", "ask") else "same")
         save_to.changed.connect(lambda v: self.changed.emit("save_to", v))
+        pages = Toggle(s.browser_actions)
+        pages.toggled.connect(lambda v: self.changed.emit("browser_actions", v))
+        webp = Toggle(s.auto_jpg_downloads)
+        webp.toggled.connect(lambda v: self.changed.emit("auto_jpg_downloads", v))
+        drag = Toggle(s.drag_convert)
+        drag.toggled.connect(lambda v: self.changed.emit("drag_convert", v))
         auto_upd = Toggle(s.auto_update_check)
         auto_upd.toggled.connect(lambda v: self.changed.emit("auto_update_check", v))
         tour = PillButton("Show the welcome tour", "ghost", min_width=200)
@@ -117,6 +123,12 @@ class SettingsWindow(ChromeWindow):
                 setting_row("Right-click menu and Send to", "Adds “Convert with Tapshift” to the right-click "
                             "menu of files and folders (Windows 11: Show more options), and Tapshift to Send to.",
                             menu),
+                setting_row("Drag and convert", "Hold Ctrl + Shift while dragging a picture or a file from "
+                            "anywhere (a browser, an e-mail, a chat): drop it on the circle that appears.", drag),
+                setting_row("Browser pages", "Tap Ctrl + Shift on a browser window to save the page as PDF, as a "
+                            "picture, or as a QR code.", pages),
+                setting_row("WEBP downloads to JPG", "When a WEBP or AVIF picture arrives in Downloads, a JPG copy "
+                            "is made next to it. The original stays.", webp),
                 setting_row("Tell me about updates", "Every few hours, asks GitHub for the newest version number "
                             "and lets you know when there is one. Nothing about you or your files is sent.",
                             auto_upd),
