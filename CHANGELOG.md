@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.0
+
+### New
+- **Folders work.** Select a folder (or several, or folders and files together) and Tapshift offers everything
+  for the files inside, sub-folders included. Each new file is saved next to its original. ZIP, 7Z and TAR.GZ
+  keep the folder's structure and are saved beside the folder. Up to 2,000 files at a time.
+- **Send to → Tapshift.** In the right-click menu's Send to list, which is on Windows 11's short menu. The
+  "Convert with Tapshift" entry now also appears on folders. Both come with the existing right-click setting.
+- **Choose where new files go** (Settings > General > Save new files): next to the original, in a "Converted"
+  folder beside it, or ask each time.
+- **Details for a batch.** When several files are converted, the result card has a **Details** button: every
+  file, failed ones first with the reason, **Show** for each new file, and **Copy the list**.
+- **A shortcut that doesn't fight your keyboard.** On a PC where Ctrl + Shift already switches the keyboard
+  layout, a new install starts with Ctrl + Shift + Space instead, and the tour says why.
+
+### Behind the scenes
+- Tests now run on every pull request, including a check that would have caught the invisible card of 1.9.2.
+
 ## 1.9.3
 
 ### Fixes

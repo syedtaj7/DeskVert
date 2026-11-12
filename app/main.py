@@ -84,6 +84,18 @@ class Controller(QObject):
         self._last_output: str | None = None
         self._label = ""
         self.hotkey = None
+        self._roots: list[Path] = []  # folders in the current selection (their files are what's converted)
+        self._last_batch = None
+        self.layout_clash = False
+        if not self.settings.onboarded:
+            self.layout_clash = winutil.ctrl_shift_switches_layout()
+            if self.layout_clash and self.settings.hotkey == "Ctrl+Shift":
+                self.settings.hotkey = "Ctrl+Shift+Space"
+                log.info("Ctrl+Shift switches the keyboard layout here: starting with Ctrl+Shift+Space")
+                try:
+                    self.settings.save()
+                except OSError:
+                    pass
 
         self.jobs = JobManager(self.settings)
         self.jobs.started.connect(self._on_started)
@@ -210,6 +222,7 @@ class Controller(QObject):
         self.panel.cancel_requested.connect(self.jobs.cancel)
         self.panel.show_folder.connect(winutil.show_in_explorer)
         self.panel.undo_requested.connect(self.undo)
+        self.panel.details_requested.connect(self.show_results)
         if old is not None:
             old.hide()
             old.deleteLater()
@@ -311,7 +324,7 @@ class Controller(QObject):
                    "picker_size": s.picker_size, "quality": s.quality_level, "quick_recents": s.quick_recents,
                    "context_menu": s.context_menu, "keep_modified_date": s.keep_modified_date,
                    "use_clipboard_fallback": s.use_clipboard_fallback, "two_at_once": s.max_workers >= 2,
-                   "auto_update_check": s.auto_update_check}
+                   "auto_update_check": s.auto_update_check, "layout_clash": self.layout_clash}
         office = {k: office_installed(k) for k in ("word", "excel", "powerpoint")}
         w = self._window("tour", lambda: TourWindow(choices, office))
         if w is None:
@@ -473,7 +486,14 @@ class Controller(QObject):
             log.exception("reading selection failed")
             files, where = [], ""
         cls = selection._class_name(hwnd)
-        log.info("hotkey: window=%s files=%d source=%s", cls, len(files), where or "-")
+        picked = len(files)
+        files, roots, cut = selection.expand_selection(files)
+        log.info("hotkey: window=%s files=%d source=%s folders=%d", cls, len(files), where or "-", len(roots))
+        if picked and not files:
+            self._show_notice("Nothing to convert in there",
+                              "The selected folder has no files in it." if len(roots) == 1 else
+                              "The selected folders have no files in them.", "info")
+            return
         if not files:
             if cls not in selection.EXPLORER_CLASSES | selection.DESKTOP_CLASSES:
                 return  # tapped in another app (e.g. switching keyboard layout): stay quiet
@@ -482,14 +502,17 @@ class Controller(QObject):
                               f"Select one or more files in File Explorer or on the Desktop, then {how} "
                               f"{self.key_label}.", "info")
             return
-        self.open_picker(files, where)
+        self.open_picker(files, where, roots, cut)
 
     def _open_picked(self) -> None:
-        paths = [Path(p) for p in winutil.take_picks() if os.path.isfile(p)]
-        if paths:
+        paths = [Path(p) for p in winutil.take_picks() if os.path.exists(p)]
+        files, roots, cut = selection.expand_selection(paths)
+        if files:
             if _alive(self.popup):
                 self.popup.close()
-            self.open_picker(paths, "menu")
+            self.open_picker(files, "menu", roots, cut)
+        elif paths:
+            self._show_notice("Nothing to convert in there", "The selected folder has no files in it.", "info")
 
     def repeat_last(self, files: list[Path]) -> None:
         """Run the last chosen action again, with the same options, on these files."""
@@ -519,12 +542,40 @@ class Controller(QObject):
             self.settings.save()
         except OSError:
             pass
-        self.jobs.submit(offer, options)
+        options = dict(options)
+        if self._roots and offer.target.engine == "archive" and offer.target.combine:
+            options["_roots"] = [str(r) for r in self._roots]  # keep the folders' structure inside the archive
+        dest = ""
+        if self.settings.save_to == "ask":
+            from PySide6.QtWidgets import QFileDialog
 
-    def open_picker(self, files: list[Path], where: str) -> None:
+            start = str((self._roots[0] if self._roots else offer.sources[0]).parent)
+            dest = QFileDialog.getExistingDirectory(None, "Save the new files in", start)
+            if not dest:
+                return  # cancelled: nothing is converted
+        self.jobs.submit(offer, options, dest)
+
+    def show_results(self) -> None:
+        """Every file of the last batch, with what happened to it (the card's Details button)."""
+        from .ui.results import ResultsWindow
+
+        batch = self._last_batch
+        if batch is None:
+            return
+        old = self.windows.get("results")
+        if _alive(old):
+            old.close()
+        w = self._window("results", lambda: ResultsWindow(f"To {batch.label}", batch.results))
+        if w is not None:
+            w.show_file.connect(winutil.show_in_explorer)
+            w.present()
+
+    def open_picker(self, files: list[Path], where: str, roots: list[Path] | None = None, cut: bool = False) -> None:
         import time
 
         from .menu import build_menu
+
+        self._roots = list(roots or [])
 
         nodes, quick, left_out = build_menu(files, self.settings)
         offers = []  # every action, for the searchable list
@@ -539,6 +590,12 @@ class Controller(QObject):
         notes = []
         if where == "clipboard":
             notes.append("From files copied to the clipboard.")
+        if self._roots:
+            n = len(self._roots)
+            notes.append(f"{'This folder' if n == 1 else f'These {n} folders'}: {len(files)} "
+                         f"file{'s' if len(files) != 1 else ''} inside.")
+        if cut:
+            notes.append(f"Only the first {selection.MAX_FILES} files are used.")
         group = [p for p in files if p not in left_out] or files
         if left_out and len(left_out) == len(files):
             # Nothing to convert, but the files can still be zipped: say why ZIP is the only choice.
@@ -594,6 +651,7 @@ class Controller(QObject):
         if ok:
             self._last_output = ok[0]["output"]
         first_out = ok[0]["output"] if ok else ""
+        self._last_batch = batch
 
         if cancelled and not ok and not failed:
             self.panel.finish("info", "Conversion cancelled", "Nothing was saved, and your files are unchanged.")
@@ -622,7 +680,7 @@ class Controller(QObject):
                 lines.append("All checked against the originals.")
             self.panel.finish("error" if failed and not ok else ("warning" if failed else "success"),
                               title, "\n".join(lines), first_out, [r["output"] for r in ok],
-                              sources=[s for r in ok for s in (r.get("sources") or [])])
+                              sources=[s for r in ok for s in (r.get("sources") or [])], details=True)
         QTimer.singleShot(3000, winutil.trim_memory)
 
     # ------------------------------------------------------------ exit

@@ -30,7 +30,7 @@ def _items_to_paths(items) -> list[Path]:
             p = items.Item(i).Path
         except Exception:
             continue
-        if p and os.path.isfile(p):
+        if p and (os.path.isfile(p) or os.path.isdir(p)):  # folders too: expand_selection opens them
             paths.append(Path(p))
     return paths
 
@@ -146,12 +146,55 @@ def from_clipboard() -> list[Path]:
     try:
         if win32clipboard.IsClipboardFormatAvailable(win32con.CF_HDROP):
             files = win32clipboard.GetClipboardData(win32con.CF_HDROP)
-            return [Path(f) for f in files if os.path.isfile(f)]
+            return [Path(f) for f in files if os.path.isfile(f) or os.path.isdir(f)]
     except Exception:
         log.exception("couldn't read clipboard")
     finally:
         win32clipboard.CloseClipboard()
     return []
+
+
+MAX_FILES = 2000  # a selected folder can hold anything; more than this is almost certainly a mistake
+_SKIP_NAMES = {"desktop.ini", "thumbs.db"}
+
+
+def expand_selection(paths: list[Path], limit: int = MAX_FILES) -> tuple[list[Path], list[Path], bool]:
+    """Selected folders stand for the files inside them (sub-folders included).
+    Returns (files, the folders that were selected, whether the limit cut it short)."""
+    files: list[Path] = []
+    roots: list[Path] = []
+    seen: set[str] = set()
+    cut = False
+
+    def add(p: Path) -> bool:
+        key = str(p).lower()
+        if key in seen:
+            return True
+        if len(files) >= limit:
+            return False
+        seen.add(key)
+        files.append(p)
+        return True
+
+    for p in paths:
+        if os.path.isdir(p):
+            roots.append(p)
+            for root, dirs, names in os.walk(p):
+                dirs[:] = sorted(d for d in dirs if not d.startswith((".", "$")))
+                for n in sorted(names):
+                    if n.lower() in _SKIP_NAMES or n.startswith(("~$", ".")):
+                        continue  # Explorer's own files, Office lock files, hidden dot-files
+                    if not add(Path(root) / n):
+                        cut = True
+                        break
+                if cut:
+                    break
+        elif os.path.isfile(p):
+            if not add(p):
+                cut = True
+        if cut:
+            break
+    return files, roots, cut
 
 
 def selected_files(hwnd: int, clipboard_fallback: bool = True) -> tuple[list[Path], str]:

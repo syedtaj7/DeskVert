@@ -507,6 +507,7 @@ class ProgressPanel(_Card):
     cancel_requested = Signal()
     show_folder = Signal(str)
     undo_requested = Signal(list)  # the files this conversion made
+    details_requested = Signal()  # the list of every file in the batch
 
     def __init__(self):
         super().__init__(self.W)
@@ -581,11 +582,12 @@ class ProgressPanel(_Card):
         self.cancel_btn = button("Cancel", "Stop converting; nothing is saved", self.cancel_requested.emit)
         self.copy_btn = button("Copy", "Copy the new file, to paste into a chat, an e-mail or a folder", self._copy)
         self.open_btn = button("Open", "Open the new file", self._open)
+        self.details_btn = button("Details", "Every file, and why any failed", self._details)
         self.action_btn = button("", "", self._action, primary=True)  # a one-off action, e.g. "Update" (offer())
         self.folder_btn = button("Show in folder", "Show the new file in File Explorer", self._open_folder, True)
         btns.addWidget(self.undo_btn)
         btns.addStretch(1)
-        for b in (self.cancel_btn, self.copy_btn, self.open_btn, self.folder_btn, self.action_btn):
+        for b in (self.cancel_btn, self.details_btn, self.copy_btn, self.open_btn, self.folder_btn, self.action_btn):
             btns.addWidget(b)
         self.btn_row = QWidget()
         self.btn_row.setLayout(btns)
@@ -620,7 +622,8 @@ class ProgressPanel(_Card):
         self.sub.setFixedHeight(self.sub.heightForWidth(self.text_w) if body else 0)
 
     def _buttons(self, *shown):
-        for b in (self.undo_btn, self.cancel_btn, self.copy_btn, self.open_btn, self.folder_btn, self.action_btn):
+        for b in (self.undo_btn, self.cancel_btn, self.details_btn, self.copy_btn, self.open_btn, self.folder_btn,
+                  self.action_btn):
             b.setVisible(b in shown)
         self.btn_row.setVisible(bool(shown))
 
@@ -656,7 +659,7 @@ class ProgressPanel(_Card):
         self.pct.setText(f"{frac * 100:.0f} %" if frac > 0 else "working…")
 
     def finish(self, kind: str, title: str, body: str, output: str = "", outputs: list[str] | None = None,
-               sources: list[str] | None = None, name: str = ""):
+               sources: list[str] | None = None, name: str = "", details: bool = False):
         self._busy = False
         self._action_cb = None
         self.icon.set_kind(kind)
@@ -683,10 +686,11 @@ class ProgressPanel(_Card):
             self.undo_btn.setText("Undo" if one else f"Undo all {len(self._outputs)}")
             self.copy_btn.setToolTip("Copy the new file, to paste into a chat, an e-mail or a folder" if one
                                      else f"Copy the {len(self._outputs)} new files, to paste anywhere")
-            shown = [self.undo_btn, self.copy_btn] + ([self.open_btn] if one else []) + [self.folder_btn]
+            shown = ([self.undo_btn] + ([self.details_btn] if details else [self.copy_btn])
+                     + ([self.open_btn] if one else []) + [self.folder_btn])
             self._buttons(*shown)
         else:
-            self._buttons(*([self.folder_btn] if output else []))
+            self._buttons(*(([self.details_btn] if details else []) + ([self.folder_btn] if output else [])))
         self._hide_after = 9000 if kind == "success" else 14000
         self._place_and_show()
         self._countdown(self._hide_after)
@@ -820,6 +824,10 @@ class ProgressPanel(_Card):
         QGuiApplication.clipboard().setMimeData(data)
         self.copy_btn.setText("Copied")
         QTimer.singleShot(1600, lambda: self.copy_btn.setText("Copy"))
+
+    def _details(self):
+        self.details_requested.emit()
+        self._dismiss()
 
     def _action(self):
         cb = self._action_cb

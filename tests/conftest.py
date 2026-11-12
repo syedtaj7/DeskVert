@@ -6,12 +6,25 @@ The full every-format-to-every-format matrix only runs with ``--full``.
 """
 
 import os
+import tempfile
 
 os.environ.setdefault("TAPSHIFT_THREADS", "2")
+# Never touch the real settings, logs or scratch space: importing the UI loads (and saves) settings.
+_home = tempfile.mkdtemp(prefix="tapshift-tests-")
+os.environ["APPDATA"] = os.path.join(_home, "Roaming")
+os.environ["LOCALAPPDATA"] = os.path.join(_home, "Local")
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # windows are built and driven, never shown
 
 from app.lowimpact import cap_this_process  # noqa: E402
 
 cap_this_process(int(os.environ.get("TAPSHIFT_TEST_CPU", "25")))
+
+
+# One Qt application for the whole run, created before any test loads the image libraries: starting
+# Qt after them aborts the process (seen on CI and locally), and the app itself never does that either.
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+_qt_app = QApplication.instance() or QApplication([])
 
 
 def pytest_addoption(parser):

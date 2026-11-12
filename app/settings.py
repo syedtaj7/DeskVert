@@ -12,6 +12,7 @@ from .paths import config_dir
 log = logging.getLogger(__name__)
 
 
+SUBFOLDER = "Converted"  # the folder used by save_to = "subfolder"
 PICKER_SCALE = {"compact": 0.86, "normal": 1.0, "large": 1.14}
 QUALITY_LEVELS = {
     "smaller": {"jpeg_quality": 80, "webp_quality": 80, "avif_quality": 70, "heic_quality": 76},
@@ -26,6 +27,7 @@ class Settings:
     theme: str = "auto"  # auto (follow Windows) | dark | light
     palette: str = "verdant"  # verdant (green) | signal (orange) | native (your Windows accent color)
     picker_size: str = "normal"  # compact | normal | large (how big the web of choices opens)
+    save_to: str = "same"  # same (next to the original) | subfolder (a "Converted" folder beside it) | ask
     auto_update_check: bool = True  # ask GitHub now and then whether a newer Tapshift exists
     last_update_check: float = 0.0  # when it last asked (time.time())
     update_noticed: str = ""  # "<version>@<time>": the last update we told you about, and when

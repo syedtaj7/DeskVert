@@ -108,12 +108,13 @@ def _place(tmp: Path, folder: Path, stem: str, ext: str) -> Path:
                 pass
 
 
-def commit(tmp: Path, src: Path, stem: str, ext: str, keep_modified_date: bool = True) -> tuple[Path, bool]:
-    """Move ``tmp`` (a file or a folder) next to ``src``.
+def commit(tmp: Path, src: Path, stem: str, ext: str, keep_modified_date: bool = True,
+           dest: Path | None = None) -> tuple[Path, bool]:
+    """Move ``tmp`` (a file or a folder) next to ``src``, or into ``dest`` when given.
     Returns (final_path, used_fallback_folder)."""
     used_fallback = False
     try:
-        final = _place(tmp, src.parent, stem, ext)
+        final = _place(tmp, dest or src.parent, stem, ext)
     except PermissionError:
         final, used_fallback = _place(tmp, fallback_output_dir(), stem, ext), True
     except OSError as e:

@@ -55,12 +55,15 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 ; The right-click "Convert with Tapshift" entry (Tapshift adds it while running).
 Root: HKCU; Subkey: "Software\Classes\*\shell\Tapshift"; Flags: uninsdeletekey dontcreatekey
+Root: HKCU; Subkey: "Software\Classes\Directory\shell\Tapshift"; Flags: uninsdeletekey dontcreatekey
 
 [UninstallDelete]
 ; Settings, logs and scratch space: nothing of Tapshift stays behind.
 Type: filesandordirs; Name: "{userappdata}\Tapshift"
 Type: filesandordirs; Name: "{localappdata}\Tapshift"
 Type: filesandordirs; Name: "{app}"
+; The "Send to" entry Tapshift adds while running.
+Type: files; Name: "{userappdata}\Microsoft\Windows\SendTo\Tapshift.lnk"
 
 [Run]
 Filename: "{app}\Tapshift.exe"; Description: "Start Tapshift now"; Flags: nowait postinstall skipifsilent
