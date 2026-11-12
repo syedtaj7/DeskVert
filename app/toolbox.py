@@ -17,7 +17,20 @@ from .catalog import Offer, Option, Target
 ARCHIVE_EXTS = {".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz", ".tbz2", ".xz", ".txz", ".zst", ".cab",
                 ".iso"}
 DATA_EXTS = {".csv": "csv", ".tsv": "tsv", ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".toml": "toml",
-             ".xml": "xml", ".jsonl": "jsonl", ".ndjson": "jsonl", ".vcf": "vcf"}
+             ".xml": "xml", ".jsonl": "jsonl", ".ndjson": "jsonl", ".vcf": "vcf",
+             ".db": "sqlite", ".sqlite": "sqlite", ".sqlite3": "sqlite", ".db3": "sqlite",
+             ".ini": "ini", ".properties": "properties", ".env": "env", ".ics": "ics"}
+APPLE_EXTS = {".pages", ".numbers", ".key"}
+NOTEBOOK_EXTS = {".ipynb"}
+WORD_FREE_EXTS = {".docx", ".docm", ".dotx", ".odt"}  # read without Microsoft Word
+
+
+def data_kind(p: Path) -> str | None:
+    """The kind of data file (".env" files have no extension to Windows: their whole name is ".env")."""
+    name = p.name.lower()
+    if name == ".env" or name.startswith(".env."):
+        return "env"
+    return DATA_EXTS.get(p.suffix.lower())
 SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".smi": "sami", ".sami": "sami",
                  ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd"}
 EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
@@ -93,13 +106,24 @@ def _v_int(value: str) -> str | None:
     return None if re.fullmatch(r"\d{1,6}", (value or "").strip()) else "Type a whole number, like 1."
 
 
+def _v_shift(value: str) -> str | None:
+    from .engines.subtitle import parse_shift
+
+    try:
+        parse_shift(value)
+        return None
+    except ValueError as e:
+        return str(e)
+
+
 def _v_password(value: str) -> str | None:
     if len(value or "") < 4:
         return "Use at least 4 characters."
     return None
 
 
-VALIDATORS = {"pages": _v_pages, "pages_optional": _v_pages_optional, "int": _v_int, "password": _v_password}
+VALIDATORS = {"pages": _v_pages, "pages_optional": _v_pages_optional, "int": _v_int, "password": _v_password,
+              "shift": _v_shift}
 
 
 def validate(opt: Option, value) -> str | None:
@@ -196,6 +220,28 @@ DATA_YAML = Target("data.yaml", "YAML", ".yaml")
 DATA_JSONL = Target("data.jsonl", "JSON Lines", ".jsonl")
 MIXED_PDF = Target("mixed.pdf", "1 PDF", ".pdf", combine=True)
 
+DOCFREE_TXT = Target("docread.txt", "TXT", ".txt")
+DOCFREE_MD = Target("docread.md", "Markdown", ".md")
+DOCFREE_HTML = Target("docread.html", "HTML", ".html")
+IWORK_PDF = Target("iwork.pdf", "PDF", ".pdf")
+IWORK_JPG = Target("iwork.jpg", "Picture", ".jpg", suffix=" (preview)")
+PDF_TABLES = Target("pdf.tables", "Tables", ".xlsx", suffix=" (tables)")
+PDF_BLANK = Target("pdf.blank", "Remove blank", ".pdf", suffix=" (no blank pages)")
+IMG_CROP = Target("imgedit.crop", "Crop", "*", suffix=" (cropped)", ask=True)
+IMG_PASSPORT = Target("imgedit.passport", "Passport sheet", ".jpg", suffix=" (passport sheet)", ask=True)
+IMG_WMARK = Target("imgedit.wmark", "Watermark", "*", suffix=" (watermarked)", ask=True)
+SQLITE_XLSX = Target("sqlitedb.xlsx", "XLSX", ".xlsx")
+SQLITE_CSV = Target("sqlitedb.csv", "CSV per table", "", folder="tables")
+CONFIG_JSON = Target("config.json", "JSON", ".json")
+CONFIG_YAML = Target("config.yaml", "YAML", ".yaml")
+ICS_CSV = Target("ics.csv", "CSV", ".csv")
+ICS_XLSX = Target("ics.xlsx", "XLSX", ".xlsx")
+NB_HTML = Target("notebook.html", "HTML", ".html")
+NB_MD = Target("notebook.md", "Markdown", ".md")
+NB_PY = Target("notebook.py", "Python", ".py")
+SUB_SHIFT = Target("subtitle.shift", "Shift timing", "*", suffix=" (shifted)", ask=True)
+HASH = Target("hash.sha256", "Checksum", ".sha256", combine=True)
+
 OCR_TXT = Target("ocr.txt", "Read text", ".txt", suffix=" (text)")
 OCR_PDF = Target("ocr.pdf", "Searchable", ".pdf", suffix=" (searchable)")
 
@@ -264,6 +310,24 @@ def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
             "Removes location, camera, date and other hidden details before you share a photo. JPG and PNG "
             "pictures aren't re-encoded: the picture stays exactly the same."], [], srcs),
     ]
+    offers += [
+        _offer(IMG_CROP, "square, 4:5, 16:9...", ["Cut to that shape from the middle; saved in the same format."], [
+            Option("ratio", "Shape", "choice", "1:1 square", choices=("1:1 square", "4:5 portrait", "3:2 photo",
+                                                                      "16:9 wide", "9:16 story", "A4 page")),
+        ], srcs),
+        _offer(IMG_WMARK, "your text on it", ["White text with a thin dark edge, readable on any picture."], [
+            Option("text", "Text", "text", "", placeholder="e.g. © Asha Rao 2026", required=True),
+            Option("position", "Where", "choice", "Across the middle", choices=("Across the middle",
+                                                                                 "Bottom right corner")),
+            Option("opacity", "Strength %", "slider", 30, 10, 80),
+        ], srcs),
+        _offer(IMG_PASSPORT, "print 4×6 sheet", [
+            "Several passport photos on one 4×6 inch sheet to print at a photo shop or at home. The photo is cut "
+            "from the middle: start with a picture where the face is centred."], [
+            Option("size", "Photo size", "choice", "35×45 mm (India, UK, EU)",
+                   choices=("35×45 mm (India, UK, EU)", "2×2 inch (US)")),
+        ], srcs),
+    ]
     dpi_ok = [p for p in srcs if fmts.get(p) in ("jpg", "png", "tiff", "bmp")]
     if dpi_ok:
         offers.append(_offer(IMG_DPI, "print resolution", [
@@ -305,6 +369,11 @@ def subtitle_offers(files: list[Path]) -> list[Offer]:
         srcs = [p for p in files if kinds[p] != t.fmt]
         if srcs:
             offers.append(_offer(t, SUB_CAPTIONS.get(t.fmt, ""), ["Saved as UTF-8; timings are kept."], [], srcs))
+    offers.append(_offer(SUB_SHIFT, "out of sync?", [
+        "Moves every subtitle earlier or later by the same amount; the format stays the same."], [
+        Option("seconds", "Seconds (+ later, − earlier)", "text", "", placeholder="e.g. +2.5 or -1", required=True,
+               validate="shift"),
+    ], files))
     return offers
 
 
@@ -529,6 +598,12 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
         offers.append(_offer(PDF_PICTURES, "save the pictures", ["Saved exactly as stored, in a new folder."], [],
                              unlocked))
         offers.append(_offer(PDF_GRAY, "black and white", [], [], unlocked))
+        offers.append(_offer(PDF_TABLES, "into Excel", [
+            "Every table found, one Excel sheet each. Works on PDFs made from documents; scanned pages have no "
+            "tables to find."], [], unlocked))
+        offers.append(_offer(PDF_BLANK, "empty pages out", [
+            "Removes pages with nothing on them (no text, nothing visible). The other pages stay exactly as they "
+            "are."], [], unlocked))
     if locked:
         offers.insert(0, _offer(PDF_UNLOCK, "remove password", [
             "Removes the password, using the password you type. Tapshift can't open PDFs without it."], [
@@ -562,7 +637,23 @@ def zip_offer(files: list[Path]) -> Offer:
 
 
 def data_offers(files: list[Path], excel_installed: bool) -> list[Offer]:
-    kinds = {p: DATA_EXTS[p.suffix.lower()] for p in files}
+    kinds = {p: data_kind(p) for p in files}
+    offers_extra: list[Offer] = []
+    dbs = [p for p in files if kinds[p] == "sqlite"]
+    if dbs:
+        offers_extra += [
+            _offer(SQLITE_XLSX, "one sheet per table", ["Opened read-only: the database can't change."], [], dbs),
+            _offer(SQLITE_CSV, "every table", ["One CSV per table, in a new folder. Read-only."], [], dbs)]
+    settings_files = [p for p in files if kinds[p] in ("ini", "env", "properties")]
+    if settings_files:
+        offers_extra += [
+            _offer(CONFIG_JSON, "settings as JSON", ["Every key and value, exactly as written."], [], settings_files),
+            _offer(CONFIG_YAML, "settings as YAML", ["Every key and value, exactly as written."], [], settings_files)]
+    cals = [p for p in files if kinds[p] == "ics"]
+    if cals:
+        offers_extra += [
+            _offer(ICS_XLSX, "events in Excel", ["One row per event: title, start, end, place..."], [], cals),
+            _offer(ICS_CSV, "events table", ["One row per event: title, start, end, place..."], [], cals)]
     tables = [p for p in files if kinds[p] in ("csv", "tsv")]
     jsons = [p for p in files if kinds[p] == "json"]
     other = [p for p in files if kinds[p] in ("yaml", "toml", "xml", "jsonl")]
@@ -627,7 +718,7 @@ def data_offers(files: list[Path], excel_installed: bool) -> list[Offer]:
         offers.append(_offer(DATA_TIDY, "easy to read", ["Re-indents the JSON. The data is unchanged."], [], jsons))
         offers.append(_offer(DATA_MINIFY, "smallest", ["Removes spaces and line breaks. The data is unchanged."],
                              [], jsons))
-    return offers
+    return offers_extra + offers
 
 
 def markdown_offers(files: list[Path], word_installed: bool) -> list[Offer]:
@@ -651,6 +742,40 @@ def text_extra_offers(files: list[Path]) -> list[Offer]:
     if pages:
         out.append(_offer(TEXT_MD, "Markdown", ["Headings, lists, tables and links kept."], [], pages))
     return out
+
+
+def docfree_offers(files: list[Path], word_installed: bool) -> list[Offer]:
+    """Word and OpenDocument text read directly: no Office needed."""
+    docs = [p for p in files if p.suffix.lower() in WORD_FREE_EXTS]
+    if not docs:
+        return []
+    why = ["Read directly, without Microsoft Office: text, headings, lists and tables. Pictures and page layout "
+           "aren't included."]
+    offers = [] if word_installed else [_offer(DOCFREE_TXT, "just the words", why, [], docs)]
+    return offers + [_offer(DOCFREE_MD, "headings, lists, tables", why, [], docs),
+                     _offer(DOCFREE_HTML, "web page", why, [], docs)]
+
+
+def apple_offers(files: list[Path]) -> list[Offer]:
+    why = ["Takes out the preview Apple saves inside the file. Newer files only keep the first page; the full "
+           "document opens only in Apple's apps."]
+    return [_offer(IWORK_PDF, "Apple's preview", why, [], files),
+            _offer(IWORK_JPG, "first page", why, [], files)]
+
+
+def notebook_offers(files: list[Path]) -> list[Offer]:
+    why = ["Read only, never run."]
+    return [_offer(NB_HTML, "with the results", why + ["Notes, code, text results and charts, in one page."], [],
+                   files),
+            _offer(NB_MD, "notes and code", why, [], files),
+            _offer(NB_PY, "the code", why + ["Notes become comments; results aren't included."], [], files)]
+
+
+def hash_offer(files: list[Path]) -> Offer:
+    n = len(files)
+    return _offer(HASH, "SHA-256" if n == 1 else f"{n} files, SHA-256", [
+        "A small .sha256 file listing each file's fingerprint, to check later that nothing changed (after a "
+        "download, a copy or a backup)."], [], files)
 
 
 def text_fallback_offers(files: list[Path]) -> list[Offer]:

@@ -79,6 +79,30 @@ def _make_extras(folder: Path) -> dict[str, Path]:
         p.drawText(60, 120 + i * 120, line)
     p.end()
     img.save(str(files["scan"]))
+    # 1.11: documents without Office, databases, settings, calendars, notebooks
+    w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+    files["docx"] = folder / "Letter.docx"
+    with zipfile.ZipFile(files["docx"], "w") as z:
+        z.writestr("word/document.xml", f'<w:document {w}><w:body><w:p><w:r><w:t>Dear Ravi, the photos from the '
+                   'trip to Hampi are ready to pick up on Sunday.</w:t></w:r></w:p></w:body></w:document>')
+    import sqlite3
+
+    files["db"] = folder / "Shop.db"
+    con = sqlite3.connect(files["db"])
+    con.execute("CREATE TABLE items (name TEXT, price REAL)")
+    con.executemany("INSERT INTO items VALUES (?, ?)", [("Tea", 2.5), ("Rice", 1.25)])
+    con.commit()
+    con.close()
+    files["ini"] = folder / "App.ini"
+    files["ini"].write_text("[server]\nhost = example.com\nport = 8080\n", encoding="utf-8")
+    files["ics"] = folder / "Family.ics"
+    files["ics"].write_bytes(b"BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Dentist\r\nDTSTART:20261120T093000\r\n"
+                             b"END:VEVENT\r\nEND:VCALENDAR\r\n")
+    files["ipynb"] = folder / "Sales.ipynb"
+    files["ipynb"].write_text('{"nbformat": 4, "metadata": {}, "cells": [{"cell_type": "markdown", "source": '
+                              '"# Sales for the month of November"}, {"cell_type": "code", "source": '
+                              '"print(3 + 4)", "outputs": [{"output_type": "stream", "text": "7"}]}]}',
+                              encoding="utf-8")
     return files
 
 
@@ -107,22 +131,24 @@ def run(folder: Path) -> int:
     with ProcessPoolExecutor(max_workers=1, mp_context=mp.get_context("spawn"), initializer=init_worker,
                              initargs=(25,)) as pool:
 
-        def case(files: list[Path], label: str, options: dict | None = None, name: str = "") -> Path | None:
+        def case(files: list[Path], label: str, options: dict | None = None, name: str = "",
+                 expect_fail: bool = False) -> Path | None:
             name = name or f"{files[0].name}->{label}"
             offers, _ = offers_for(files, s)
             offer = next((o for o in offers if o.target.label == label), None)
             if offer is None:
                 results.append({"case": name, "ok": False, "error": "not offered"})
                 return None
-            return run(offer, options, name)
+            return run(offer, options, name, expect_fail)
 
-        def run(offer, options: dict | None, name: str) -> Path | None:
+        def run(offer, options: dict | None, name: str, expect_fail: bool = False) -> Path | None:
             opts = {o.key: o.default for o in offer.options}
             opts.update(options or {})
             job = build_jobs(offer, opts, s)[0]
             job["id"] = uuid.uuid4().hex[:12]
             r = pool.submit(run_job, job).result(timeout=300)
-            results.append({"case": name, "ok": r.get("ok"), "output": r.get("output"),
+            ok = bool(r.get("ok")) != expect_fail and (not expect_fail or "Unexpected" not in (r.get("error") or ""))
+            results.append({"case": name, "ok": ok, "output": r.get("output"),
                             "error": r.get("error"), "notes": r.get("notes")})
             return Path(r["output"]) if r.get("ok") else None
 
@@ -181,6 +207,19 @@ def run(folder: Path) -> int:
         case([samples / "Sunset.png"], "QOI")
         case([samples / "Mountains.jpg"], "Set DPI", {"dpi": "300 dpi"})
         case([samples / "Sunset.png", samples / "Mountains.jpg"], "7Z", name="2 images->7Z")
+        # 1.11: new conversions (each engine bundled and working)
+        case([extras["docx"]], "Markdown", name="docx->Markdown (no Office)")
+        case([extras["db"]], "XLSX", name="sqlite->XLSX")
+        case([extras["ini"]], "JSON", name="ini->JSON")
+        case([extras["ics"]], "CSV", name="ics->CSV")
+        case([extras["ipynb"]], "HTML", name="ipynb->HTML")
+        case([extras["srt"]], "Shift timing", {"seconds": "+1.5"}, name="srt->Shift timing")
+        case([samples / "Mountains.jpg"], "Crop", {"ratio": "1:1 square"})
+        case([samples / "Mountains.jpg"], "Passport sheet")
+        case([samples / "Mountains.jpg"], "Watermark", {"text": "Tapshift"})
+        case([samples / "Mountains.jpg"], "Checksum")
+        if pdf:
+            case([pdf], "Remove blank", name="pdf->Remove blank (none, must say so)", expect_fail=True)
         arial = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
         if arial.exists():  # a copy: the new font goes next to it, never into Windows' own Fonts folder
             import shutil

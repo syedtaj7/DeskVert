@@ -69,15 +69,17 @@ and the new file appears right next to the original, checked and ready.
 
 | You select | You can make |
 |---|---|
-| **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, several images in one PDF · Compress · Read text |
-| **PDF** | PNG or JPG pages, text, Split, Merge · Compress · Lock / Unlock · Pages · Rotate · Numbers · Watermark · Read text · Searchable PDF |
-| **Word:** DOCX, DOC, ODT, RTF, TXT, HTML | PDF, DOCX, ODT, RTF, TXT, DOC |
+| **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, several images in one PDF · Compress · Crop to a shape · Watermark · Passport photo sheet · Read text |
+| **PDF** | PNG or JPG pages, text, Split, Merge · Compress · Lock / Unlock · Pages · Rotate · Numbers · Watermark · Tables to Excel · Remove blank pages · Read text · Searchable PDF |
+| **Word:** DOCX, DOC, ODT, RTF, TXT, HTML | PDF, DOCX, ODT, RTF, TXT, DOC; and without Office: DOCX / ODT to TXT, Markdown, HTML |
+| **Apple:** Pages, Numbers, Keynote | The preview saved inside, as PDF or JPG |
 | **Excel:** XLSX, XLS, ODS | PDF, XLSX, CSV (first sheet), ODS, XLS |
 | **PowerPoint:** PPTX, PPT, ODP | PDF, PPTX, ODP, PPT, PNG or JPG slides |
 | **Data:** CSV, TSV, JSON | XLSX, JSON, CSV, tidy or minified JSON |
-| **Markdown** | PDF, HTML, DOCX |
+| **Databases (SQLite), settings (INI, .env, .properties), calendars (.ics)** | Excel or CSV per table; JSON or YAML; events as a table |
+| **Markdown, Jupyter notebooks** | PDF, HTML, DOCX; notebooks to HTML (with charts), Markdown, Python |
 | **Archives:** ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO | Extract into a new folder, or repack as ZIP |
-| **Any files** | ZIP the selection |
+| **Any files** | ZIP the selection · SHA-256 checksum |
 
 - **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office opens hidden, read-only and with macros off, and your Office settings are never changed.
 - **Photos** keep their rotation, camera details (EXIF), GPS and color profile. Lossless formats are checked pixel for pixel.

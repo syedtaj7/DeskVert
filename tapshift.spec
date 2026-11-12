@@ -11,7 +11,8 @@ hidden = [
     # engines are imported by name inside worker processes
     "app.engines.image", "app.engines.doc", "app.engines.pdf", "app.engines.officeutil", "app.selftest",
     "app.engines.compress", "app.engines.archive", "app.engines.data", "app.engines.textdoc", "app.engines.ocr",
-    "app.toolbox", "app.menu", "app.engines.mixed", "app.ui.customize", "app.ui.universe", "app.ui.showcase", "app.ui.results",
+    "app.toolbox", "app.menu", "app.engines.mixed", "app.ui.customize", "app.ui.universe", "app.ui.showcase", "app.ui.results", "app.engines.docread", "app.engines.iwork", "app.engines.sqlitedb",
+    "app.engines.config", "app.engines.ics", "app.engines.notebook", "app.engines.hash",
     "app.ui.onboarding", "app.engines.imgedit",
     "app.engines.subtitle", "app.engines.ebook", "yaml", "tomllib", "xml.etree.ElementTree",
     "app.engines.geo", "app.engines.font", "app.engines.mesh", "app.engines.cad", "app.engines.mail",

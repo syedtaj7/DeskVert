@@ -79,6 +79,8 @@ def build_jobs(offer: Offer, options: dict, settings: Settings, dest: str = "") 
             stem = roots[0].name if tops == 1 else f"{roots[0].name} and {tops - 1} more"
             return [job(offer.sources, stem + t.suffix, where(roots[0], beside=True))]
         first = offer.sources[0]
+        if t.key == "hash.sha256" and len(offer.sources) == 1:
+            return [job(offer.sources, first.name)]  # photo.jpg.sha256, as checksum tools expect
         stem = first.stem if len(offer.sources) == 1 else f"{first.stem} and {len(offer.sources) - 1} more"
         return [job(offer.sources, stem + t.suffix)]
     suffix = options.get("name_suffix") or t.suffix  # e.g. " (form photo)" for an upload preset

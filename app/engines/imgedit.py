@@ -10,6 +10,9 @@
 - dpi:    sets the print resolution (72 to 600 dpi) without touching the pixels;
           JPG only has its header changed, so nothing is re-encoded.
 - anim:   several pictures as one animated GIF.
+- crop:   to a shape (square, 4:5, 16:9...), from the middle.
+- passport: a 4×6 inch print sheet of passport photos (35×45 mm or 2×2 in).
+- wmark:  a text watermark, across the middle or in the corner.
 
 Camera details and color profiles are kept unless the edit is "clean". Every
 result is opened again and compared with what was expected.
@@ -354,7 +357,157 @@ def _anim(sources: list[Path], out: Path, opts: dict) -> list[str]:
     return [f"Checked: {len(frames)} pictures, {secs:g} s each, {size[0]}\u00d7{size[1]} px, looping."]
 
 
+
+# ---------------------------------------------------------------- crop, passport sheet, watermark
+
+RATIOS = {"1:1 square": (1, 1), "4:5 portrait": (4, 5), "3:2 photo": (3, 2), "16:9 wide": (16, 9),
+          "9:16 story": (9, 16), "A4 page": (210, 297)}
+
+
+def _crop_box(w: int, h: int, rw: int, rh: int) -> tuple[int, int, int, int]:
+    """The largest centred rectangle of ratio rw:rh inside w×h."""
+    if w * rh > h * rw:  # too wide: trim the sides
+        nw = max(1, round(h * rw / rh))
+        x = (w - nw) // 2
+        return x, 0, x + nw, h
+    nh = max(1, round(w * rh / rw))
+    y = (h - nh) // 2
+    return 0, y, w, y + nh
+
+
+def _crop(src: Path, out: Path, opts: dict) -> list[str]:
+    choice = str(opts.get("ratio", "1:1 square"))
+    if choice not in RATIOS:
+        raise ConversionError(f"Unknown shape: {choice}")
+    im = _open(src)
+    fmt = im.format
+    up = _upright(im)
+    w, h = up.size
+    box = _crop_box(w, h, *RATIOS[choice])
+    if (box[2] - box[0], box[3] - box[1]) == (w, h):
+        raise ConversionError(f"This picture is already {choice.split()[0]}.")
+    res = up.crop(box)
+    _save(res, out, fmt, im, src)
+    _verify(out, res, fmt, src)
+    return [f"Cropped to {choice} from the middle: {w}×{h} → {res.size[0]}×{res.size[1]} px. Saved as "
+            f"{EDITABLE[fmt][1:].upper()}."]
+
+
+# Print sheets at 300 dpi on 4×6 inch photo paper: (photo w, h in px, columns, rows, sheet w, h)
+PASSPORT = {"35×45 mm (India, UK, EU)": (413, 531, 4, 2, 1800, 1200),
+            "2×2 inch (US)": (600, 600, 2, 3, 1200, 1800)}
+
+
+def _passport(src: Path, out: Path, opts: dict) -> list[str]:
+    from PIL import ImageDraw
+
+    choice = str(opts.get("size", next(iter(PASSPORT))))
+    if choice not in PASSPORT:
+        raise ConversionError(f"Unknown photo size: {choice}")
+    pw, ph, cols, rows, sw, sh = PASSPORT[choice]
+    im = _open(src)
+    up = _upright(im).convert("RGB")
+    w, h = up.size
+    if min(w, h) < 200:
+        raise ConversionError(f"This picture is only {w}×{h} px: too small to print a sharp passport photo.")
+    photo = up.crop(_crop_box(w, h, pw, ph)).resize((pw, ph), Image.Resampling.LANCZOS)
+    sheet = Image.new("RGB", (sw, sh), "white")
+    gx = (sw - cols * pw) // (cols + 1)
+    gy = (sh - rows * ph) // (rows + 1)
+    draw = ImageDraw.Draw(sheet)
+    spots = []
+    for r in range(rows):
+        for c in range(cols):
+            x, y = gx + c * (pw + gx), gy + r * (ph + gy)
+            sheet.paste(photo, (x, y))
+            spots.append((x, y))
+            if gx or gy:  # thin grey frame to cut along
+                draw.rectangle([x - 1, y - 1, x + pw, y + ph], outline=(200, 200, 200))
+    sheet.save(long_path(out), "JPEG", quality=95, dpi=(300, 300), subsampling=0)
+    with Image.open(long_path(out)) as back:
+        back.load()
+        if back.size != (sw, sh):
+            raise VerificationError("the sheet has the wrong size")
+        dpi = back.info.get("dpi", (0, 0))
+        if round(dpi[0]) != 300:
+            raise VerificationError("the print resolution wasn't saved")
+        import numpy as np
+
+        a = np.asarray(back.crop((spots[0][0], spots[0][1], spots[0][0] + pw, spots[0][1] + ph)), np.float32)
+        b = np.asarray(photo, np.float32)
+        if 10 * np.log10(255 ** 2 / max(1e-6, float(np.mean((a - b) ** 2)))) < 34:
+            raise VerificationError("the photos on the sheet lost too much quality")
+    n = cols * rows
+    return [f"Checked: {n} photos of {choice.split(' (')[0]} on a 4×6 inch sheet, 300 dpi.",
+            "Print at 100 % (actual size) on 4×6 photo paper. Make sure the face is centred and the background "
+            "plain: the photo is cropped from the middle."]
+
+
+def _font(px: int):
+    from PIL import ImageFont
+
+    import os
+
+    for name in ("segoeuib.ttf", "arialbd.ttf", "arial.ttf"):
+        path = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / name
+        if path.exists():
+            return ImageFont.truetype(str(path), px)
+    return ImageFont.load_default(px)
+
+
+def _watermark(src: Path, out: Path, opts: dict) -> list[str]:
+    from PIL import ImageDraw
+
+    text = " ".join(str(opts.get("text", "")).split())
+    if not text:
+        raise ConversionError("Type the watermark text.")
+    where = str(opts.get("position", "Across the middle"))
+    opacity = max(5, min(80, int(opts.get("opacity", 30))))
+    im = _open(src)
+    fmt = im.format
+    up = _upright(im)
+    base = up.convert("RGBA")
+    w, h = base.size
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    alpha = round(255 * opacity / 100)
+    if where == "Across the middle":
+        size = max(12, int(min(w, h) / max(4, len(text) * 0.55)))
+        f = _font(size)
+        x0, y0, x1, y1 = draw.textbbox((0, 0), text, font=f)
+        tile = Image.new("RGBA", (x1 - x0 + 8, y1 - y0 + 8), (0, 0, 0, 0))
+        ImageDraw.Draw(tile).text((4 - x0, 4 - y0), text, font=f, fill=(255, 255, 255, alpha),
+                                  stroke_width=max(1, size // 30), stroke_fill=(0, 0, 0, alpha))
+        tile = tile.rotate(30, expand=True, resample=Image.Resampling.BICUBIC)
+        layer.alpha_composite(tile, ((w - tile.width) // 2, (h - tile.height) // 2))
+    else:
+        size = max(12, min(w, h) // 22)
+        f = _font(size)
+        x0, y0, x1, y1 = draw.textbbox((0, 0), text, font=f)
+        pad = size // 2
+        draw.text((w - (x1 - x0) - pad - x0, h - (y1 - y0) - pad - y0), text, font=f, fill=(255, 255, 255, alpha),
+                  stroke_width=max(1, size // 18), stroke_fill=(0, 0, 0, alpha))
+    res = Image.alpha_composite(base, layer)
+    if "A" not in up.getbands():
+        res = res.convert("RGB" if up.mode != "L" else "L")
+    _save(res, out, fmt, im, src)
+    with Image.open(long_path(out)) as back:
+        back.load()
+        if back.size != up.size:
+            raise VerificationError("the picture changed size")
+        if back.convert("RGB").tobytes() == up.convert("RGB").tobytes():
+            raise VerificationError("the watermark isn't on the picture")
+    return [f"Watermark “{text}” ({where.lower()}, {opacity} % strength). Saved as "
+            f"{EDITABLE[fmt][1:].upper()}, same size."]
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
+    if fmt == "crop":
+        return _crop(sources[0], out, opts)
+    if fmt == "passport":
+        return _passport(sources[0], out, opts)
+    if fmt == "wmark":
+        return _watermark(sources[0], out, opts)
     if fmt == "dpi":
         return _set_dpi(sources[0], out, opts)
     if fmt == "anim":

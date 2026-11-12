@@ -24,16 +24,18 @@ BRANCHES = {
     "pdf": [
         ("Split", "into parts", ["pdf.splithalf", "pdf.splitevery", "pdf.splitranges", "pdf.split"]),
         ("Pages", "order and layout", ["pdf.pages", "pdf.reorder", "pdf.reverse", "pdf.rotate", "pdf.numbers",
-                                       "pdf.nup"]),
+                                       "pdf.nup", "pdf.blank"]),
         ("Protect", "password and more", ["pdf.lock", "pdf.unlock", "pdf.watermark", "pdf.flatten", "pdf.clean"]),
-        ("Convert", "to other files", ["pdf.png", "pdf.jpg", "pdf.txt", "pdf.md", "pdf.html", "ebook.epub",
-                                       "pdf.longimg", "pdf.tiff", "ebook.cbz", "pdf.pictures", "pdf.gray"]),
+        ("Convert", "to other files", ["pdf.png", "pdf.jpg", "pdf.txt", "pdf.md", "pdf.html", "pdf.tables",
+                                       "ebook.epub", "pdf.longimg", "pdf.tiff", "ebook.cbz", "pdf.pictures",
+                                       "pdf.gray"]),
         ("Text", "read scans", ["ocr.txt", "ocr.pdf"]),
     ],
     "image": [
-        ("Edit", "turn, resize, clean", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip",
-                                         "imgedit.resize", "imgedit.gray", "imgedit.clean", "imgedit.dpi",
-                                         "imgedit.stitch", "imgedit.anim"]),
+        ("Edit", "turn, crop, resize", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip",
+                                        "imgedit.crop", "imgedit.resize", "imgedit.gray", "imgedit.wmark",
+                                        "imgedit.clean", "imgedit.dpi", "imgedit.passport", "imgedit.stitch",
+                                        "imgedit.anim"]),
         ("More formats", "every image format", ["image.heic", "image.avif", "image.ico", "image.tiff", "image.gif",
                                                 "image.bmp", "image.jp2", "image.icns", "image.tga", "image.qoi",
                                                 "image.dds", "image.pcx", "image.ppm", "image.sgi", "image.xbm",
@@ -46,7 +48,8 @@ BRANCHES = {
     "subtitle": [("More formats", "every subtitle format", ["subtitle.ass", "subtitle.sami", "subtitle.ttml",
                                                            "subtitle.lrc", "subtitle.microdvd"])],
     "model": [("More formats", "every 3D format", ["mesh.3mf", "mesh.ply"])],
-    "document": [("Data", "without Excel", ["data.sheets", "data.json", "data.yaml", "data.xml"])],
+    "document": [("Data", "without Excel", ["data.sheets", "data.json", "data.yaml", "data.xml"]),
+                 ("No Office", "Markdown, HTML", ["docread.txt", "docread.md", "docread.html"])],
     "map": [("Data", "tables", ["geo.csv", "geo.xlsx"])],
     "audio": [("Lossless", "WAV, FLAC", ["media.wav", "media.flac"])],
     "video": [("Sound", "MP3, M4A, WAV...", ["media.mp3", "media.m4a", "media.wav", "media.flac", "media.wma"])],
@@ -57,9 +60,10 @@ KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "docume
               "font": ("font", "fonts"), "model": ("3D model", "3D models"), "drawing": ("drawing", "drawings"),
               "mail": ("e-mail or page", "e-mails or pages"), "map": ("map file", "map files"),
               "vector": ("drawing", "drawings"), "audio": ("sound file", "sound files"),
-              "video": ("video", "videos")}
+              "video": ("video", "videos"), "apple": ("Apple file", "Apple files"),
+              "notebook": ("notebook", "notebooks")}
 # Every kind of file: the ways to pack them.
-PACK = ("Pack", "ZIP, 7Z, TAR.GZ", ["archive.zip", "archive.7z", "archive.targz"])
+PACK = ("Pack", "ZIP, 7Z, checksum", ["archive.zip", "archive.7z", "archive.targz", "hash.sha256"])
 REPACK = ("Repack", "ZIP, 7Z, TAR.GZ", ["archive.tozip", "archive.to7z", "archive.totargz"])
 FAN_MAX = 8  # choices in one fan; bigger groups open fans of their own (a web, never a list)
 # Big branches, split into named fans of their own: (kind, branch) -> [(label, caption, keys)].
@@ -73,12 +77,15 @@ SUBGROUPS = {
     ],
     ("image", "Edit"): [
         ("Turn", "rotate, mirror", ["imgedit.rotr", "imgedit.rotl", "imgedit.rot180", "imgedit.flip"]),
-        ("Fix", "size, color, info", ["imgedit.resize", "imgedit.gray", "imgedit.clean", "imgedit.dpi"]),
+        ("Fix", "crop, size, color", ["imgedit.crop", "imgedit.resize", "imgedit.gray", "imgedit.wmark",
+                                      "imgedit.clean"]),
+        ("Print", "passport sheet, DPI", ["imgedit.passport", "imgedit.dpi"]),
         ("Combine", "several in one", ["imgedit.stitch", "imgedit.anim"]),
     ],
     ("pdf", "Convert"): [
         ("As images", "PNG, JPG, TIFF...", ["pdf.png", "pdf.jpg", "pdf.longimg", "pdf.tiff", "pdf.pictures"]),
         ("As text", "TXT, Markdown, HTML", ["pdf.txt", "pdf.md", "pdf.html"]),
+        ("As data", "tables to Excel", ["pdf.tables"]),
         ("As e-book", "EPUB, comic", ["ebook.epub", "ebook.cbz"]),
     ],
 }
@@ -281,6 +288,9 @@ FAVOURITE_CHOICES = [
     ("imgedit.rotr", "Pictures: turn right"), ("imgedit.resize", "Pictures: resize"),
     ("imgedit.clean", "Pictures: remove location & camera info"), ("doc.pdf", "Documents: to PDF"),
     ("archive.zip", "Any files: ZIP"), ("media.mp3", "Sound: to MP3"), ("media.m4a", "Sound: to M4A"),
+    ("imgedit.crop", "Pictures: crop to a shape"), ("imgedit.wmark", "Pictures: watermark"),
+    ("imgedit.passport", "Pictures: passport photo sheet"), ("pdf.tables", "PDF: tables to Excel"),
+    ("pdf.blank", "PDF: remove blank pages"), ("hash.sha256", "Any files: checksum"),
 ]
 FAVOURITE_NAMES = dict(FAVOURITE_CHOICES)
 

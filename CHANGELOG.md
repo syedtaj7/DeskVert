@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.11.0
+
+### New conversions (all light, nothing new to download)
+- **Word and OpenDocument without Office:** DOCX and ODT to plain text, Markdown or a web page, with headings,
+  lists, tables, bold and italic. Works on PCs without Microsoft Office; with Office you get Markdown and HTML
+  as extras.
+- **Apple Pages, Numbers and Keynote:** the preview Apple saves inside the file, as PDF or JPG (newer files keep
+  the first page; older ones a full PDF). Before, these were refused.
+- **PDF tables to Excel:** every table found, one sheet each, numbers as numbers and values like 1.20 kept as
+  written.
+- **Remove blank pages** from a PDF (the other pages stay exactly the same).
+- **Pictures:** crop to a shape (square, 4:5, 3:2, 16:9, 9:16, A4), a text watermark (across the middle or in
+  the corner), and a **passport photo sheet**: 8 photos of 35×45 mm (or 6 of 2×2 inch) on a 4×6 inch print.
+- **Databases (SQLite):** every table to Excel (a sheet each) or CSV, read-only.
+- **Settings files:** INI, .env and .properties to JSON or YAML, every value exactly as written.
+- **Calendars (.ics)** from Google, Outlook or Apple: every event as a row in Excel or CSV.
+- **Jupyter notebooks:** to a web page with the results and charts, Markdown, or a Python script. Never run.
+- **Subtitles out of sync?** Shift every subtitle earlier or later by a few seconds, same format.
+- **Checksum** for any files or folders: a .sha256 file to check later that nothing changed.
+
+Tapshift now converts 195 kinds of files in 160 ways.
+
 ## 1.10.0
 
 ### New

@@ -370,9 +370,44 @@ def _close(a: list[Cue], b: list[Cue], tol_ms: int, words: bool) -> bool:
     return True
 
 
+def parse_shift(text: str) -> int:
+    """'+2.5', '-1', '1,5 s' -> milliseconds. Raises ValueError with a message for the user."""
+    t = (text or "").strip().lower().replace(",", ".").replace("s", "").replace(" ", "")
+    m = re.fullmatch(r"([+-]?)(\d{1,5}(?:\.\d{1,3})?)", t)
+    if not m:
+        raise ValueError("Type seconds, like +2.5 (later) or -1 (earlier).")
+    ms = round(float(m.group(2)) * 1000)
+    if ms == 0:
+        raise ValueError("Type a shift other than 0.")
+    return -ms if m.group(1) == "-" else ms
+
+
+def shift(src: Path, out: Path, kind: str, opts: dict) -> list[str]:
+    try:
+        delta = parse_shift(str(opts.get("seconds", "")))
+    except ValueError as e:
+        raise ConversionError(str(e)) from e
+    cues = parse(_read(src), kind)
+    moved = [(max(0, a + delta), max(0, b + delta), t) for a, b, t in cues]
+    clipped = sum(1 for a, _b, _t in cues if a + delta < 0)
+    Path(long_path(out)).write_text(WRITERS[kind](moved), encoding="utf-8", newline="\n")
+    back = parse(Path(long_path(out)).read_text(encoding="utf-8"), kind)
+    tol = {"ass": 10, "lrc": 10, "microdvd": 1000 / FPS + 1}.get(kind, 0)
+    if not _close(back, _expected(moved, kind), int(tol), words=kind in ("lrc", "microdvd", "sami", "ttml")):
+        raise VerificationError("the subtitles changed on the way")
+    secs = f"{abs(delta) / 1000:g} second{'s' if abs(delta) != 1000 else ''}"
+    notes = [f"Checked: {len(cues)} subtitles, every one {secs} {'later' if delta > 0 else 'earlier'}. Same format."]
+    if clipped:
+        notes.append(f"{clipped} subtitle{'s' if clipped != 1 else ''} would have started before 0:00, so "
+                     f"{'they start' if clipped != 1 else 'it starts'} at 0:00.")
+    return notes
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     src = sources[0]
     kind = EXTS.get(src.suffix.lower())
+    if kind is not None and fmt == "shift":
+        return shift(src, out, kind, opts)
     if kind is None or fmt not in WRITERS:
         raise ConversionError("Unknown subtitle format.")
     cues = parse(_read(src), kind)

@@ -342,8 +342,12 @@ def kind_of(path: Path) -> str | None:
         return "image"
     if e in toolbox.ARCHIVE_EXTS:
         return "archive"
-    if e in toolbox.DATA_EXTS:
+    if toolbox.data_kind(path):
         return "data"
+    if e in toolbox.APPLE_EXTS:
+        return "apple"
+    if e in toolbox.NOTEBOOK_EXTS:
+        return "notebook"
     if e in toolbox.MARKDOWN_EXTS:
         return "markdown"
     if e in toolbox.SUBTITLE_EXTS:
@@ -371,7 +375,8 @@ def pick_group(paths: list[Path]) -> tuple[str | None, list[Path], list[Path]]:
     if not groups:
         return None, [], list(paths)
     order = {"image": 0, "document": 1, "data": 2, "markdown": 3, "archive": 4, "subtitle": 5, "ebook": 6, "font": 7,
-             "model": 8, "drawing": 9, "mail": 10, "map": 11, "vector": 12, "audio": 13, "video": 14}
+             "model": 8, "drawing": 9, "mail": 10, "map": 11, "vector": 12, "audio": 13, "video": 14, "apple": 15,
+             "notebook": 16}
     kind = max(groups, key=lambda k: (len(groups[k]), -order[k]))
     chosen = groups[kind]
     return kind, chosen, [p for p in paths if p not in chosen]
@@ -405,6 +410,7 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
             simple = [p for p in groups["word"] if p.suffix.lower() in (".txt", ".htm", ".html")]
             offers = toolbox.text_fallback_offers(simple) if simple else []
         if main == "word":
+            offers += toolbox.docfree_offers(groups["word"], office_installed("word"))
             offers += toolbox.text_extra_offers(groups["word"])
         if main == "excel":
             offers += toolbox.sheet_offers(groups["excel"])
@@ -422,12 +428,18 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         offers = toolbox.ebook_offers(files)
     elif kind in ("audio", "video"):
         offers = toolbox.audio_offers(files, video=kind == "video")
+    elif kind == "apple":
+        offers = toolbox.apple_offers(files)
+    elif kind == "notebook":
+        offers = toolbox.notebook_offers(files)
     elif kind in ("font", "model", "drawing", "mail", "map", "vector"):
         offers = {"font": toolbox.font_offers, "model": toolbox.model_offers, "drawing": toolbox.drawing_offers,
                   "mail": toolbox.mail_offers, "map": toolbox.map_offers, "vector": toolbox.vector_offers}[kind](files)
     if paths and kind != "archive":
         offers.append(toolbox.zip_offer(list(paths)))  # any files can be zipped
         offers += toolbox.pack_offers(list(paths))
+    if paths:
+        offers.append(toolbox.hash_offer(list(paths)))  # and any files can get a checksum
     return offers, others
 
 
@@ -436,11 +448,8 @@ _COMING = {
     "WOFF2 font": {".woff2"},
     "AutoCAD DWG drawing": {".dwg"},
     "Shapefile map": {".shp"},
-    "archive": {".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2", ".xz"},
-    "font": {".ttf", ".otf", ".woff", ".woff2"},
-    "subtitle file": {".scc", ".stl.txt"},
+    "subtitle file": {".scc"},
 }
-_APPLE = {".pages": "Pages", ".numbers": "Numbers", ".key": "Keynote"}
 _NEVER = {
     "program": {".exe", ".msi", ".dll", ".bat", ".cmd", ".ps1", ".sys", ".com", ".scr"},
     "shortcut": {".lnk", ".url"},
@@ -458,8 +467,6 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
     if dk and dk[0] != "pdf" and not office_installed(dk[0]):
         app = {"word": "Word", "excel": "Excel", "powerpoint": "PowerPoint"}[dk[0]]
         return title, f"Converting {p.suffix.upper().lstrip('.')} files needs Microsoft {app}, which isn't installed."
-    if ext in _APPLE:
-        return title, f"{name} is an Apple {_APPLE[ext]} file, which can only be opened on a Mac or iPhone."
     if ext in MEDIA_EXTS:
         return title, (f"{name} {'are audio or video files' if many else 'is an audio or video file'} Windows "
                        "can't read. Tapshift converts sound with Windows' own converter; re-encoding video isn't "
@@ -477,7 +484,7 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
             return title, f"{name} {'are' if many else 'is'} {a(kind)}{kind}{'s' if many else ''}, which can't be converted to another format."
     shown = ext.upper().lstrip(".") or "no extension"
     return title, (f"Tapshift doesn't know the {shown} file type. It converts pictures, documents, PDFs, "
-                   "e-books, data, subtitles, fonts, maps, 3D models, drawings and archives.")
+                   "e-books, data, subtitles, fonts, maps, 3D models, drawings, sound and archives.")
 
 
 def describe_selection(paths: list[Path]) -> str:
