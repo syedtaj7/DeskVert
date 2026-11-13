@@ -3,14 +3,14 @@
 Each watched folder has one action ("PDF", "JPG", "Compress"...). A new file is converted once it has
 finished arriving (the same size twice in a row), and the result goes into a "Converted" folder inside
 the watched one, so results are never picked up again. Only files added after Tapshift started
-watching count; files already there are left alone. Nothing is ever deleted or moved.
+watching count (the files already there are listed when watching starts, and left alone). Nothing is ever
+deleted or moved.
 """
 
 from __future__ import annotations
 
 import logging
 import os
-import time
 from pathlib import Path
 
 from PySide6.QtCore import QFileSystemWatcher, QObject, QTimer, Signal
@@ -53,7 +53,7 @@ class FolderWatcher(QObject):
         self._fs: QFileSystemWatcher | None = None
         self._rules: dict[str, str] = {}  # folder (lower) -> action
         self._paths: dict[str, Path] = {}
-        self._since = time.time()
+        self._before: dict[str, float] = {}  # files already there when watching started -> their time
         self._seen: dict[str, int] = {}  # file -> last size seen; -1 = handled
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
@@ -71,8 +71,15 @@ class FolderWatcher(QObject):
             if p.is_dir() and r.get("action") in ACTIONS:
                 self._rules[str(p).lower()] = r["action"]
                 self._paths[str(p).lower()] = p
-        self._since = time.time()
         self._seen = {}
+        self._before = {}
+        for folder in self._paths.values():  # what's there now isn't new (file times are too coarse to compare)
+            try:
+                for e in os.scandir(folder):
+                    if e.is_file():
+                        self._before[e.path] = e.stat().st_mtime
+            except OSError:
+                pass
         if self._rules:
             self._fs = QFileSystemWatcher([str(p) for p in self._paths.values()], self)
             self._fs.directoryChanged.connect(lambda _p: self._timer.start())
@@ -93,8 +100,8 @@ class FolderWatcher(QObject):
                     st = e.stat()
                 except OSError:
                     continue
-                if st.st_mtime < self._since or self._seen.get(e.path) == -1:
-                    continue
+                if self._before.get(e.path) == st.st_mtime or self._seen.get(e.path) == -1:
+                    continue  # there before watching started (and unchanged), or already handled
                 if self._seen.get(e.path) != st.st_size:  # still arriving: look again in a moment
                     self._seen[e.path] = st.st_size
                     waiting = True
