@@ -155,6 +155,11 @@ Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion
 > [!NOTE]
 > **"Windows protected your PC"?** Windows SmartScreen shows this for new apps that aren't widely downloaded yet. Click **More info → Run anyway**. Tapshift is open source: every release is built from this repository by GitHub Actions, and you can read every line.
 
+**Needs:** Windows 10 or 11, 64-bit · about 250 MB of disk · no admin rights, no internet for converting.
+Optional: Microsoft Office (or the free LibreOffice) for Word, Excel and PowerPoint files; Edge or Chrome (already on most PCs) for saving web pages.
+
+**Check your download (optional):** each file's SHA-256 checksum is listed on its [release page](https://github.com/syedtaj7/TapShift/releases/latest). In PowerShell: `Get-FileHash .\Tapshift-Setup-x.y.z.exe` should print the same value.
+
 ### Update
 
 Tapshift lets you know when a new version is out (it asks GitHub every few hours; turn it off in
@@ -206,7 +211,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Can it open password-protected files?** PDFs: yes, use **Unlock** (you need the password). Office files: remove the password in Office first.
 
-**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift goes online only for what you ask: a picture or shared file you drag in from a web page (only when the browser doesn't hand it over itself), and a page you save with the browser tap, which the Edge or Chrome on your PC opens with a fresh, empty profile (no cookies or sign-ins). Otherwise, the only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it.
+**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift goes online only for what you ask: a picture or shared file you drag in from a web page (only when the browser doesn't hand it over itself), and a page you save with the browser tap, which the Edge or Chrome on your PC opens with a fresh, empty profile (no cookies or sign-ins). Otherwise, the only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it. The full list is in [PRIVACY.md](PRIVACY.md); security problems go to [SECURITY.md](SECURITY.md).
 
 **Something failed. How do I report it?** Tray menu → **Report a problem** (or **Report** on the red card). It shows exactly what would be shared, with your name and folders hidden, and opens a filled-in GitHub issue in your browser. The full log is in Settings → About → Log folder.
 
