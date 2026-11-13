@@ -14,6 +14,12 @@ AppPublisher=Tapshift
 AppPublisherURL=https://github.com/syedtaj7/TapShift
 AppSupportURL=https://github.com/syedtaj7/TapShift/issues
 AppUpdatesURL=https://github.com/syedtaj7/TapShift/releases
+; Product name and version inside Setup itself (code signing checks these)
+VersionInfoVersion={#AppVersion}
+VersionInfoProductName=Tapshift
+VersionInfoProductVersion={#AppVersion}
+VersionInfoCompany=Tapshift
+VersionInfoDescription=Tapshift Setup
 DefaultDirName={localappdata}\Programs\Tapshift
 DefaultGroupName=Tapshift
 DisableProgramGroupPage=yes

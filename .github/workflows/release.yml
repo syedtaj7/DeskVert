@@ -1,6 +1,10 @@
 name: Release
 
 # Push a tag like v1.0.0 to build the installer and portable zip and attach them to a GitHub Release.
+#
+# Code signing (SignPath Foundation, free for open source; see docs/SIGNING.md): when the repository variable
+# SIGNPATH_ORGANIZATION_ID is set, Tapshift.exe is signed before it's packaged, and the installer after. Without
+# it, everything is built exactly the same, unsigned.
 on:
   push:
     tags: ["v*"]
@@ -8,6 +12,10 @@ on:
 
 permissions:
   contents: write
+  actions: read  # SignPath downloads the artifacts it signs from this run
+
+env:
+  SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
 
 jobs:
   build:
@@ -26,9 +34,90 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
-      - name: Build
+      - name: Version
+        id: ver
         shell: pwsh
-        run: tools/build_release.ps1
+        run: |
+          $v = (Select-String -Path app/__init__.py -Pattern '__version__ = "([^"]+)"').Matches[0].Groups[1].Value
+          "value=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build the app
+        shell: pwsh
+        run: tools/build_release.ps1 -Stage app
+
+      # ---- sign Tapshift.exe, so the zip and the installer carry the signed app
+      - name: Upload Tapshift.exe for signing
+        if: env.SIGN == 'true'
+        id: app-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-unsigned
+          path: dist/Tapshift/Tapshift.exe
+          if-no-files-found: error
+
+      - name: Sign Tapshift.exe (SignPath)
+        if: env.SIGN == 'true'
+        uses: SignPath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: app
+          parameters: |
+            version: "${{ steps.ver.outputs.value }}"
+          github-artifact-id: ${{ steps.app-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600  # each release is approved by hand in SignPath
+          output-artifact-directory: signed/app
+
+      - name: Use the signed Tapshift.exe
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          Copy-Item signed/app/Tapshift.exe dist/Tapshift/Tapshift.exe -Force
+          $sig = Get-AuthenticodeSignature dist/Tapshift/Tapshift.exe
+          if ($sig.Status -ne "Valid") { throw "Tapshift.exe isn't validly signed: $($sig.Status)" }
+
+      - name: Package (portable zip and installer)
+        shell: pwsh
+        run: tools/build_release.ps1 -Stage package
+
+      # ---- sign the installer
+      - name: Upload the installer for signing
+        if: env.SIGN == 'true'
+        id: setup-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-unsigned
+          path: release/Tapshift-Setup-*.exe
+          if-no-files-found: error
+
+      - name: Sign the installer (SignPath)
+        if: env.SIGN == 'true'
+        uses: SignPath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: installer
+          parameters: |
+            version: "${{ steps.ver.outputs.value }}"
+          github-artifact-id: ${{ steps.setup-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600  # each release is approved by hand in SignPath
+          output-artifact-directory: signed/setup
+
+      - name: Use the signed installer
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $signed = Get-ChildItem signed/setup -Filter "Tapshift-Setup-*.exe" | Select-Object -First 1
+          if (-not $signed) { throw "SignPath returned no installer" }
+          Copy-Item $signed.FullName "release/$($signed.Name)" -Force
+          $sig = Get-AuthenticodeSignature "release/$($signed.Name)"
+          if ($sig.Status -ne "Valid") { throw "The installer isn't validly signed: $($sig.Status)" }
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

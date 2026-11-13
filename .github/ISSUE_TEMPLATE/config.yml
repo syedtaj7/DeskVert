@@ -1,0 +1,6 @@
+# Blank issues stay on: Tapshift's "Report a problem" opens a new issue with the details already filled in.
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem
+    url: https://github.com/syedtaj7/TapShift/security/advisories/new
+    about: Please report security problems privately, not as a public issue.

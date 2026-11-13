@@ -1,0 +1,52 @@
+name: Something doesn't work
+description: A conversion fails, the picker misbehaves, or something looks wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Easiest way:** in Tapshift, open the tray menu and choose **Report a problem** (or click **Report** on the
+        red card). It fills this in for you, with your name and folders hidden from the log.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what happened, and what did you expect?
+      placeholder: I selected a .docx and tapped Ctrl + Shift, chose PDF, and the card said...
+    validations:
+      required: true
+  - type: input
+    id: file
+    attributes:
+      label: What kind of file?
+      placeholder: e.g. a 40-page .docx, an iPhone HEIC photo, an .msg from Outlook
+  - type: input
+    id: version
+    attributes:
+      label: Tapshift version
+      description: Settings > About shows it.
+      placeholder: "1.13.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: dropdown
+    id: office
+    attributes:
+      label: Office
+      options:
+        - Microsoft Office is installed
+        - LibreOffice is installed (no Microsoft Office)
+        - Neither
+        - Not sure
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional)
+      description: |
+        The end of app.log (Settings > About > Log folder). It can contain file names and folder paths:
+        remove anything private before posting.
+      render: text

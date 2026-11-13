@@ -1,0 +1,16 @@
+name: An idea
+description: A conversion or a tool you'd like Tapshift to have.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to do?
+      placeholder: Select some HEIC photos and get one PDF, smallest possible, for an e-mail.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Where does it come up?
+      description: A real example helps decide how it should work.
