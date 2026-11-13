@@ -3,7 +3,7 @@
 __version__ = "1.14.0"
 
 # Set this to your GitHub repository ("owner/name") before publishing a release.
-GITHUB_REPO = "syedtaj7/TapShift"
+GITHUB_REPO = "syedtaj7/DeskVert"
 
 
 def github_url(path: str = "") -> str:

@@ -1,16 +1,16 @@
 <div align="center">
 
-<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="docs/readme/hero.svg" width="100%" alt="Deskvert: select a file, tap Ctrl + Shift, pick a format"></a>
+<a href="https://github.com/syedtaj7/DeskVert/releases/latest"><img src="docs/readme/hero.svg" width="100%" alt="Deskvert: select a file, tap Ctrl + Shift, pick a format"></a>
 
 <br>
 
-<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows-34BE84?style=for-the-badge&logo=windows11&logoColor=121214&labelColor=34BE84" height="44" alt="Download for Windows"></a>
+<a href="https://github.com/syedtaj7/DeskVert/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows-34BE84?style=for-the-badge&logo=windows11&logoColor=121214&labelColor=34BE84" height="44" alt="Download for Windows"></a>
 
-<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="https://img.shields.io/github/v/release/syedtaj7/TapShift?style=flat-square&label=version&color=34BE84&labelColor=1C1C20" alt="Latest version"></a>
-<a href="https://github.com/syedtaj7/TapShift/releases"><img src="https://img.shields.io/github/downloads/syedtaj7/TapShift/total?style=flat-square&label=downloads&color=34BE84&labelColor=1C1C20" alt="Downloads"></a>
+<a href="https://github.com/syedtaj7/DeskVert/releases/latest"><img src="https://img.shields.io/github/v/release/syedtaj7/DeskVert?style=flat-square&label=version&color=34BE84&labelColor=1C1C20" alt="Latest version"></a>
+<a href="https://github.com/syedtaj7/DeskVert/releases"><img src="https://img.shields.io/github/downloads/syedtaj7/DeskVert/total?style=flat-square&label=downloads&color=34BE84&labelColor=1C1C20" alt="Downloads"></a>
 <img src="https://img.shields.io/badge/Windows-10_%7C_11-34BE84?style=flat-square&labelColor=1C1C20" alt="Windows 10 and 11">
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-34BE84?style=flat-square&labelColor=1C1C20" alt="AGPL-3.0"></a>
-<a href="https://github.com/syedtaj7/TapShift/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/syedtaj7/TapShift/release.yml?style=flat-square&label=build&labelColor=1C1C20" alt="Build"></a>
+<a href="https://github.com/syedtaj7/DeskVert/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/syedtaj7/DeskVert/release.yml?style=flat-square&label=build&labelColor=1C1C20" alt="Build"></a>
 
 <br><br>
 
@@ -147,7 +147,7 @@ Built for low-end laptops. Deskvert uses **no CPU while idle**. Every conversion
 
 ## 📥 Install
 
-1. Download **`Deskvert-Setup-x.y.z.exe`** from the [latest release](https://github.com/syedtaj7/TapShift/releases/latest). No admin rights needed.<br>
+1. Download **`Deskvert-Setup-x.y.z.exe`** from the [latest release](https://github.com/syedtaj7/DeskVert/releases/latest). No admin rights needed.<br>
    Prefer not to install? Get **`Deskvert-x.y.z-portable.zip`**, unzip it anywhere and run `Deskvert.exe`.
 2. A short welcome tour shows you around.
 3. Select a file, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format. That's it.
@@ -158,7 +158,7 @@ Built for low-end laptops. Deskvert uses **no CPU while idle**. Every conversion
 **Needs:** Windows 10 or 11, 64-bit · about 250 MB of disk · no admin rights, no internet for converting.
 Optional: Microsoft Office (or the free LibreOffice) for Word, Excel and PowerPoint files; Edge or Chrome (already on most PCs) for saving web pages.
 
-**Check your download (optional):** each file's SHA-256 checksum is listed on its [release page](https://github.com/syedtaj7/TapShift/releases/latest). In PowerShell: `Get-FileHash .\Deskvert-Setup-x.y.z.exe` should print the same value.
+**Check your download (optional):** each file's SHA-256 checksum is listed on its [release page](https://github.com/syedtaj7/DeskVert/releases/latest). In PowerShell: `Get-FileHash .\Deskvert-Setup-x.y.z.exe` should print the same value.
 
 ### Update
 

@@ -137,7 +137,7 @@ def _make_extras(folder: Path) -> dict[str, Path]:
                              "<tr><td>Apple</td><td>1.20</td></tr><tr><td>Pear</td><td>0.80</td></tr></table>"
                              "</body></html>", encoding="utf-8")
     files["link"] = folder / "Deskvert.url"
-    files["link"].write_text("[InternetShortcut]\nURL=https://github.com/syedtaj7/TapShift\n", encoding="utf-8")
+    files["link"].write_text("[InternetShortcut]\nURL=https://github.com/syedtaj7/DeskVert\n", encoding="utf-8")
     return files
 
 

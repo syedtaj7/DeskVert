@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-REPO = "syedtaj7/TapShift"
+REPO = "syedtaj7/DeskVert"
 ID = "Syedtaj7.Deskvert"
 SCHEMA = "1.9.0"
 

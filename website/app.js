@@ -340,7 +340,7 @@
       if (cached) return show(JSON.parse(cached));
     } catch (e) { /* storage blocked: just ask GitHub */ }
     try {
-      const r = await fetch("https://api.github.com/repos/syedtaj7/TapShift/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
+      const r = await fetch("https://api.github.com/repos/syedtaj7/DeskVert/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
       if (!r.ok) throw new Error(r.status);
       const rel = await r.json();
       try { sessionStorage.setItem("deskvert-release", JSON.stringify({ tag_name: rel.tag_name, assets: rel.assets })); } catch (e) { /* fine */ }

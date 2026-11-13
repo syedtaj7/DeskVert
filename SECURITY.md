@@ -3,7 +3,7 @@
 ## Reporting a problem
 
 Please report security problems **privately**, not as a public issue:
-**[Report a vulnerability](https://github.com/syedtaj7/TapShift/security/advisories/new)** (GitHub's private reporting).
+**[Report a vulnerability](https://github.com/syedtaj7/DeskVert/security/advisories/new)** (GitHub's private reporting).
 
 Include what an attacker could do, the Deskvert version, and the steps or a sample file that shows it. You'll get a
 reply as soon as possible, and a fix is released as a normal update (Deskvert tells people about updates by itself).
