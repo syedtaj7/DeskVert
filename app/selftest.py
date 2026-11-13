@@ -14,6 +14,35 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 
+def _avi(path: Path, w: int = 96, h: int = 64, n: int = 20, fps: int = 10) -> Path:
+    """A tiny uncompressed AVI (a red bar that grows), for the video-still check."""
+    import struct
+
+    row = w * 3
+    pad = (4 - row % 4) % 4
+    size = (row + pad) * h
+    frames = [(bytes((40, 40, 40)) * w + b"\0" * pad) * (h // 2)
+              + (bytes((0, 0, min(255, i * 12))) * w + b"\0" * pad) * (h - h // 2) for i in range(n)]
+
+    def chunk(tag, data):
+        return tag + struct.pack("<I", len(data)) + data + (b"\0" if len(data) % 2 else b"")
+
+    avih = struct.pack("<IIIIIIIIIIIIII", 1000000 // fps, size * fps, 0, 0x10, n, 0, 1, size, w, h, 0, 0, 0, 0)
+    strh = struct.pack("<4s4sIHHIIIIIIIIhhhh", b"vids", b"DIB ", 0, 0, 0, 0, 1, fps, 0, n, size, 0xFFFFFFFF, 0,
+                       0, 0, w, h)
+    strf = struct.pack("<IiiHHIIiiII", 40, w, h, 1, 24, 0, size, 0, 0, 0, 0)
+    strl = chunk(b"LIST", b"strl" + chunk(b"strh", strh) + chunk(b"strf", strf))
+    hdrl = chunk(b"LIST", b"hdrl" + chunk(b"avih", avih) + strl)
+    movi = chunk(b"LIST", b"movi" + b"".join(chunk(b"00db", f) for f in frames))
+    idx, off = b"", 4
+    for f in frames:
+        idx += struct.pack("<4sIII", b"00db", 0x10, off, len(f))
+        off += 8 + len(f) + (len(f) % 2)
+    body = b"AVI " + hdrl + movi + chunk(b"idx1", idx)
+    path.write_bytes(b"RIFF" + struct.pack("<I", len(body)) + body)
+    return path
+
+
 def _make_extras(folder: Path) -> dict[str, Path]:
     """Small files for the everyday tools: a CSV, JSON, Markdown and a picture of text."""
     from PySide6.QtGui import QColor, QFont, QImage, QPainter
@@ -228,6 +257,11 @@ def run(folder: Path) -> int:
         case([extras["page"]], "Tables", name="html table->Tables (XLSX)")
         case([extras["link"]], "QR code", name="url->QR code")
         case([samples / "Sunset.png"], "Website icons", name="png->Website icons")
+        # 1.13: video stills, trimming, signing, renaming (Windows' own decoders, nothing re-encoded)
+        case([_avi(folder / "samples" / "Clip.avi")], "Picture", name="avi->Picture (video still)")
+        case([extras["wav"]], "Trim", {"start": "0:00.5", "end": "0:01.5"}, name="wav->Trim")
+        case([samples / "Sunset.png", samples / "Mountains.jpg"], "Rename", {"pattern": "Photo {n}", "order": "Name"},
+             name="2 images->Rename (copies)")
         if pdf:
             case([pdf], "Remove blank", name="pdf->Remove blank (none, must say so)", expect_fail=True)
         arial = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
@@ -241,7 +275,8 @@ def run(folder: Path) -> int:
     try:
         import win32com.server.util  # noqa: F401 - loaded only when the drop circle first appears
 
-        from . import browserurl, dropread  # noqa: F401
+        from . import browsercopy, browserurl, dropread, report, watch  # noqa: F401
+        from .ui import report as report_window  # noqa: F401
         from .ui import dropzone  # noqa: F401
 
         png = (folder / "samples" / "Sunset.png").read_bytes()

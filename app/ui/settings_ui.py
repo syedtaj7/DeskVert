@@ -55,6 +55,71 @@ def setting_row(title: str, text: str | QWidget, control: QWidget | None) -> QFr
     return box
 
 
+class WatchList(QWidget):
+    """Watched folders, each with what to make of new files; "changed" carries the whole new list."""
+
+    changed = Signal(list)
+
+    def __init__(self, rules: list[dict]):
+        super().__init__()
+        self.setStyleSheet("background: transparent;")
+        self.rules = [dict(r) for r in rules or []]
+        self.lay = QVBoxLayout(self)
+        self.lay.setContentsMargins(0, 6, 0, 0)
+        self.lay.setSpacing(6)
+        self._build()
+
+    def _build(self) -> None:
+        from PySide6.QtWidgets import QComboBox
+
+        from ..watch import ACTIONS
+
+        while self.lay.count():
+            item = self.lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        if not self.rules:
+            self.lay.addWidget(label("No folders yet.", 12, dim=True))
+        for i, r in enumerate(self.rules):
+            row = QWidget()
+            h = QHBoxLayout(row)
+            h.setContentsMargins(0, 0, 0, 0)
+            name = label(r["path"], 12, wrap=False)
+            name.setToolTip(r["path"])
+            name.setMinimumWidth(120)
+            h.addWidget(name, 1)
+            h.addWidget(label("→", 12, dim=True, wrap=False))
+            combo = QComboBox()
+            combo.addItems(list(ACTIONS))
+            combo.setCurrentText(r.get("action", "PDF"))
+            combo.currentTextChanged.connect(lambda v, i=i: self._set(i, v))
+            h.addWidget(combo)
+            rm = PillButton("Remove", "ghost", min_width=80)
+            rm.clicked.connect(lambda _=False, i=i: self._remove(i))
+            h.addWidget(rm)
+            self.lay.addWidget(row)
+
+    def add_folder(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+
+        path = QFileDialog.getExistingDirectory(self, "Choose a folder to watch")
+        if path and all(r["path"].lower() != path.lower() for r in self.rules):
+            self.rules.append({"path": path.replace("/", "\\"), "action": "PDF"})
+            self._emit()
+
+    def _set(self, i: int, action: str) -> None:
+        self.rules[i]["action"] = action
+        self.changed.emit([dict(r) for r in self.rules])
+
+    def _remove(self, i: int) -> None:
+        del self.rules[i]
+        self._emit()
+
+    def _emit(self) -> None:
+        self._build()
+        self.changed.emit([dict(r) for r in self.rules])
+
+
 def quality_slider(value: int, on_change) -> QWidget:
     holder = QWidget()
     row = QHBoxLayout(holder)
@@ -78,6 +143,7 @@ class SettingsWindow(ChromeWindow):
     changed = Signal(str, object)
     show_tour = Signal()
     open_logs = Signal()
+    report_problem = Signal()
     uninstall = Signal()
     install_update = Signal(str)  # path of a downloaded, verified installer
 
@@ -110,6 +176,20 @@ class SettingsWindow(ChromeWindow):
         webp.toggled.connect(lambda v: self.changed.emit("auto_jpg_downloads", v))
         drag = Toggle(s.drag_convert)
         drag.toggled.connect(lambda v: self.changed.emit("drag_convert", v))
+        watch = WatchList(getattr(s, "watch_folders", []) or [])
+        watch.changed.connect(lambda v: self.changed.emit("watch_folders", v))
+        watch_add = PillButton("Add a folder", "ghost", min_width=130)
+        watch_add.clicked.connect(watch.add_folder)
+        watch_box = QWidget()
+        watch_box.setStyleSheet("background: transparent;")
+        wl = QVBoxLayout(watch_box)
+        wl.setContentsMargins(0, 0, 0, 0)
+        wl.setSpacing(2)
+        wl.addWidget(label("Files you put in these folders are converted by themselves, into a “Converted” folder "
+                           "inside. Only new files; nothing is moved or deleted.", 12, dim=True))
+        wl.addWidget(watch)
+        calm = Toggle(s.reduce_motion)
+        calm.toggled.connect(lambda v: self.changed.emit("reduce_motion", v))
         auto_upd = Toggle(s.auto_update_check)
         auto_upd.toggled.connect(lambda v: self.changed.emit("auto_update_check", v))
         tour = PillButton("Show the welcome tour", "ghost", min_width=200)
@@ -129,6 +209,9 @@ class SettingsWindow(ChromeWindow):
                             "picture, or as a QR code.", pages),
                 setting_row("WEBP downloads to JPG", "When a WEBP or AVIF picture arrives in Downloads, a JPG copy "
                             "is made next to it. The original stays.", webp),
+                setting_row("Watch folders", watch_box, watch_add),
+                setting_row("Reduce motion", "Still pictures instead of animations, and windows that simply "
+                            "appear. Windows' own “Animation effects” setting is followed too.", calm),
                 setting_row("Tell me about updates", "Every few hours, asks GitHub for the newest version number "
                             "and lets you know when there is one. Nothing about you or your files is sent.",
                             auto_upd),
@@ -242,8 +325,10 @@ class SettingsWindow(ChromeWindow):
         lic.clicked.connect(open_licenses)
         logs = PillButton("Log folder", "ghost", min_width=110)
         logs.clicked.connect(self.open_logs.emit)
+        rep = PillButton("Report a problem", "ghost", min_width=150)
+        rep.clicked.connect(lambda: self.report_problem.emit())
         row1, row2 = QHBoxLayout(), QHBoxLayout()
-        for w in (upd, gh):
+        for w in (upd, gh, rep):
             row1.addWidget(w)
         for w in (lic, logs):
             row2.addWidget(w)
@@ -269,7 +354,8 @@ class SettingsWindow(ChromeWindow):
             f"Source code: <a style='color:{theme.rgba(theme.ACCENT)}' href='{github_url()}'>"
             f"github.com/{GITHUB_REPO}</a><br><br>"
             "Built with Python, Qt (PySide6), Pillow, pillow-heif, rawpy, PyMuPDF and img2pdf; Licenses lists "
-            "each one. Office documents are converted by your own Microsoft Office.")
+            "each one. Office documents are converted by your own Microsoft Office (or LibreOffice, when "
+            "Office isn't installed).")
         from .update_ui import UpdatePanel
 
         self.update_panel = UpdatePanel()

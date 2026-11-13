@@ -27,9 +27,14 @@ from .officeutil import text_coverage, words
 
 class Message:
     def __init__(self, src: Path):
-        raw = Path(long_path(src)).read_bytes()
+        if src.suffix.lower() == ".msg":  # Outlook's own format: read directly, as a standard e-mail
+            from .msgfile import to_eml
+
+            raw = to_eml(src)
+        else:
+            raw = Path(long_path(src)).read_bytes()
         self.msg = email.message_from_bytes(raw, policy=policy.default)
-        self.is_mail = src.suffix.lower() == ".eml"
+        self.is_mail = src.suffix.lower() in (".eml", ".msg")
         self.html: str | None = None
         self.text: str | None = None
         self.resources: dict[str, tuple[str, bytes]] = {}  # cid / location -> (mime, data)

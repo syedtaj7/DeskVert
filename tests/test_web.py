@@ -123,7 +123,7 @@ def test_page_link_becomes_a_shortcut_with_page_actions(tmp_path):
 
     assert read_url(url_file) == "https://news.example.org/story?id=7"
     labels = [o.target.label for o in offers_for([url_file], Settings())[0]]
-    assert labels[:3] == ["Page as PDF", "Page as picture", "QR code"]
+    assert labels[:5] == ["Page as PDF", "Article as PDF", "All pictures", "Page as picture", "QR code"]
 
 
 def test_browser_link_blob_and_file_links(server, tmp_path):
@@ -344,3 +344,91 @@ def test_picker_closes_on_a_click_in_the_empty_space_around_the_web():
     assert view.solid_at(c) and view.solid_at(QPointF(c.x() + view.DR * 0.6, c.y()))
     assert not view.solid_at(QPointF(view.width() - 3, 3))  # the see-through corner of the window
     assert not view.solid_at(QPointF(c.x() + view.DR + 30, c.y()))  # just outside the disc
+
+
+# ---------------------------------------------------------------- a page's pictures, and its article
+
+@pytest.fixture
+def article_site():
+    big = _png((800, 500), "green")
+    bigger = _png((1600, 1000), "green")
+    icon = _png((24, 24), "black")
+    photo = _png((640, 480), "orange")
+    page = ("<!doctype html><html><head><title>River walk</title>"
+            "<meta property='og:image' content='/photo.png'></head><body>"
+            "<header class='site-header'><nav><a href='/'>Home</a> <a href='/news'>News</a></nav></header>"
+            "<div class='cookie-banner'>We use cookies. Accept all?</div>"
+            "<aside class='sidebar'><p>Buy our premium plan today for a special price only this week.</p></aside>"
+            "<article><h1>River walk</h1>"
+            "<p>The river path starts at the old mill and follows the water for six quiet kilometres.</p>"
+            "<img src='/big.png' srcset='/big.png 800w, /bigger.png 1600w' alt='The river'>"
+            "<p>Halfway along there is a wooden bridge where herons wait for fish in the shallows.</p>"
+            "<p>Bring water and good shoes; after rain the lower part of the path can be muddy.</p></article>"
+            "<div class='ad-slot'><p>Advertisement: cheap flights to anywhere, book now and save.</p></div>"
+            "<img src='/icon.png' alt=''><a href='/photo.png'>full size</a>"
+            "<footer>Copyright Walks Weekly</footer></body></html>").encode()
+    routes = {"/article.html": ("text/html", page), "/big.png": ("image/png", big), "/bigger.png": ("image/png", bigger),
+              "/icon.png": ("image/png", icon), "/photo.png": ("image/png", photo)}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            if self.path not in routes:
+                self.send_response(404)
+                self.end_headers()
+                return
+            kind, body = routes[self.path]
+            self.send_response(200)
+            self.send_header("Content-Type", kind)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    srv = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{srv.server_port}"
+    srv.shutdown()
+
+
+def _link(tmp_path, url):
+    from app.engines.webpage import write_url
+
+    p = tmp_path / "River walk.url"
+    write_url(p, url)
+    return p
+
+
+def test_page_pictures_and_article_offered(tmp_path):
+    keys = [o.target.key for o in offers_for([_link(tmp_path, "https://example.org/a")], Settings())[0]]
+    assert {"webextra.reader", "webextra.pictures"} <= set(keys)
+
+
+def test_all_pictures_on_a_page(tmp_path, article_site):
+    from app.engines.webpage import find_browser
+
+    if find_browser() is None:
+        pytest.skip("needs Edge or Chrome")
+    res = convert([_link(tmp_path, article_site + "/article.html")], "All pictures")
+    folder = res["path"]
+    assert folder.is_dir() and folder.name == "River walk (pictures)"
+    sizes = sorted(Image.open(f).size for f in folder.iterdir())
+    assert sizes == [(640, 480), (1600, 1000)]  # the biggest version of the river; the photo once; no icon
+
+
+def test_article_as_pdf_leaves_out_the_clutter(tmp_path, article_site):
+    from app.engines.webpage import find_browser
+
+    if find_browser() is None:
+        pytest.skip("needs Edge or Chrome")
+    import pymupdf
+
+    pdf = convert([_link(tmp_path, article_site + "/article.html")], "Article as PDF")["path"]
+    assert pdf.name == "River walk (article).pdf"
+    with pymupdf.open(pdf) as d:
+        text = " ".join(" ".join(p.get_text() for p in d).split())
+        pictures = sum(len(p.get_images()) for p in d)
+    assert "herons wait for fish" in text and "muddy" in text and pictures >= 1
+    for clutter in ("cookies", "premium plan", "cheap flights", "Copyright Walks", "News"):
+        assert clutter not in text, clutter

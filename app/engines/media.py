@@ -39,7 +39,21 @@ async def _duration(path: Path, video: bool) -> float:
     return props.duration.total_seconds() if hasattr(props.duration, "total_seconds") else float(props.duration) / 1e7
 
 
-async def _transcode(src: Path, out: Path, fmt: str, quality: str) -> None:
+def parse_time(text: str) -> float:
+    """"1:23", "83", "1:02:03" or "1:23.5" -> seconds. Raises ValueError with a plain message."""
+    t = (text or "").strip().replace(",", ".")
+    if not t:
+        raise ValueError("Type a time, like 0:30 or 1:15.")
+    parts = t.split(":")
+    if len(parts) > 3 or not all(p.replace(".", "", 1).isdigit() for p in parts):
+        raise ValueError("Type a time like 1:15 (minutes:seconds) or 75 (seconds).")
+    secs = 0.0
+    for p in parts:
+        secs = secs * 60 + float(p)
+    return secs
+
+
+async def _transcode(src: Path, out: Path, fmt: str, quality: str, trim: tuple[float, float] | None = None) -> None:
     from winrt.windows.media.mediaproperties import AudioEncodingQuality, MediaEncodingProfile
     from winrt.windows.media.transcoding import MediaTranscoder, TranscodeFailureReason
     from winrt.windows.storage import CreationCollisionOption, StorageFile, StorageFolder
@@ -53,6 +67,11 @@ async def _transcode(src: Path, out: Path, fmt: str, quality: str) -> None:
     folder = await StorageFolder.get_folder_from_path_async(_plain(out.parent))
     d = await folder.create_file_async(out.name, CreationCollisionOption.REPLACE_EXISTING)
     t = MediaTranscoder()
+    if trim is not None:  # keep start..end (Windows takes the end as a time in the recording, not an amount)
+        import datetime
+
+        t.trim_start_time = datetime.timedelta(seconds=trim[0])
+        t.trim_stop_time = datetime.timedelta(seconds=trim[1])
     prep = await t.prepare_file_transcode_async(s, d, profile)
     if not prep.can_transcode:
         reason = prep.failure_reason
@@ -75,10 +94,61 @@ def _flac_seconds(path: Path) -> float:
     return total / rate if rate else 0.0
 
 
+def _trim(src: Path, out: Path, opts: dict) -> list[str]:
+    """Keep only a part of a recording (same format when Windows can write it, otherwise M4A)."""
+    is_video = src.suffix.lower() in VIDEO_EXTS
+    fmt = out.suffix.lower().lstrip(".")
+    try:
+        start = parse_time(str(opts.get("start") or "0"))
+        end_text = str(opts.get("end") or "").strip()
+        end = parse_time(end_text) if end_text else None
+    except ValueError as e:
+        raise ConversionError(str(e)) from e
+    try:
+        total = asyncio.run(_duration(src, is_video))
+    except Exception as e:  # noqa: BLE001
+        raise ConversionError("Windows can't tell how long this recording is, so it can't be trimmed.") from e
+    end = total if end is None else min(end, total)
+    if start >= end:
+        raise ConversionError(f"The start ({start:.1f} s) must be before the end ({end:.1f} s); the recording is "
+                              f"{total:.1f} s long.")
+    try:
+        asyncio.run(_transcode(src, out, fmt, str(opts.get("quality", "High (192 kbps)")), (start, end)))
+    except ConversionError:
+        raise
+    except OSError as e:
+        raise ConversionError(f"Windows couldn't trim this file ({e}).") from e
+    if fmt == "wav":
+        with wave.open(_plain(out), "rb") as w:
+            after = w.getnframes() / float(w.getframerate())
+    elif fmt == "flac":
+        after = _flac_seconds(out)
+    else:
+        after = asyncio.run(_duration(out, False))
+    want = end - start
+    if after <= 0 or abs(after - want) > max(0.35, want * 0.02):
+        raise VerificationError(f"the new file is {after:.1f} s long instead of {want:.1f} s")
+
+    def mmss(s: float) -> str:
+        m, sec = divmod(s, 60)
+        return f"{int(m)}:{sec:04.1f}"
+    return [f"Checked: {mmss(after)} kept, from {mmss(start)} to {mmss(end)}."]
+
+
+TRIM_FORMATS = {"mp3", "m4a", "wma", "wav", "flac"}
+
+
+def trim_ext(src: Path) -> str:
+    e = src.suffix.lower().lstrip(".")
+    return f".{e}" if e in TRIM_FORMATS else ".m4a"
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     src = sources[0]
     ext = src.suffix.lower()
     is_video = ext in VIDEO_EXTS
+    if fmt == "trim":
+        return _trim(src, out, opts)
     if fmt not in ("mp3", "m4a", "wma", "wav", "flac"):
         raise ConversionError(f"Unknown audio format: {fmt}")
     quality = str(opts.get("quality", "High (192 kbps)"))

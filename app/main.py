@@ -182,6 +182,14 @@ class Controller(QObject):
         self._watch_timer.setInterval(1500)
         self._watch_timer.timeout.connect(self._scan_downloads)
         self._set_download_watch(self.settings.auto_jpg_downloads)
+        from .ui import fx
+
+        fx.REDUCE_MOTION = self.settings.reduce_motion
+        from .watch import FolderWatcher
+
+        self.folder_watch = FolderWatcher(self.settings, self)
+        self.folder_watch.convert.connect(lambda offer, opts, dest: self.jobs.submit(offer, opts, dest))
+        self.folder_watch.set_rules(self.settings.watch_folders)
 
     # ------------------------------------------------------------ updates
     def _auto_check_updates(self, force: bool = False) -> None:
@@ -260,6 +268,7 @@ class Controller(QObject):
         self.panel.show_folder.connect(winutil.show_in_explorer)
         self.panel.undo_requested.connect(self.undo)
         self.panel.details_requested.connect(self.show_results)
+        self.panel.report_requested.connect(self.show_report)
         if old is not None:
             old.hide()
             old.deleteLater()
@@ -317,6 +326,7 @@ class Controller(QObject):
         self.pause_action.setCheckable(True)
         self.pause_action.toggled.connect(lambda v: setattr(self, "paused", v))
         m.addAction("About Tapshift", lambda: self.show_settings(5))
+        m.addAction("Report a problem…", self.show_report)
         self.update_action = m.addAction("Check for updates\u2026", lambda: self.show_settings(5, check_updates=True))
         rel = getattr(self, "available_update", None)
         if rel is not None:
@@ -362,7 +372,8 @@ class Controller(QObject):
                    "context_menu": s.context_menu, "keep_modified_date": s.keep_modified_date,
                    "use_clipboard_fallback": s.use_clipboard_fallback, "two_at_once": s.max_workers >= 2,
                    "auto_update_check": s.auto_update_check, "layout_clash": self.layout_clash,
-                   "auto_jpg_downloads": s.auto_jpg_downloads, "browser_actions": s.browser_actions}
+                   "auto_jpg_downloads": s.auto_jpg_downloads, "browser_actions": s.browser_actions,
+                   "reduce_motion": s.reduce_motion}
         office = {k: office_installed(k) for k in ("word", "excel", "powerpoint")}
         w = self._window("tour", lambda: TourWindow(choices, office))
         if w is None:
@@ -387,6 +398,8 @@ class Controller(QObject):
         for key in ("quick_recents", "keep_modified_date", "use_clipboard_fallback", "auto_update_check",
                     "browser_actions"):
             setattr(s, key, bool(choices.get(key, getattr(s, key))))
+        if bool(choices.get("reduce_motion", s.reduce_motion)) != s.reduce_motion:
+            self._apply("reduce_motion", bool(choices["reduce_motion"]), save=False)
         if bool(choices.get("auto_jpg_downloads", s.auto_jpg_downloads)) != s.auto_jpg_downloads:
             self._apply("auto_jpg_downloads", bool(choices["auto_jpg_downloads"]))
         workers = max(2, s.max_workers) if choices.get("two_at_once", s.max_workers >= 2) else 1
@@ -401,6 +414,17 @@ class Controller(QObject):
             how = "Tap" if is_modifier_tap(self.settings.hotkey) else "Press"
             self.panel.message("success", "Tapshift is ready",
                                f"{how} {self.key_label} with a file selected in File Explorer.", 5000)
+
+    def show_report(self, about: str = "") -> None:
+        """Report a problem: you see everything first; GitHub opens in your browser to post it."""
+        from .ui.report import ReportWindow
+
+        old = self.windows.get("report")
+        if _alive(old) and about:
+            old.close()
+        w = self._window("report", lambda: ReportWindow(about if isinstance(about, str) else ""))
+        if w is not None:
+            w.present()
 
     def show_guide(self) -> None:
         from .ui.guide import GuideWindow
@@ -426,6 +450,7 @@ class Controller(QObject):
         w.changed.connect(self._apply)
         w.show_tour.connect(self.show_tour)
         w.open_logs.connect(lambda: os.startfile(str(log_dir())))
+        w.report_problem.connect(self.show_report)
         w.uninstall.connect(self.uninstall)
         w.install_update.connect(self.install_update)
         w.present(section)
@@ -447,6 +472,19 @@ class Controller(QObject):
 
     def _apply(self, key: str, value, save: bool = True) -> None:
         """Apply one setting change right away."""
+        if key == "watch_folders":
+            self.settings.watch_folders = [dict(r) for r in value or []]
+            if save:
+                self.settings.save()
+            self.folder_watch.set_rules(self.settings.watch_folders)
+            return
+        if key == "reduce_motion":
+            from .ui import fx
+
+            self.settings.reduce_motion = fx.REDUCE_MOTION = bool(value)
+            if save:
+                self.settings.save()
+            return
         if key == "auto_jpg_downloads":
             setattr(self.settings, key, bool(value))
             self.settings.save()

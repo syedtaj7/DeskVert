@@ -288,9 +288,12 @@ def test_dropzone_says_when_nothing_was_dragged_in():
         if dragged_in:
             _Target(zone).DragEnter(None, 0, (0, 0), DROPEFFECT_COPY)
         zone._timer.start()  # the mouse button is up in tests: "let go", so it closes after a moment
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
+        for _ in range(40):  # slow machines (CI) take longer; wait until it's gone, up to 4 s
+            loop = QEventLoop()
+            QTimer.singleShot(100, loop.quit)
+            loop.exec()
+            if not zone.isVisible():
+                break
         assert not zone.isVisible() and len(missed) == expect
         zone.close()
 

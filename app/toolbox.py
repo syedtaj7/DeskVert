@@ -38,7 +38,7 @@ EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7",
 FONT_EXTS = {".ttf", ".otf", ".woff", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
 DRAWING_EXTS = {".dxf"}
-MAIL_EXTS = {".eml", ".mht", ".mhtml"}
+MAIL_EXTS = {".eml", ".msg", ".mht", ".mhtml"}
 MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx"}
 VECTOR_EXTS = {".ai"}
 # Sound only, through Windows' own converter (videos: their sound; the picture is never re-encoded).
@@ -123,7 +123,29 @@ def _v_password(value: str) -> str | None:
     return None
 
 
-VALIDATORS = {"pages": _v_pages, "pages_optional": _v_pages_optional, "int": _v_int, "password": _v_password,
+def _v_file_optional(value: str) -> str | None:
+    p = (value or "").strip().strip('"')
+    if not p:
+        return None
+    if not Path(p).is_file():
+        return "That file wasn't found. Right-click the picture, choose Copy as path, and paste it here."
+    if Path(p).suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"):
+        return "Use a PNG or JPG picture of your signature."
+    return None
+
+
+def _v_time(value: str) -> str | None:
+    from .engines.media import parse_time
+
+    try:
+        parse_time(value)
+        return None
+    except ValueError as e:
+        return str(e)
+
+
+VALIDATORS = {"time": _v_time, "file_optional": _v_file_optional, "pages": _v_pages, "pages_optional": _v_pages_optional, "int": _v_int,
+              "password": _v_password,
               "shift": _v_shift}
 
 
@@ -148,6 +170,7 @@ PDF_LOCK = Target("pdf.lock", "Lock", ".pdf", suffix=" (locked)", ask=True)
 PDF_UNLOCK = Target("pdf.unlock", "Unlock", ".pdf", suffix=" (unlocked)", ask=True)
 PDF_NUMBERS = Target("pdf.numbers", "Numbers", ".pdf", suffix=" (numbered)", ask=True)
 PDF_WATERMARK = Target("pdf.watermark", "Watermark", ".pdf", suffix=" (watermarked)", ask=True)
+PDF_SIGN = Target("pdf.sign", "Sign", ".pdf", suffix=" (signed)", ask=True)
 PDF_ROTATE = Target("pdf.rotate", "Rotate", ".pdf", suffix=" (rotated)", ask=True)
 PDF_SPLIT_HALF = Target("pdf.splithalf", "In half", "", folder="halves")
 PDF_SPLIT_EVERY = Target("pdf.splitevery", "Every N pages", "", folder="parts", ask=True)
@@ -212,6 +235,9 @@ MAIL_ZIP = Target("mail.zip", "Attachments", ".zip", suffix=" (attachments)")
 GEO_TARGETS = [Target("geo.kml", "KML", ".kml"), Target("geo.geojson", "GeoJSON", ".geojson"),
                Target("geo.gpx", "GPX", ".gpx"), Target("geo.kmz", "KMZ", ".kmz"), Target("geo.csv", "CSV", ".csv"),
                Target("geo.xlsx", "XLSX", ".xlsx")]
+AUDIO_TRIM = Target("media.trim", "Trim", "*", suffix=" (trimmed)", ask=True)
+VIDEO_FRAME = Target("videoframe.frame", "Picture", ".jpg", suffix=" (frame)")
+VIDEO_SHEET = Target("videoframe.sheet", "Frames sheet", ".jpg", suffix=" (frames)")
 AUDIO_TARGETS = [Target("media.mp3", "MP3", ".mp3"), Target("media.m4a", "M4A", ".m4a"),
                  Target("media.wav", "WAV", ".wav"), Target("media.flac", "FLAC", ".flac"),
                  Target("media.wma", "WMA", ".wma")]
@@ -242,8 +268,11 @@ NB_MD = Target("notebook.md", "Markdown", ".md")
 NB_PY = Target("notebook.py", "Python", ".py")
 SUB_SHIFT = Target("subtitle.shift", "Shift timing", "*", suffix=" (shifted)", ask=True)
 HASH = Target("hash.sha256", "Checksum", ".sha256", combine=True)
+RENAME = Target("rename.copies", "Rename", "", combine=True, folder="renamed", suffix=" (renamed)", ask=True)
 PAGE_PDF = Target("webpage.pdf", "Page as PDF", ".pdf")
 PAGE_PNG = Target("webpage.png", "Page as picture", ".png")
+PAGE_READER = Target("webextra.reader", "Article as PDF", ".pdf", suffix=" (article)")
+PAGE_PICTURES = Target("webextra.pictures", "All pictures", "", folder="pictures")
 QR_PNG = Target("qr.png", "QR code", ".png", suffix=" (QR code)")
 CLIP_PDF = Target("clip.pdf", "PDF", ".pdf")  # a web clip (selected text), laid out by Edge / Chrome
 CLIP_PNG = Target("clip.png", "Picture", ".png")
@@ -439,7 +468,7 @@ def drawing_offers(files: list[Path]) -> list[Offer]:
 def mail_offers(files: list[Path]) -> list[Offer]:
     offers = [_offer(t, {"pdf": "A4 document", "html": "one page", "txt": "just the text", "md": "Markdown"}[t.fmt],
                      ["Scripts never run; web pictures aren't downloaded."], [], files) for t in MAIL_TARGETS]
-    eml = [p for p in files if p.suffix.lower() == ".eml"]
+    eml = [p for p in files if p.suffix.lower() in (".eml", ".msg")]
     if eml:
         offers.append(_offer(MAIL_ZIP, "in a ZIP", ["The e-mail's attachments, in one ZIP."], [], eml))
     return offers
@@ -476,6 +505,20 @@ def audio_offers(files: list[Path], video: bool) -> list[Offer]:
         why = ("Takes only the sound; the video itself isn't touched, so it's quick and light."
                if video else "Made by Windows' own converter; nothing to download.")
         offers.append(_offer(t, cap, [why], lossy if t.fmt in ("mp3", "m4a", "wma") else [], srcs))
+    if video:  # a still from the video: only the frames needed are decoded, nothing is re-encoded
+        offers.insert(0, _offer(VIDEO_SHEET, "9 moments", [
+            "Nine moments across the video in one picture, each with its time; quick, nothing is re-encoded."],
+            [], files))
+        offers.insert(0, _offer(VIDEO_FRAME, "a still", [
+            "One moment of the video as a JPG at its full size; quick, nothing is re-encoded."],
+            [Option("moment", "Which moment", "choice", "A tenth in",
+                    choices=("A tenth in", "The middle", "First frame", "Three quarters in"))], files))
+    else:
+        offers.insert(0, _offer(AUDIO_TRIM, "keep a part", [
+            "Keeps only the part between the two times; the same kind of file (OGG and others become M4A)."], [
+            Option("start", "Start", "text", "0:00", placeholder="e.g. 0:30", required=True, validate="time"),
+            Option("end", "End (empty: to the end)", "text", "", placeholder="e.g. 2:15", validate="time"),
+        ] + lossy, files))
     return offers
 
 
@@ -570,6 +613,16 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
                    required=True),
             Option("opacity", "Opacity %", "slider", 18, 5, 60),
             Option("angle", "Direction", "choice", "Diagonal", choices=("Diagonal", "Horizontal")),
+        ], unlocked))
+        offers.append(_offer(PDF_SIGN, "your signature", [
+            "A visible signature: your name in a handwriting font (or a picture of your signature), with the date. "
+            "It isn't a certificate-based digital signature."], [
+            Option("name", "Your name", "text", "", placeholder="e.g. Asha Rao", required=True),
+            Option("pages", "On", "choice", "Last page", choices=("Last page", "First page", "Every page")),
+            Option("position", "Where", "choice", "Bottom right", choices=("Bottom right", "Bottom left")),
+            Option("date", "Add today's date", "toggle", True),
+            Option("picture", "Or a picture of your signature (optional)", "text", "",
+                   placeholder="right-click the picture > Copy as path, then paste", validate="file_optional"),
         ], unlocked))
         offers.append(_offer(PDF_ROTATE, "turn pages", [], [
             Option("turn", "Turn", "choice", "90° right", choices=("90° right", "90° left", "180°")),
@@ -780,6 +833,10 @@ def weblink_offers(files: list[Path]) -> list[Offer]:
     """Web page links: the page saved by the browser already on this PC, or a QR code."""
     how = ["Opened in a private, signed-out Edge or Chrome window (your browser data isn't used)."]
     return [_offer(PAGE_PDF, "the whole page", ["Text stays text: sharp and searchable."] + how, [], files),
+            _offer(PAGE_READER, "just the article", ["The headline, text and pictures without menus, ads, cookie "
+                                                     "banners or comments; calm to read and print."] + how, [], files),
+            _offer(PAGE_PICTURES, "in a folder", ["Every picture on the page at the biggest size it offers; icons "
+                                                  "and tiny pictures are left out."] + how, [], files),
             _offer(PAGE_PNG, "one long picture", ["The whole page as one picture, like a full screenshot."] + how,
                    [], files),
             _offer(QR_PNG, "scan with a phone", ["A QR code that opens this page; checked by reading it back."], [],
@@ -842,6 +899,17 @@ def notebook_offers(files: list[Path]) -> list[Offer]:
             _offer(NB_PY, "the code", why + ["Notes become comments; results aren't included."], [], files)]
 
 
+def rename_offer(files: list[Path]) -> Offer:
+    n = len(files)
+    return _offer(RENAME, f"{n} file{'s' if n != 1 else ''}, tidy names", [
+        "Copies with new names in a new folder, e.g. “2026-11-13 01.jpg”. Your originals keep their names."], [
+        Option("pattern", "Name", "text", "{date} {n}", placeholder="{date} {n}, Holiday {n}, {name} {n}",
+               required=True),
+        Option("order", "Order", "choice", "Date taken", choices=("Date taken", "Name", "As selected")),
+        Option("start", "Start at", "text", "1", placeholder="1", validate="int"),
+    ], files)
+
+
 def hash_offer(files: list[Path]) -> Offer:
     n = len(files)
     return _offer(HASH, "SHA-256" if n == 1 else f"{n} files, SHA-256", [
@@ -862,6 +930,10 @@ def output_ext(t: Target, source: Path, options: dict) -> str:
         from .engines.font import desktop_ext
 
         return desktop_ext(source)
+    if t.key == "media.trim":  # the same kind of file when Windows can write it, otherwise M4A
+        from .engines.media import trim_ext
+
+        return trim_ext(source)
     if t.key == "imgedit.stitch":  # JPG when the pictures are photos, PNG otherwise
         return ".jpg" if source.suffix.lower() in (".jpg", ".jpeg") else ".png"
     if t.key == "compress.image":

@@ -17,6 +17,36 @@ from PySide6.QtWidgets import QAbstractButton, QGraphicsOpacityEffect, QWidget
 
 from . import theme
 
+# ---------------------------------------------------------------- motion
+
+REDUCE_MOTION = False  # Settings > General > Reduce motion (the app sets this)
+STILL_T = 3.9  # with motion off, animated pictures show this moment of their story: the result
+_win_anim = (0.0, True)
+
+
+def windows_animations() -> bool:
+    """Windows' Settings > Accessibility > Visual effects > Animation effects (checked every few seconds)."""
+    global _win_anim
+    now = time.monotonic()
+    if now - _win_anim[0] > 5:
+        on = True
+        try:
+            import ctypes
+
+            v = ctypes.c_int(1)
+            if ctypes.windll.user32.SystemParametersInfoW(0x1042, 0, ctypes.byref(v), 0):  # CLIENTAREAANIMATION
+                on = bool(v.value)
+        except Exception:  # noqa: BLE001
+            pass
+        _win_anim = (now, on)
+    return _win_anim[1]
+
+
+def motion_ok() -> bool:
+    """False when you asked for less motion (in Tapshift, or in Windows): things appear in place, still."""
+    return not REDUCE_MOTION and windows_animations()
+
+
 # ---------------------------------------------------------------- fonts & easing
 
 _display_family: str | None = None
@@ -98,14 +128,21 @@ class Clock(QWidget):
 
     @property
     def t(self) -> float:
-        return time.perf_counter() - self._t0
+        return time.perf_counter() - self._t0 if motion_ok() else STILL_T
 
     def restart(self):
         self._t0 = time.perf_counter()
 
-    def showEvent(self, e):
+    def run(self):
+        """Start the frame clock (with motion off: one still picture, no clock)."""
         self.restart()
-        self._timer.start()
+        if motion_ok():
+            self._timer.start()
+        else:
+            self.update()
+
+    def showEvent(self, e):
+        self.run()
         super().showEvent(e)
 
     def hideEvent(self, e):
@@ -531,7 +568,11 @@ def shiboken_valid(obj) -> bool:
 
 
 def fade_in(widget: QWidget, delay_ms: int = 0, duration: int = 420, rise: int = 14):
-    """Fade a widget in while it rises into place."""
+    """Fade a widget in while it rises into place (with motion off, it's simply there)."""
+    if not motion_ok():
+        if isinstance(widget.graphicsEffect(), QGraphicsOpacityEffect):
+            widget.setGraphicsEffect(None)
+        return
     eff = QGraphicsOpacityEffect(widget)
     eff.setOpacity(0.0)
     widget.setGraphicsEffect(eff)

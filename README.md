@@ -44,7 +44,7 @@ and the new file appears right next to the original, checked and ready.
 | **Drag a picture** with <kbd>Ctrl</kbd> + <kbd>Shift</kbd> held, drop it on the circle | The picker for that picture: JPG, PNG, PDF, compress, crop… Always the **biggest size the page offers**, not the small preview |
 | **Select some text** on a page, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | Choices made for a selection: a clean **PDF**, Word, Markdown, plain text or a picture of it, with a line saying where it came from |
 | **Select a table** the same way | **Excel**, one sheet per table (merged cells spread out, numbers as numbers), or CSV |
-| **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd> on a browser window with nothing selected | The page as a **PDF** or **one long picture** (made by the Edge or Chrome already on your PC), or a **QR code** of its address |
+| **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd> on a browser window with nothing selected | The page as a **PDF** or **one long picture** (made by the Edge or Chrome already on your PC), **just the article** as a clean PDF (no ads, menus or cookie banners), **every picture** on the page in one folder, or a **QR code** of its address |
 | **Drag a link** in | A **QR code** that's read back before saving, so it always scans |
 | **Drag a Google Drive, Docs, Dropbox or OneDrive share link** | The **file itself**, with its real name (Docs, Sheets and Slides come as Word, Excel and PowerPoint) |
 | **Win + Shift + S**, then tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | Your snip (or any copied picture) in the picker: save it as PNG, JPG, PDF, read its text… |
@@ -62,7 +62,7 @@ To read a selection, Tapshift copies it and then puts your clipboard back exactl
 | Tool | What you get |
 |---|---|
 | 🗜️ **Compress images** | Pick **under 20 KB, 50 KB, 100 KB, 200 KB, 500 KB or 1 MB**, or drag a quality slider. Every choice shows the quality % and the new size *before* you click. The limit is always respected. **For forms:** exact-size JPGs for applications: photo (200×230, 20–50 KB), passport photo (35×45 mm), signature (140×60, empty paper trimmed), or your own width × height × KB. |
-| 📄 **PDF toolkit** | **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB, or your own) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · **Split** in half, every N pages, by ranges or every page · keep or remove **Pages** (`1-3, 7, 10-end`) · **Reorder** or **Reverse** · **Rotate** · page **Numbers** · **2, 4, 6 or 9 pages per sheet** · **Watermark** · **Flatten** forms · **Clean info** (author, dates, hidden data) · **Grayscale** · save the **Pictures** inside · **Merge** · pictures and PDFs **combined** into one PDF · → **Markdown**, **HTML**, **EPUB**, **TIFF**, **one long image**, **CBZ** |
+| 📄 **PDF toolkit** | **Sign** with your name in handwriting or a picture of your signature · **Compress** to a size limit (under 200 KB, 500 KB, 1 MB, 2 MB, or your own) at the best quality that fits, or by level · **Lock / Unlock** with an AES-256 password · **Split** in half, every N pages, by ranges or every page · keep or remove **Pages** (`1-3, 7, 10-end`) · **Reorder** or **Reverse** · **Rotate** · page **Numbers** · **2, 4, 6 or 9 pages per sheet** · **Watermark** · **Flatten** forms · **Clean info** (author, dates, hidden data) · **Grayscale** · save the **Pictures** inside · **Merge** · pictures and PDFs **combined** into one PDF · → **Markdown**, **HTML**, **EPUB**, **TIFF**, **one long image**, **CBZ** |
 | 🔍 **Read text (OCR)** | Text from photos and scanned PDFs, or a **searchable PDF** that looks exactly like the scan. Uses the engine built into Windows, so nothing extra is downloaded. Sideways scans are turned upright automatically. |
 | 📦 **Zip & extract** | ZIP the selected files · extract **ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO** · repack any archive as a ZIP |
 | 📊 **Data files** | CSV / TSV / Excel / JSON / **YAML** / **TOML** / **XML** / **JSON Lines** into each other · Excel sheets → CSV each, without Excel · **vCard contacts** ↔ CSV / Excel · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
@@ -70,8 +70,8 @@ To read a selection, Tapshift copies it and then puts your clipboard back exactl
 | 🧊 **3D models** | **STL, OBJ, PLY, 3MF, GLB/glTF** into each other, plus a shaded **picture** of the model |
 | 📐 **CAD** | **DXF** → **PDF**, **SVG** or **PNG**, without AutoCAD |
 | 🔤 **Fonts** | **TTF / OTF ↔ WOFF**, → **EOT** |
-| 🎵 **Sound** | **MP3, M4A, WAV, FLAC, WMA** (and AAC, OGG, Opus, AIFF in) into each other · the **sound from a video** (MP4, MOV, MKV, AVI, WMV...) as MP3 or M4A. Uses Windows' own converter, so nothing is downloaded and it stays light. Videos themselves aren't re-encoded. |
-| ✉️ **Mail & saved pages** | **EML** e-mails and **MHTML** pages → **PDF**, **HTML**, **TXT**, **Markdown**; e-mail attachments → **ZIP** |
+| 🎵 **Sound & video** | **MP3, M4A, WAV, FLAC, WMA** (and AAC, OGG, Opus, AIFF in) into each other · **Trim** a recording to the part you need · the **sound from a video** (MP4, MOV, MKV, AVI, WMV...) · a **still picture** of any moment of a video, or a **frames sheet** of nine moments. Uses Windows' own converter and decoder, so nothing is downloaded and it stays light. Videos themselves aren't re-encoded. |
+| ✉️ **Mail & saved pages** | **EML** and **Outlook .msg** e-mails (no Outlook needed) and **MHTML** pages → **PDF**, **HTML**, **TXT**, **Markdown**; e-mail attachments → **ZIP** |
 | 📝 **Markdown** | → **PDF** (A4, with headings, tables, code and images) · **HTML** · **Word** |
 | 🖼️ **Picture edits** | **Turn** left, right or upside down · **Mirror** · **Grayscale** · **Resize** (half, 1920, 1280 or 1080 px) · **Clean info**: removes location, camera and date before you share (JPG and PNG aren't re-encoded) · **Long image**: several pictures stitched one under the other |
 | 📚 **E-books** | **EPUB, MOBI, FB2**, comics (**CBZ, CBR, CB7, CBT**) and XPS → **PDF**, **EPUB** or **TXT** · Markdown, HTML, TXT and PDF → **EPUB** · PDF → **CBZ**. No e-book software needed. |
@@ -99,11 +99,13 @@ To read a selection, Tapshift copies it and then puts your clipboard back exactl
 | **Databases (SQLite), settings (INI, .env, .properties), calendars (.ics)** | Excel or CSV per table; JSON or YAML; events as a table |
 | **Markdown, Jupyter notebooks** | PDF, HTML, DOCX; notebooks to HTML (with charts), Markdown, Python |
 | **Archives:** ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO | Extract into a new folder, or repack as ZIP |
-| **Any files** | ZIP the selection · SHA-256 checksum |
+| **Audio, video** | Into each other, Trim; a still picture or a frames sheet from a video; its sound |
+| **E-mails:** EML, Outlook MSG | PDF, HTML, TXT, Markdown, attachments as a ZIP |
+| **Any files** | ZIP the selection · SHA-256 checksum · **Rename** many at once (tidy copies by date or number) |
 
-- **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office opens hidden, read-only and with macros off, and your Office settings are never changed.
+- **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office opens hidden, read-only and with macros off, and your Office settings are never changed. **No Office?** The free **LibreOffice** is used instead when it's installed (in a private profile of its own).
 - **Photos** keep their rotation, camera details (EXIF), GPS and color profile. Lossless formats are checked pixel for pixel.
-- **Audio and video** aren't supported, on purpose: Tapshift stays small and light.
+- **Videos** are never re-encoded (that's heavy work): Tapshift takes their sound or a still picture, through Windows' own decoder.
 
 </details>
 
@@ -178,6 +180,9 @@ Any of these works, and each removes everything (app, settings, logs):
 | Every format | Point at a group: its choices fan out, and groups inside open fans of their own |
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
+| Watch folders | Settings → General → **Watch folders**: files you put in a chosen folder are converted by themselves (PDF, JPG, Compress...), into a "Converted" folder inside |
+| Report a problem | Tray menu → **Report a problem**: you see everything first (names and folders hidden), then GitHub opens in your browser to post it. Tapshift sends nothing itself |
+| Less motion | Settings → General → **Reduce motion**: still pictures instead of animations |
 | Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
 | Convert from anywhere | While dragging a picture, link, table, text or file (from a browser, an e-mail, a chat...), hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> and drop it on the circle that appears |
 | Save a web page | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> while a browser window is in front: PDF, one long picture, or a QR code |
@@ -195,7 +200,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Ctrl + Shift switches my keyboard layout.** Choose <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> in Settings → Shortcut &amp; look.
 
-**Do I need Microsoft Office?** Only for Word, Excel and PowerPoint files (and Markdown → Word). Everything else works without it.
+**Do I need Microsoft Office?** Only for Word, Excel and PowerPoint files (and Markdown → Word), and if you don't have it, the free [LibreOffice](https://www.libreoffice.org) does the same job once it's installed. Everything else works without either.
 
 **Which languages can OCR read?** The languages installed in Windows (Settings → Time & language → Language). Add a language there to read it.
 
@@ -203,7 +208,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift goes online only for what you ask: a picture or shared file you drag in from a web page (only when the browser doesn't hand it over itself), and a page you save with the browser tap, which the Edge or Chrome on your PC opens with a fresh, empty profile (no cookies or sign-ins). Otherwise, the only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it.
 
-**Something failed. Where's the log?** Tray menu → Settings → About → Log folder. Please attach `app.log` when [reporting an issue](https://github.com/syedtaj7/TapShift/issues).
+**Something failed. How do I report it?** Tray menu → **Report a problem** (or **Report** on the red card). It shows exactly what would be shared, with your name and folders hidden, and opens a filled-in GitHub issue in your browser. The full log is in Settings → About → Log folder.
 
 </details>
 
