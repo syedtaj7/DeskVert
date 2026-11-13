@@ -40,7 +40,7 @@ def make_workdir(src_folder: Path, job_id: str) -> Path:
         d.mkdir(parents=True, exist_ok=True)
         return d
     try:
-        d = src_folder / f".tapshift-{job_id}"
+        d = src_folder / f".deskvert-{job_id}"
         d.mkdir()
         _set_hidden(d)
         return d

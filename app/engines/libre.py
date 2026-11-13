@@ -1,11 +1,11 @@
 """Word, Excel and PowerPoint files on PCs without Microsoft Office: through LibreOffice, when it's installed.
 
-LibreOffice (free) is run on its own, invisibly, with a private, empty profile in Tapshift's work
+LibreOffice (free) is run on its own, invisibly, with a private, empty profile in Deskvert's work
 folder: a LibreOffice you have open is never touched, and nothing is changed in your settings. It
-runs inside Tapshift's processor limit, like everything else.
+runs inside Deskvert's processor limit, like everything else.
 
 Every result is checked before it's kept: a PDF must open with pages (and the document's words,
-when Tapshift can read them), other formats must open as what they claim to be.
+when Deskvert can read them), other formats must open as what they claim to be.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def find_soffice() -> str | None:
 
 
 def _source_text(src: Path) -> str:
-    """The document's words, when Tapshift can read them itself (to check the result)."""
+    """The document's words, when Deskvert can read them itself (to check the result)."""
     e = src.suffix.lower()
     try:
         if e in (".docx", ".docm", ".dotx"):

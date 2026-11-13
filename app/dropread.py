@@ -1,4 +1,4 @@
-"""What was dropped on Tapshift, and turning it into files on disk.
+"""What was dropped on Deskvert, and turning it into files on disk.
 
 A drag from another app arrives as a Windows data object (IDataObject) holding the
 same thing in several forms. They're tried best first:
@@ -10,7 +10,7 @@ same thing in several forms. They're tried best first:
 3. picture data (PNG, DIB): apps that hand over just the pixels.
 4. a web address (http/https, or a data: URL): downloaded, as a last resort.
 
-Everything but real files is saved in Downloads\\Tapshift under a name that doesn't
+Everything but real files is saved in Downloads\\Deskvert under a name that doesn't
 exist yet, so nothing is ever overwritten. Nothing here runs or opens what was dropped.
 """
 
@@ -37,7 +37,7 @@ FD_FILESIZE = 0x40
 FILEDESCRIPTORW_SIZE = 592
 MAX_DOWNLOAD = 500 * 1024 * 1024  # bigger than any picture; generous for a sound or video file
 MAX_VIRTUAL = 1024 * 1024 * 1024
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Tapshift"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Deskvert"
 
 
 VIDEO_SITES = {"youtube.com": "YouTube", "youtu.be": "YouTube", "youtube-nocookie.com": "YouTube",
@@ -311,7 +311,7 @@ PAGE_EXTS = {"", ".html", ".htm", ".php", ".asp", ".aspx", ".jsp", ".cfm", ".sht
 
 
 def is_file_link(url: str) -> bool:
-    """A link straight to a file Tapshift converts (a picture, a PDF, a video...), not to a page."""
+    """A link straight to a file Deskvert converts (a picture, a PDF, a video...), not to a page."""
     from .catalog import kind_of
 
     path = urllib.parse.urlsplit(url).path
@@ -430,7 +430,7 @@ def clip_from_html(raw: bytes) -> Dropped | None:
 # ---------------------------------------------------------------- saving
 
 def downloads_dir() -> Path:
-    """Downloads\\Tapshift (the user's own Downloads folder, wherever it is)."""
+    """Downloads\\Deskvert (the user's own Downloads folder, wherever it is)."""
     base = None
     try:
         from win32com.shell import shell
@@ -438,7 +438,7 @@ def downloads_dir() -> Path:
         base = Path(shell.SHGetKnownFolderPath("{374DE290-123F-4565-9164-39C4925E467B}", 0, None))
     except Exception:  # noqa: BLE001
         pass
-    folder = (base or Path.home() / "Downloads") / "Tapshift"
+    folder = (base or Path.home() / "Downloads") / "Deskvert"
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
@@ -507,7 +507,7 @@ def save(name: str, data: bytes, folder: Path | None = None) -> Path:
             return target
         except FileExistsError:
             continue
-    raise DropError("Couldn't find a free file name in Downloads\\Tapshift.")
+    raise DropError("Couldn't find a free file name in Downloads\\Deskvert.")
 
 
 def filename_from(disposition: str) -> str:
@@ -534,14 +534,14 @@ def download(url: str, progress=None, folder: Path | None = None) -> Path:
         raise DropError("That only exists inside the web page, so it can't be fetched. In the browser, right-click "
                         "it and choose Save, then convert the saved file.")
     if scheme not in ("http", "https"):
-        raise DropError("Nothing Tapshift can use came with that drop.")
+        raise DropError("Nothing Deskvert can use came with that drop.")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             kind = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
             total = int(r.headers.get("Content-Length") or 0)
             if total > MAX_DOWNLOAD:
-                raise DropError(f"That file is {total // (1024 * 1024)} MB, more than Tapshift fetches "
+                raise DropError(f"That file is {total // (1024 * 1024)} MB, more than Deskvert fetches "
                                 "(500 MB). Download it in the browser first.")
             chunks, got = [], 0
             while True:
@@ -598,7 +598,7 @@ def _page_shortcut(url: str, title: str, folder: Path | None) -> Path:
         if not target.exists():
             write_url(target, url)
             return target
-    raise DropError("Couldn't find a free file name in Downloads\\Tapshift.")
+    raise DropError("Couldn't find a free file name in Downloads\\Deskvert.")
 
 
 def _clip_file(dropped: Dropped, folder: Path | None) -> Path:
@@ -609,7 +609,7 @@ def _clip_file(dropped: Dropped, folder: Path | None) -> Path:
     source = (f'<p style="color:#666;font-size:12px;margin-top:24px">From <a href="{html.escape(dropped.source)}">'
               f'{html.escape(dropped.source)}</a>, {time.strftime("%Y-%m-%d %H:%M")}</p>') if dropped.source else ""
     page = (f'<!DOCTYPE html><html><head><meta charset="utf-8">'
-            '<meta name="generator" content="Tapshift web clip">'
+            '<meta name="generator" content="Deskvert web clip">'
             + (f'<base href="{html.escape(dropped.source)}">' if dropped.source else "") +
             f'<title>{html.escape(title)}</title>'
             '<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:860px;margin:32px auto;line-height:1.5}'
@@ -675,7 +675,7 @@ def to_files(dropped: Dropped, progress=None, folder: Path | None = None) -> tup
         return [_clip_file(dropped, folder)], "clip"
     if dropped.url:
         return _link(dropped.url, dropped.title, dropped, progress, folder)
-    raise DropError("Nothing Tapshift can use came with that drop. Try dragging the picture itself, or a file.")
+    raise DropError("Nothing Deskvert can use came with that drop. Try dragging the picture itself, or a file.")
 
 
 def _url_in(shortcut: bytes) -> str:

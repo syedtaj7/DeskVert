@@ -1,4 +1,4 @@
-# Blank issues stay on: Tapshift's "Report a problem" opens a new issue with the details already filled in.
+# Blank issues stay on: Deskvert's "Report a problem" opens a new issue with the details already filled in.
 blank_issues_enabled: true
 contact_links:
   - name: Security problem

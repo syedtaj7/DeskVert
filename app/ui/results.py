@@ -24,7 +24,7 @@ def summarize(results: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
 def as_text(label_: str, results: list[dict]) -> str:
     """The same list as plain text, to paste into a message or a bug report."""
     ok, failed, cancelled = summarize(results)
-    lines = [f"Tapshift: {label_}. {len(ok)} converted, {len(failed)} failed, {len(cancelled)} cancelled."]
+    lines = [f"Deskvert: {label_}. {len(ok)} converted, {len(failed)} failed, {len(cancelled)} cancelled."]
     for r in failed:
         lines.append(f"FAILED  {Path(r['sources'][0]).name}: {r.get('error', 'Unknown error')}")
     for r in cancelled:
@@ -38,7 +38,7 @@ class ResultsWindow(ChromeWindow):
     show_file = Signal(str)
 
     def __init__(self, label_: str, results: list[dict]):
-        super().__init__("Tapshift results", QSize(640, 540))
+        super().__init__("Deskvert results", QSize(640, 540))
         ok, failed, cancelled = summarize(results)
         lay = QVBoxLayout(self.body)
         lay.setContentsMargins(8, 4, 8, 8)

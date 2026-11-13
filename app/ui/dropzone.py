@@ -59,7 +59,7 @@ class _Target:
             return DROPEFFECT_NONE
         except Exception:  # noqa: BLE001
             log.exception("reading a drop failed")
-            self.zone.failed.emit("Tapshift couldn't read what was dropped.")
+            self.zone.failed.emit("Deskvert couldn't read what was dropped.")
             return DROPEFFECT_NONE
         self.zone._got_drop(dropped)
         return DROPEFFECT_COPY if not dropped.empty else DROPEFFECT_NONE
@@ -254,7 +254,7 @@ class DropZone(QWidget):
                    "Let go to convert" if hot > 0.5 else "Drop to convert")
         p.setPen(mix(theme.DIM, with_alpha(theme.ON_ACCENT, 0.85), hot))
         p.setFont(font(11))
-        p.drawText(QRectF(c.x() - r, c.y() + 32, 2 * r, 18), Qt.AlignmentFlag.AlignCenter, "Tapshift")
+        p.drawText(QRectF(c.x() - r, c.y() + 32, 2 * r, 18), Qt.AlignmentFlag.AlignCenter, "Deskvert")
         p.end()
 
     def closeEvent(self, e):

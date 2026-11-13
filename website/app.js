@@ -1,4 +1,4 @@
-// Tapshift website: the live picker in the hero, the drifting file types, reveals, counters, the processor
+// Deskvert website: the live picker in the hero, the drifting file types, reveals, counters, the processor
 // gauge, the download link (newest release from GitHub) and the theme switch. No libraries.
 (() => {
   "use strict";
@@ -23,7 +23,7 @@
   }
   $("#theme-toggle")?.addEventListener("click", () => {
     root.dataset.theme = isDark() ? "light" : "dark";
-    try { localStorage.setItem("tapshift-theme", root.dataset.theme); } catch (e) { /* private window */ }
+    try { localStorage.setItem("deskvert-theme", root.dataset.theme); } catch (e) { /* private window */ }
     applyTheme();
   });
   darkQuery.addEventListener("change", applyTheme);
@@ -317,7 +317,8 @@
   // ---------------------------------------------------------------- download: the newest release, straight from GitHub
   (async () => {
     const show = (rel) => {
-      const setup = rel.assets.find((a) => /^Tapshift-Setup-.*\.exe$/.test(a.name));
+      const setup = rel.assets.find((a) => /^Deskvert-Setup-.*\.exe$/.test(a.name))
+        || rel.assets.find((a) => /^Tapshift-Setup-.*\.exe$/.test(a.name)); // releases from before the rename
       const zip = rel.assets.find((a) => /portable\.zip$/.test(a.name));
       if (setup) $$(".js-download").forEach((a) => (a.href = setup.browser_download_url));
       if (zip) $("#dl-portable").href = zip.browser_download_url;
@@ -335,14 +336,14 @@
       }
     };
     try {
-      const cached = sessionStorage.getItem("tapshift-release");
+      const cached = sessionStorage.getItem("deskvert-release");
       if (cached) return show(JSON.parse(cached));
     } catch (e) { /* storage blocked: just ask GitHub */ }
     try {
       const r = await fetch("https://api.github.com/repos/syedtaj7/TapShift/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
       if (!r.ok) throw new Error(r.status);
       const rel = await r.json();
-      try { sessionStorage.setItem("tapshift-release", JSON.stringify({ tag_name: rel.tag_name, assets: rel.assets })); } catch (e) { /* fine */ }
+      try { sessionStorage.setItem("deskvert-release", JSON.stringify({ tag_name: rel.tag_name, assets: rel.assets })); } catch (e) { /* fine */ }
       show(rel);
     } catch (e) {
       $("#dl-meta").textContent = "Latest release on GitHub"; // links already point at the releases page

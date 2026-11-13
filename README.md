@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="docs/readme/hero.svg" width="100%" alt="Tapshift: select a file, tap Ctrl + Shift, pick a format"></a>
+<a href="https://github.com/syedtaj7/TapShift/releases/latest"><img src="docs/readme/hero.svg" width="100%" alt="Deskvert: select a file, tap Ctrl + Shift, pick a format"></a>
 
 <br>
 
@@ -14,10 +14,10 @@
 
 <br><br>
 
-<img src="docs/readme/ticker.svg" width="100%" alt="Examples of what Tapshift does">
+<img src="docs/readme/ticker.svg" width="100%" alt="Examples of what Deskvert does">
 
 **No app to open. No upload. No account.**<br>
-Tapshift waits quietly in your tray. Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick what you want,<br>
+Deskvert waits quietly in your tray. Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick what you want,<br>
 and the new file appears right next to the original, checked and ready.
 
 </div>
@@ -51,7 +51,7 @@ and the new file appears right next to the original, checked and ready.
 | Pick **Website icons** on a logo | favicon.ico, the PNG sizes phones use, a web manifest, and the lines to paste into your site |
 | Turn on **WEBP downloads to JPG** (Settings) | Pictures you download as WEBP or AVIF get a JPG copy next to them, by themselves |
 
-To read a selection, Tapshift copies it and then puts your clipboard back exactly as it was. Everything lands in **Downloads\Tapshift**, never overwriting anything. Videos on sites like YouTube are streams: dragging one gives its thumbnail, and Tapshift doesn't download streaming video.
+To read a selection, Deskvert copies it and then puts your clipboard back exactly as it was. Everything lands in **Downloads\Deskvert**, never overwriting anything. Videos on sites like YouTube are streams: dragging one gives its thumbnail, and Deskvert doesn't download streaming video.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
@@ -105,7 +105,7 @@ To read a selection, Tapshift copies it and then puts your clipboard back exactl
 
 - **Office documents** are converted by your installed Microsoft Office, so they look exactly as they do in Office. Office opens hidden, read-only and with macros off, and your Office settings are never changed. **No Office?** The free **LibreOffice** is used instead when it's installed (in a private profile of its own).
 - **Photos** keep their rotation, camera details (EXIF), GPS and color profile. Lossless formats are checked pixel for pixel.
-- **Videos** are never re-encoded (that's heavy work): Tapshift takes their sound or a still picture, through Windows' own decoder.
+- **Videos** are never re-encoded (that's heavy work): Deskvert takes their sound or a still picture, through Windows' own decoder.
 
 </details>
 
@@ -118,7 +118,7 @@ To read a selection, Tapshift copies it and then puts your clipboard back exactl
 - **Your original is never touched.** Every result is a new file, such as `report (compressed).pdf`, and nothing is overwritten.
 - **Every result is checked before you see it.** The new file is opened again and compared with the original: pixels, pages, words, every spreadsheet cell. If anything is off, it's thrown away and you're told why, in plain words.
 - **Private.** Everything happens on your PC. No uploads, no account, no tracking.
-- **Crash-proof.** Conversions run in separate worker processes, so a damaged file can't take Tapshift down.
+- **Crash-proof.** Conversions run in separate worker processes, so a damaged file can't take Deskvert down.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
@@ -126,7 +126,7 @@ To read a selection, Tapshift copies it and then puts your clipboard back exactl
 
 <img src="docs/readme/cpu.svg" width="100%" alt="CPU use stays under a hard cap">
 
-Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion runs under a **hard CPU limit that Windows itself enforces** (15%, 25% or 50%, your choice), at the lowest priority and in efficiency mode, so your laptop stays cool and quiet while you keep working.
+Built for low-end laptops. Deskvert uses **no CPU while idle**. Every conversion runs under a **hard CPU limit that Windows itself enforces** (15%, 25% or 50%, your choice), at the lowest priority and in efficiency mode, so your laptop stays cool and quiet while you keep working.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
@@ -147,32 +147,32 @@ Built for low-end laptops. Tapshift uses **no CPU while idle**. Every conversion
 
 ## 📥 Install
 
-1. Download **`Tapshift-Setup-x.y.z.exe`** from the [latest release](https://github.com/syedtaj7/TapShift/releases/latest). No admin rights needed.<br>
-   Prefer not to install? Get **`Tapshift-x.y.z-portable.zip`**, unzip it anywhere and run `Tapshift.exe`.
+1. Download **`Deskvert-Setup-x.y.z.exe`** from the [latest release](https://github.com/syedtaj7/TapShift/releases/latest). No admin rights needed.<br>
+   Prefer not to install? Get **`Deskvert-x.y.z-portable.zip`**, unzip it anywhere and run `Deskvert.exe`.
 2. A short welcome tour shows you around.
 3. Select a file, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format. That's it.
 
 > [!NOTE]
-> **"Windows protected your PC"?** Windows SmartScreen shows this for new apps that aren't widely downloaded yet. Click **More info → Run anyway**. Tapshift is open source: every release is built from this repository by GitHub Actions, and you can read every line.
+> **"Windows protected your PC"?** Windows SmartScreen shows this for new apps that aren't widely downloaded yet. Click **More info → Run anyway**. Deskvert is open source: every release is built from this repository by GitHub Actions, and you can read every line.
 
 **Needs:** Windows 10 or 11, 64-bit · about 250 MB of disk · no admin rights, no internet for converting.
 Optional: Microsoft Office (or the free LibreOffice) for Word, Excel and PowerPoint files; Edge or Chrome (already on most PCs) for saving web pages.
 
-**Check your download (optional):** each file's SHA-256 checksum is listed on its [release page](https://github.com/syedtaj7/TapShift/releases/latest). In PowerShell: `Get-FileHash .\Tapshift-Setup-x.y.z.exe` should print the same value.
+**Check your download (optional):** each file's SHA-256 checksum is listed on its [release page](https://github.com/syedtaj7/TapShift/releases/latest). In PowerShell: `Get-FileHash .\Deskvert-Setup-x.y.z.exe` should print the same value.
 
 ### Update
 
-Tapshift lets you know when a new version is out (it asks GitHub every few hours; turn it off in
+Deskvert lets you know when a new version is out (it asks GitHub every few hours; turn it off in
 **Settings → General → Tell me about updates**). Click **Update**, or use **Settings → About → Check for updates**
-(or the tray menu). If there's a new version, Tapshift shows what's new, downloads it with a progress bar, checks it against GitHub's checksum, then installs it and restarts. The portable zip links to the download page instead.
+(or the tray menu). If there's a new version, Deskvert shows what's new, downloads it with a progress bar, checks it against GitHub's checksum, then installs it and restarts. The portable zip links to the download page instead.
 
 ### Uninstall
 
 Any of these works, and each removes everything (app, settings, logs):
-- **Start menu → Uninstall Tapshift**
-- **Tray icon → Uninstall Tapshift…**
-- **Tapshift Settings → About → Uninstall**
-- **Windows Settings → Apps → Installed apps → Tapshift → Uninstall**
+- **Start menu → Uninstall Deskvert**
+- **Tray icon → Uninstall Deskvert…**
+- **Deskvert Settings → About → Uninstall**
+- **Windows Settings → Apps → Installed apps → Deskvert → Uninstall**
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
@@ -186,7 +186,7 @@ Any of these works, and each removes everything (app, settings, logs):
 | Close the picker | <kbd>Esc</kbd>, click elsewhere, or tap the shortcut again |
 | Copied files | If nothing is selected, files you copied with <kbd>Ctrl</kbd> + <kbd>C</kbd> are used |
 | Watch folders | Settings → General → **Watch folders**: files you put in a chosen folder are converted by themselves (PDF, JPG, Compress...), into a "Converted" folder inside |
-| Report a problem | Tray menu → **Report a problem**: you see everything first (names and folders hidden), then GitHub opens in your browser to post it. Tapshift sends nothing itself |
+| Report a problem | Tray menu → **Report a problem**: you see everything first (names and folders hidden), then GitHub opens in your browser to post it. Deskvert sends nothing itself |
 | Less motion | Settings → General → **Reduce motion**: still pictures instead of animations |
 | Repeat the last action | Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> twice, quickly |
 | Convert from anywhere | While dragging a picture, link, table, text or file (from a browser, an e-mail, a chat...), hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> and drop it on the circle that appears |
@@ -194,10 +194,10 @@ Any of these works, and each removes everything (app, settings, logs):
 | Convert a screenshot | Copy or snip a picture, then tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> anywhere |
 | See it all | Tray icon → **Welcome tour**: the live picker, every format, and every conversion acted out |
 | Many kinds of files at once | Select them all: each kind gets its own branch ("2 pictures", "1 PDF"), plus **Combine** and **ZIP** for everything |
-| Right-click menu | Right-click files → **Convert with Tapshift** (Windows 11: Show more options) |
+| Right-click menu | Right-click files → **Convert with Deskvert** (Windows 11: Show more options) |
 | Undo | Click **Undo** on the Saved card: the new files go to the Recycle Bin |
 | Your presets and favourites | Settings → **Customize**: e.g. *WhatsApp photo* or *College PDF under 300 KB*, pinned closest to the centre. Recently used actions move there by themselves |
-| Guide, settings, recent files | Right-click the Tapshift icon in the tray |
+| Guide, settings, recent files | Right-click the Deskvert icon in the tray |
 
 <details>
 <summary><b>FAQ</b></summary>
@@ -211,7 +211,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 **Can it open password-protected files?** PDFs: yes, use **Unlock** (you need the password). Office files: remove the password in Office first.
 
-**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Tapshift goes online only for what you ask: a picture or shared file you drag in from a web page (only when the browser doesn't hand it over itself), and a page you save with the browser tap, which the Edge or Chrome on your PC opens with a fresh, empty profile (no cookies or sign-ins). Otherwise, the only thing Tapshift asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it. The full list is in [PRIVACY.md](PRIVACY.md); security problems go to [SECURITY.md](SECURITY.md).
+**Is anything sent to the internet?** Your files never are: conversions happen on your PC. Deskvert goes online only for what you ask: a picture or shared file you drag in from a web page (only when the browser doesn't hand it over itself), and a page you save with the browser tap, which the Edge or Chrome on your PC opens with a fresh, empty profile (no cookies or sign-ins). Otherwise, the only thing Deskvert asks the internet is GitHub's latest version number (every few hours, unless you turn it off in Settings → General, and when you click **Check for updates**). Only if you choose does it download the installer (checked against GitHub's checksum) and install it. The full list is in [PRIVACY.md](PRIVACY.md); security problems go to [SECURITY.md](SECURITY.md).
 
 **Something failed. How do I report it?** Tray menu → **Report a problem** (or **Report** on the red card). It shows exactly what would be shared, with your name and folders hidden, and opens a filled-in GitHub issue in your browser. The full log is in Settings → About → Log folder.
 
@@ -229,7 +229,7 @@ python -m venv .venv
 powershell -ExecutionPolicy Bypass -File tools\build_release.ps1 # installer + portable zip
 ```
 
-Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php). Pushing a tag like `v1.2.0` builds and publishes the release with GitHub Actions. `Tapshift.exe --selftest <folder>` runs real conversions in a built copy.
+Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php). Pushing a tag like `v1.2.0` builds and publishes the release with GitHub Actions. `Deskvert.exe --selftest <folder>` runs real conversions in a built copy.
 
 | Folder | What's inside |
 |---|---|
@@ -240,7 +240,7 @@ Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.p
 
 ## 📜 License
 
-Tapshift is free software under the [GNU Affero General Public License v3.0](LICENSE). Use it, share it, change it; if you distribute a modified version, share its source under the same license. It comes with no warranty. Bundled open-source components keep their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Deskvert is free software under the [GNU Affero General Public License v3.0](LICENSE). Use it, share it, change it; if you distribute a modified version, share its source under the same license. It comes with no warranty. Bundled open-source components keep their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 <br>
 

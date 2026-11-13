@@ -145,7 +145,7 @@ def _run_tar(args: list[str]) -> str:
     if r.returncode != 0:
         low = err.lower()
         if "passphrase" in low or "encrypt" in low or "password" in low:
-            raise ConversionError("This archive is password-protected, which Tapshift can't open.")
+            raise ConversionError("This archive is password-protected, which Deskvert can't open.")
         if "unrecognized archive format" in low or "not supported" in low or "unsupported" in low:
             raise ConversionError("Windows can't read this kind of archive (some RAR or 7z options aren't "
                                   "supported).")

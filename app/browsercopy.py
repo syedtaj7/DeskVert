@@ -1,6 +1,6 @@
 """Tapping Ctrl+Shift on a browser while text is selected: the selection itself.
 
-Browsers don't let other apps read a page's selection, so Tapshift does what you would: it sends the
+Browsers don't let other apps read a page's selection, so Deskvert does what you would: it sends the
 browser Ctrl+C, reads what the browser copied (with the page's address, which browsers include), and
 then puts the clipboard back exactly as it was. Nothing selected means the browser copies nothing, so
 the clipboard is untouched and the tap is about the page itself.

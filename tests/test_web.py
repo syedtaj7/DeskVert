@@ -210,7 +210,7 @@ def test_webp_download_watch(tmp_path, monkeypatch):
 
     downloads = tmp_path / "Downloads"
     downloads.mkdir()
-    monkeypatch.setattr(dropread, "downloads_dir", lambda: downloads / "Tapshift")
+    monkeypatch.setattr(dropread, "downloads_dir", lambda: downloads / "Deskvert")
     webp = io.BytesIO()
     Image.new("RGB", (30, 20), "blue").save(webp, "WEBP")
     old = downloads / "old.webp"
@@ -286,7 +286,7 @@ def test_selection_as_pdf_and_picture(tmp_path):
 
 
 def test_reading_the_browser_selection_puts_the_clipboard_back(monkeypatch):
-    """No real clipboard: Windows' calls are stood in for. The browser "copies" a selection; Tapshift reads
+    """No real clipboard: Windows' calls are stood in for. The browser "copies" a selection; Deskvert reads
     it and restores what was on the clipboard before."""
     from types import SimpleNamespace
 

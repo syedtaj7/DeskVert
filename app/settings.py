@@ -28,7 +28,7 @@ class Settings:
     palette: str = "verdant"  # verdant (green) | signal (orange) | native (your Windows accent color)
     picker_size: str = "normal"  # compact | normal | large (how big the web of choices opens)
     save_to: str = "same"  # same (next to the original) | subfolder (a "Converted" folder beside it) | ask
-    auto_update_check: bool = True  # ask GitHub now and then whether a newer Tapshift exists
+    auto_update_check: bool = True  # ask GitHub now and then whether a newer Deskvert exists
     last_update_check: float = 0.0  # when it last asked (time.time())
     update_noticed: str = ""  # "<version>@<time>": the last update we told you about, and when
     onboarded: bool = False  # the welcome tour has been shown
@@ -41,7 +41,7 @@ class Settings:
     keep_modified_date: bool = True
     max_cpu_percent: int = 25  # hard limit on total CPU used by conversions (5-100)
     max_workers: int = 1  # files converted at the same time; the CPU cap is shared between them
-    context_menu: bool = True  # "Convert with Tapshift" in the right-click menu
+    context_menu: bool = True  # "Convert with Deskvert" in the right-click menu
     drag_convert: bool = True  # hold Ctrl+Shift while dragging something: a drop target appears
     browser_actions: bool = True  # tap Ctrl+Shift on a browser window: the page as PDF, picture or QR code
     auto_jpg_downloads: bool = False  # WEBP and AVIF pictures arriving in Downloads get a JPG copy

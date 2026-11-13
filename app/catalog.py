@@ -492,7 +492,7 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
         return title, f"Converting {p.suffix.upper().lstrip('.')} files needs Microsoft {app}, which isn't installed."
     if ext in MEDIA_EXTS:
         return title, (f"{name} {'are audio or video files' if many else 'is an audio or video file'} Windows "
-                       "can't read. Tapshift converts sound with Windows' own converter; re-encoding video isn't "
+                       "can't read. Deskvert converts sound with Windows' own converter; re-encoding video isn't "
                        "offered, to keep your laptop light.")
 
     def a(kind: str) -> str:
@@ -506,7 +506,7 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
         if ext in exts:
             return title, f"{name} {'are' if many else 'is'} {a(kind)}{kind}{'s' if many else ''}, which can't be converted to another format."
     shown = ext.upper().lstrip(".") or "no extension"
-    return title, (f"Tapshift doesn't know the {shown} file type. It converts pictures, documents, PDFs, "
+    return title, (f"Deskvert doesn't know the {shown} file type. It converts pictures, documents, PDFs, "
                    "e-books, data, subtitles, fonts, maps, 3D models, drawings, sound and archives.")
 
 

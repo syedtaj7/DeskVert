@@ -335,7 +335,7 @@ def to_gpx(feats) -> tuple[str, int]:
         if lines:
             segs = "".join("<trkseg>" + "".join(pt("trkpt", c) for c in seg) + "</trkseg>" for seg in lines)
             trks.append(f"<trk>{meta}{segs}</trk>")
-    text = (f'<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Tapshift" xmlns="{GPX_NS}">\n'
+    text = (f'<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Deskvert" xmlns="{GPX_NS}">\n'
             + "\n".join(wpts + trks) + "\n</gpx>\n")
     return text, areas
 

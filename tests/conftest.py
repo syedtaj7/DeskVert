@@ -1,6 +1,6 @@
 """Keep test runs gentle: the test process and every FFmpeg it starts share a
 hard 25% CPU cap (Windows job object), at idle priority in efficiency mode,
-with 2 encoder threads. Override the cap with TAPSHIFT_TEST_CPU=<percent>.
+with 2 encoder threads. Override the cap with DESKVERT_TEST_CPU=<percent>.
 
 The full every-format-to-every-format matrix only runs with ``--full``.
 """
@@ -8,9 +8,9 @@ The full every-format-to-every-format matrix only runs with ``--full``.
 import os
 import tempfile
 
-os.environ.setdefault("TAPSHIFT_THREADS", "2")
+os.environ.setdefault("DESKVERT_THREADS", "2")
 # Never touch the real settings, logs or scratch space: importing the UI loads (and saves) settings.
-_home = tempfile.mkdtemp(prefix="tapshift-tests-")
+_home = tempfile.mkdtemp(prefix="deskvert-tests-")
 os.environ["APPDATA"] = os.path.join(_home, "Roaming")
 os.environ["LOCALAPPDATA"] = os.path.join(_home, "Local")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # windows are built and driven, never shown
@@ -19,7 +19,7 @@ os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("SystemRoot"
 
 from app.lowimpact import cap_this_process  # noqa: E402
 
-cap_this_process(int(os.environ.get("TAPSHIFT_TEST_CPU", "25")))
+cap_this_process(int(os.environ.get("DESKVERT_TEST_CPU", "25")))
 
 
 # One Qt application for the whole run, created before any test loads the image libraries: starting

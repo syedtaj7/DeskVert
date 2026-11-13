@@ -7,7 +7,7 @@
 
 The font's tables are copied byte for byte; only the container changes. The
 new file is unpacked again and every table compared with the original.
-WOFF2 needs Brotli compression, which Tapshift doesn't include.
+WOFF2 needs Brotli compression, which Deskvert doesn't include.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def _sfnt_tables(data: bytes) -> tuple[bytes, dict[bytes, bytes]]:
 def _woff_tables(data: bytes) -> tuple[bytes, dict[bytes, bytes]]:
     if data[:4] != b"wOFF":
         if data[:4] == b"wOF2":
-            raise ConversionError("WOFF2 fonts need Brotli compression, which Tapshift doesn't include.")
+            raise ConversionError("WOFF2 fonts need Brotli compression, which Deskvert doesn't include.")
         raise ConversionError("This isn't a WOFF font.")
     flavor, _ln, n = struct.unpack(">4sIH", data[4:14])
     tables = {}
@@ -61,7 +61,7 @@ def _eot_font_data(data: bytes) -> bytes:
     if struct.unpack("<H", data[34:36])[0] != 0x504C:
         raise ConversionError("This isn't an EOT font.")
     if flags & 0x4:
-        raise ConversionError("This EOT font is compressed (MicroType Express), which Tapshift can't unpack.")
+        raise ConversionError("This EOT font is compressed (MicroType Express), which Deskvert can't unpack.")
     font = data[eot_size - font_size:eot_size]
     if flags & 0x10000000:  # obfuscated with XOR 0x50
         font = bytes(b ^ 0x50 for b in font)
@@ -74,7 +74,7 @@ def load(src: Path) -> tuple[bytes, dict[bytes, bytes]]:
     if ext == ".woff":
         return _woff_tables(data)
     if ext == ".woff2":
-        raise ConversionError("WOFF2 fonts need Brotli compression, which Tapshift doesn't include.")
+        raise ConversionError("WOFF2 fonts need Brotli compression, which Deskvert doesn't include.")
     if ext == ".eot":
         return _sfnt_tables(_eot_font_data(data))
     return _sfnt_tables(data)

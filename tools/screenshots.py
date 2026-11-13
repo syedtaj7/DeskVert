@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-os.environ["TAPSHIFT_THEME"] = sys.argv[1] if len(sys.argv) > 1 else "dark"
+os.environ["DESKVERT_THEME"] = sys.argv[1] if len(sys.argv) > 1 else "dark"
 
 from PySide6.QtCore import QEventLoop, QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402

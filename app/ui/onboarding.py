@@ -1,4 +1,4 @@
-"""The welcome tour: Tapshift's real picker, live, plus everything it converts.
+"""The welcome tour: Deskvert's real picker, live, plus everything it converts.
 
 Pages: a live web picker driven by a ghost cursor (take over with your mouse),
 how it works, a map of every format (counted live from the catalog, so new
@@ -37,7 +37,7 @@ CPU_TEXT = {
     "25": "Uses at most 25% of your processor. Recommended: fast, and you won't notice it running.",
     "50": "Uses at most 50% of your processor. Quickest conversions; the fan may spin up on big files.",
 }
-SAMPLE_DIR = Path("C:/Tapshift tour")  # never read: the picker only needs the names
+SAMPLE_DIR = Path("C:/Deskvert tour")  # never read: the picker only needs the names
 QUALITY_CHOICES = [("smaller", "Smaller"), ("high", "High"), ("best", "Best")]
 QUALITY_TEXT = {
     "smaller": "Noticeably smaller photos; fine for sharing and forms.",
@@ -468,7 +468,7 @@ class PowerArt(Clock):
         p.setPen(QPen(theme.LINE, 1))
         p.setBrush(theme.SURFACE)
         p.drawRoundedRect(menu, 8, 8)
-        items = ["Open", "Copy", "Convert with Tapshift", "Properties"]
+        items = ["Open", "Copy", "Convert with Deskvert", "Properties"]
         sel = min(2, int(phase(t, 0.3, 1.6) * 3))
         for k, it in enumerate(items):
             r = QRectF(menu.left() + 6, menu.top() + 6 + k * 24, menu.width() - 12, 22)
@@ -632,8 +632,8 @@ class HeroPage(Page):
         col = QVBoxLayout()
         col.setSpacing(14)
         col.addStretch(1)
-        title = GradientTitle("Tapshift", 56, align=Qt.AlignmentFlag.AlignLeft)
-        tag = label("Tap. Shift. Done.", 22, QFont.Weight.Bold, display=True)
+        title = GradientTitle("Deskvert", 56, align=Qt.AlignmentFlag.AlignLeft)
+        tag = label("Tap. Pick. Done.", 22, QFont.Weight.Bold, display=True)
         sub = label("Select files, tap <b>Ctrl + Shift</b>, and a web of choices opens right where you are. "
                     "Or hold it while you drag anything out of your browser. Point, click, done.", 15)
         for w in (sub,):
@@ -760,7 +760,7 @@ class _WebCard(QWidget):
 
 
 class BrowserPage(Page):
-    """The highlight: everything Tapshift does straight from a browser, acted out."""
+    """The highlight: everything Deskvert does straight from a browser, acted out."""
 
     CARDS = [("web_drag", "Drag from any browser", "Hold Ctrl + Shift while dragging; drop on the circle."),
              ("web_table", "Web tables to Excel", "Select a table on any page, drag it in."),
@@ -882,7 +882,7 @@ class MovesPage(Page):
     POWER = [
         ("repeat", "Tap twice to repeat", "Select new files and tap Ctrl + Shift twice: the last action runs again, "
                                           "with the same settings."),
-        ("menu", "Right-click works too", "Convert with Tapshift is in files' right-click menu (on Windows 11, under "
+        ("menu", "Right-click works too", "Convert with Deskvert is in files' right-click menu (on Windows 11, under "
                                           "Show more options)."),
         ("undo", "Undo, any time", "Undo on the Saved card sends the new file to the Recycle Bin. The original "
                                    "stays."),
@@ -1017,7 +1017,7 @@ class SetupPage(Page):
             ("Photo quality", self.quality_text, quality),
             ("Recent actions in the centre", "What you used last sits closest to the middle of the picker.",
              toggle("quick_recents")),
-            ("Right-click menu and Send to", "Adds Tapshift to the right-click menu of files and folders.",
+            ("Right-click menu and Send to", "Adds Deskvert to the right-click menu of files and folders.",
              toggle("context_menu")),
             ("Tell me about updates", "Lets you know when a new version is out. It only asks GitHub for the "
              "latest version number.", toggle("auto_update_check")),
@@ -1094,7 +1094,7 @@ class ReadyPage(Page):
         lay.addWidget(cel, 0, Qt.AlignmentFlag.AlignHCenter)
         t = label("You're all set!", 30, QFont.Weight.Bold, display=True)
         t.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        s = label("Tapshift now lives in your system tray, by the clock at the bottom-right. Right-click its "
+        s = label("Deskvert now lives in your system tray, by the clock at the bottom-right. Right-click its "
                   "icon any time for <b>How to use</b>, <b>Settings</b>, <b>Customize</b> and recent conversions.",
                   14, dim=True)
         s.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1139,7 +1139,7 @@ class TourWindow(ChromeWindow):
         from PySide6.QtGui import QGuiApplication
 
         avail = QGuiApplication.primaryScreen().availableGeometry()
-        super().__init__("Tapshift", QSize(min(1120, avail.width() - 60), min(780, avail.height() - 60)))
+        super().__init__("Deskvert", QSize(min(1120, avail.width() - 60), min(780, avail.height() - 60)))
         self.choices = dict(choices)
         # Counted from the catalog (new conversions show up by themselves), on a thread: it takes a moment,
         # and the first page shouldn't wait for it.

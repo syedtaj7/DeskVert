@@ -1,4 +1,4 @@
-"""Animation toolkit for Tapshift's windows.
+"""Animation toolkit for Deskvert's windows.
 
 Everything here animates only while it's on screen (timers stop when hidden),
 so the tray app still costs nothing while idle.
@@ -43,7 +43,7 @@ def windows_animations() -> bool:
 
 
 def motion_ok() -> bool:
-    """False when you asked for less motion (in Tapshift, or in Windows): things appear in place, still."""
+    """False when you asked for less motion (in Deskvert, or in Windows): things appear in place, still."""
     return not REDUCE_MOTION and windows_animations()
 
 
@@ -107,7 +107,7 @@ def with_alpha(c: QColor, a: float) -> QColor:
 
 
 def accent_gradient(x1: float, y1: float, x2: float, y2: float) -> QLinearGradient:
-    """The accent as a brush. Deliberately flat (one color): no gradients in Tapshift's design."""
+    """The accent as a brush. Deliberately flat (one color): no gradients in Deskvert's design."""
     g = QLinearGradient(x1, y1, x2, y2)
     g.setColorAt(0, theme.ACCENT)
     g.setColorAt(1, theme.ACCENT)
@@ -175,7 +175,7 @@ class Aurora(QWidget):
 
 
 class AnimatedLogo(Clock):
-    """The Tapshift mark drawing itself in once, then holding still."""
+    """The Deskvert mark drawing itself in once, then holding still."""
 
     def __init__(self, size: int = 120, parent=None):
         super().__init__(parent)
@@ -192,9 +192,9 @@ class AnimatedLogo(Clock):
 
 
 def paint_wordmark(p: QPainter, rect: QRectF, text: str, f: QFont, align=Qt.AlignmentFlag.AlignCenter):
-    """Solid text. For the brand name, "Tap" in the text color and "shift" in the accent."""
+    """Solid text. For the brand name, "Desk" in the text color and "vert" in the accent."""
     fm = QFontMetricsF(f)
-    parts = [(text[:3], theme.TEXT), (text[3:], theme.ACCENT)] if text == "Tapshift" else [(text, theme.TEXT)]
+    parts = [(text[:4], theme.TEXT), (text[4:], theme.ACCENT)] if text == "Deskvert" else [(text, theme.TEXT)]
     w = sum(fm.horizontalAdvance(t) for t, _ in parts)
     if align & Qt.AlignmentFlag.AlignLeft:
         x = rect.left()

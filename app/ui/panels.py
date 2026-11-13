@@ -584,7 +584,7 @@ class ProgressPanel(_Card):
         self.copy_btn = button("Copy", "Copy the new file, to paste into a chat, an e-mail or a folder", self._copy)
         self.open_btn = button("Open", "Open the new file", self._open)
         self.details_btn = button("Details", "Every file, and why any failed", self._details)
-        self.report_btn = button("Report", "Tell the Tapshift developers (you see everything before it's sent)",
+        self.report_btn = button("Report", "Tell the Deskvert developers (you see everything before it's sent)",
                                  lambda: self.report_requested.emit(self._report_about))
         self._report_about = ""
         self.action_btn = button("", "", self._action, primary=True)  # a one-off action, e.g. "Update" (offer())
@@ -818,7 +818,7 @@ class ProgressPanel(_Card):
 
     def _open(self):
         if self._outputs and os.path.exists(self._outputs[0]):
-            os.startfile(self._outputs[0])  # noqa: S606 - the file Tapshift just made, opened like a double-click
+            os.startfile(self._outputs[0])  # noqa: S606 - the file Deskvert just made, opened like a double-click
         self._dismiss()
 
     def _copy(self):

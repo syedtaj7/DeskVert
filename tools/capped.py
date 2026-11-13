@@ -1,4 +1,4 @@
-"""Run any command under Tapshift's hard CPU cap (Windows job object), so heavy
+"""Run any command under Deskvert's hard CPU cap (Windows job object), so heavy
 tasks like building the release don't slow the laptop down.
 Usage: python tools/capped.py <percent> <command...>"""
 

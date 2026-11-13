@@ -339,7 +339,7 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     with pymupdf.open("svg", svg.encode("utf-8")) as doc:
         if fmt == "pdf":
             pdf = pymupdf.open("pdf", doc.convert_to_pdf())
-            pdf.set_metadata({"title": sources[0].stem, "creator": "Tapshift"})
+            pdf.set_metadata({"title": sources[0].stem, "creator": "Deskvert"})
             pdf.save(long_path(out), garbage=3, deflate=True)
             pdf.close()
             with pymupdf.open(long_path(out)) as d:

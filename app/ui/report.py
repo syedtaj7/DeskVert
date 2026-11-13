@@ -1,6 +1,6 @@
 """The Report a problem window: describe it, see exactly what would be shared, then open GitHub.
 
-Tapshift sends nothing itself. "Open on GitHub" fills in a new issue in your browser, where you read
+Deskvert sends nothing itself. "Open on GitHub" fills in a new issue in your browser, where you read
 it, change it, and post it (or don't). The log is shown first, with names and folders hidden.
 """
 
@@ -34,7 +34,7 @@ class ReportWindow(ChromeWindow):
         lay.setContentsMargins(8, 4, 8, 8)
         lay.setSpacing(8)
         lay.addWidget(label("Report a problem", 22, QFont.Weight.Bold, display=True))
-        lay.addWidget(label("Tapshift sends nothing by itself. <b>Open on GitHub</b> fills in a new issue in your "
+        lay.addWidget(label("Deskvert sends nothing by itself. <b>Open on GitHub</b> fills in a new issue in your "
                             "browser: you read it, change anything, and post it yourself (a free GitHub account is "
                             "needed). Your name and folders are hidden in the log below.", 13, dim=True))
         self.title = QLineEdit(f"Problem: {about}" if about else "")

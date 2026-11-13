@@ -1,4 +1,4 @@
-"""An animated, looping demo of how Tapshift works (used in the welcome tour
+"""An animated, looping demo of how Deskvert works (used in the welcome tour
 and the guide). Everything is painted, so it's crisp at any size and costs
 nothing when not on screen."""
 
@@ -36,7 +36,7 @@ def _tile_rect(i: int) -> QRectF:
 
 
 class DemoScene(Clock):
-    """How Tapshift works, acted out in a File Explorer window: select, tap, point, saved.
+    """How Deskvert works, acted out in a File Explorer window: select, tap, point, saved.
 
     Steady by design: the window and the picker are drawn once into pictures and only placed
     each frame, so nothing shimmers; just the pointer, a highlight and the progress move.

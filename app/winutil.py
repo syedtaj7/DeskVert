@@ -15,7 +15,7 @@ user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-RUN_NAME = "Tapshift"
+RUN_NAME = "Deskvert"
 
 
 def force_foreground(hwnd: int) -> None:
@@ -57,7 +57,7 @@ def trim_memory() -> None:
         pass
 
 
-def single_instance(name: str = "Local\\Tapshift.SingleInstance", wait_seconds: float = 0.0):
+def single_instance(name: str = "Local\\Deskvert.SingleInstance", wait_seconds: float = 0.0):
     """Returns a handle if we're the only instance, else None. With
     ``wait_seconds`` (used when restarting), waits for the old copy to exit."""
     import time
@@ -73,7 +73,7 @@ def single_instance(name: str = "Local\\Tapshift.SingleInstance", wait_seconds: 
         time.sleep(0.2)
 
 
-SHOW_EVENT = "Local\\Tapshift.Show"
+SHOW_EVENT = "Local\\Deskvert.Show"
 
 
 def _signal(name: str) -> bool:
@@ -107,7 +107,7 @@ def _watch(name: str, callback) -> None:
 
 
 def signal_running_instance() -> bool:
-    """Ask the Tapshift that's already running to show its window (used when it's started twice)."""
+    """Ask the Deskvert that's already running to show its window (used when it's started twice)."""
     return _signal(SHOW_EVENT)
 
 
@@ -115,16 +115,16 @@ def watch_show_requests(callback) -> None:
     _watch(SHOW_EVENT, callback)
 
 
-# ---------------------------------------------------------------- right-click "Convert with Tapshift"
+# ---------------------------------------------------------------- right-click "Convert with Deskvert"
 
-PICK_EVENT = "Local\\Tapshift.Pick"
-MENU_KEY = r"Software\Classes\*\shell\Tapshift"
-FOLDER_MENU_KEY = r"Software\Classes\Directory\shell\Tapshift"
+PICK_EVENT = "Local\\Deskvert.Pick"
+MENU_KEY = r"Software\Classes\*\shell\Deskvert"
+FOLDER_MENU_KEY = r"Software\Classes\Directory\shell\Deskvert"
 
 
 def ctrl_shift_switches_layout() -> bool:
     """True when tapping Ctrl+Shift already means "next keyboard layout" on this PC (so it's a poor
-    shortcut for Tapshift here). That needs two or more layouts and Windows set to switch with it."""
+    shortcut for Deskvert here). That needs two or more layouts and Windows set to switch with it."""
     try:
         import winreg
 
@@ -157,11 +157,11 @@ def ctrl_shift_switches_layout() -> bool:
 
 def sendto_link() -> Path:
     base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
-    return Path(base) / "Microsoft" / "Windows" / "SendTo" / "Tapshift.lnk"
+    return Path(base) / "Microsoft" / "Windows" / "SendTo" / "Deskvert.lnk"
 
 
 def set_sendto(enabled: bool, link: Path | None = None) -> None:
-    """Add (or remove) Tapshift in the right-click "Send to" menu. Unlike our own menu entry, Send to
+    """Add (or remove) Deskvert in the right-click "Send to" menu. Unlike our own menu entry, Send to
     is on Windows 11's short menu, and it hands over every selected file or folder at once."""
     link = link or sendto_link()
     if not enabled:
@@ -182,7 +182,7 @@ def set_sendto(enabled: bool, link: Path | None = None) -> None:
     sc = win32com.client.Dispatch("WScript.Shell").CreateShortCut(str(link))
     sc.Targetpath = target
     sc.Arguments = args
-    sc.Description = "Convert with Tapshift"
+    sc.Description = "Convert with Deskvert"
     if getattr(sys, "frozen", False):
         sc.IconLocation = f"{sys.executable},0"
     sc.save()
@@ -195,7 +195,7 @@ def pick_spool() -> Path:
 
 
 def send_pick(paths: list[str]) -> bool:
-    """Hand files from a right-click to the running Tapshift. Explorer starts one copy per
+    """Hand files from a right-click to the running Deskvert. Explorer starts one copy per
     selected file; each drops its file here and the running app gathers them into one picker."""
     import uuid
 
@@ -235,7 +235,7 @@ def context_menu_enabled() -> bool:
 
 
 def set_context_menu(enabled: bool) -> None:
-    """Add (or remove) "Convert with Tapshift" to the right-click menu of every file.
+    """Add (or remove) "Convert with Deskvert" to the right-click menu of every file.
     Per user, no admin rights. On Windows 11 it's under "Show more options"."""
     import winreg
 
@@ -254,7 +254,7 @@ def set_context_menu(enabled: bool) -> None:
     exe = sys.executable if getattr(sys, "frozen", False) else str(Path(sys.executable).with_name("pythonw.exe"))
     for key in (MENU_KEY, FOLDER_MENU_KEY):  # files, and folders (everything inside them)
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key) as k:
-            winreg.SetValueEx(k, None, 0, winreg.REG_SZ, "Convert with Tapshift")
+            winreg.SetValueEx(k, None, 0, winreg.REG_SZ, "Convert with Deskvert")
             winreg.SetValueEx(k, "Icon", 0, winreg.REG_SZ, f'"{exe}",0')
             winreg.SetValueEx(k, "MultiSelectModel", 0, winreg.REG_SZ, "Player")  # many at once
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key + r"\command") as k:
@@ -310,8 +310,63 @@ def set_autostart(enabled: bool) -> None:
                 pass
 
 
+# ---------------------------------------------------------------- moving over from the old name
+OLD_NAME = "Tapshift"  # Deskvert's name until 1.14
+
+
+def _delete_tree(root, path: str) -> bool:
+    """Delete a registry key and everything under it (False if it wasn't there)."""
+    import winreg
+
+    try:
+        with winreg.OpenKey(root, path, 0, winreg.KEY_READ | winreg.KEY_WRITE) as k:
+            while True:
+                try:
+                    sub = winreg.EnumKey(k, 0)
+                except OSError:
+                    break
+                _delete_tree(root, path + "\\" + sub)
+        winreg.DeleteKey(root, path)
+        return True
+    except OSError:
+        return False
+
+
+def move_from_old_name() -> dict:
+    """Tapshift became Deskvert: take over its start-up entry, and remove its right-click and Send to
+    entries (Deskvert adds its own). Returns what was found, e.g. {"autostart": True}."""
+    import winreg
+
+    found = {"autostart": False, "menu": False, "sendto": False}
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_READ | winreg.KEY_SET_VALUE) as k:
+            try:
+                winreg.QueryValueEx(k, OLD_NAME)
+                found["autostart"] = True
+                winreg.DeleteValue(k, OLD_NAME)
+            except OSError:
+                pass
+    except OSError:
+        pass
+    if found["autostart"]:
+        try:
+            set_autostart(True)  # it started with Windows before the rename: it still does
+        except OSError:
+            pass
+    for key in (r"Software\Classes\*\shell" + "\\" + OLD_NAME, r"Software\Classes\Directory\shell" + "\\" + OLD_NAME):
+        found["menu"] |= _delete_tree(winreg.HKEY_CURRENT_USER, key)
+    old_link = sendto_link().with_name(OLD_NAME + ".lnk")
+    if old_link.exists():
+        try:
+            old_link.unlink()
+            found["sendto"] = True
+        except OSError:
+            pass
+    return found
+
+
 def uninstaller() -> Path | None:
-    """The installer's uninstaller, when Tapshift was installed with Setup
+    """The installer's uninstaller, when Deskvert was installed with Setup
     (the portable zip and the source version have none)."""
     if not getattr(sys, "frozen", False):
         return None

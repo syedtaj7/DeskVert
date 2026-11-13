@@ -320,14 +320,14 @@ def test_tap_after_copying_text_opens_the_clip_once(tmp_path, monkeypatch):
 
     from app.main import Controller
 
-    monkeypatch.setattr(dropread, "downloads_dir", lambda: tmp_path / "Tapshift")
+    monkeypatch.setattr(dropread, "downloads_dir", lambda: tmp_path / "Deskvert")
     monkeypatch.setattr(dropread, "clipboard_clip", lambda: dropread.clip_from_html(_cf_html("<p>Hello</p>")))
     opened = []
     fake = SimpleNamespace(_text_copied=time.monotonic(), _text_used="", _drop_notes=[], _drop_site="",
                            open_picker=lambda files, where: opened.append((files, where)))
     assert Controller._copied_clip(fake) is True
     (path,), where = opened[0]
-    assert where == "clip" and path.parent == tmp_path / "Tapshift" and path.suffix == ".html"
+    assert where == "clip" and path.parent == tmp_path / "Deskvert" and path.suffix == ".html"
     text = path.read_text(encoding="utf-8")
     assert "Hello" in text and "https://en.example.org/wiki/Prices" in text  # with where it came from
     assert Controller._copied_clip(fake) is False  # the same copy again: this tap is for the page itself

@@ -3,7 +3,7 @@ name: Release
 # Push a tag like v1.0.0 to build the installer and portable zip and attach them to a GitHub Release.
 #
 # Code signing (SignPath Foundation, free for open source; see docs/SIGNING.md): when the repository variable
-# SIGNPATH_ORGANIZATION_ID is set, Tapshift.exe is signed before it's packaged, and the installer after. Without
+# SIGNPATH_ORGANIZATION_ID is set, Deskvert.exe is signed before it's packaged, and the installer after. Without
 # it, everything is built exactly the same, unsigned.
 on:
   push:
@@ -45,17 +45,17 @@ jobs:
         shell: pwsh
         run: tools/build_release.ps1 -Stage app
 
-      # ---- sign Tapshift.exe, so the zip and the installer carry the signed app
-      - name: Upload Tapshift.exe for signing
+      # ---- sign Deskvert.exe, so the zip and the installer carry the signed app
+      - name: Upload Deskvert.exe for signing
         if: env.SIGN == 'true'
         id: app-unsigned
         uses: actions/upload-artifact@v4
         with:
           name: app-unsigned
-          path: dist/Tapshift/Tapshift.exe
+          path: dist/Deskvert/Deskvert.exe
           if-no-files-found: error
 
-      - name: Sign Tapshift.exe (SignPath)
+      - name: Sign Deskvert.exe (SignPath)
         if: env.SIGN == 'true'
         uses: SignPath/github-action-submit-signing-request@v3
         with:
@@ -71,13 +71,13 @@ jobs:
           wait-for-completion-timeout-in-seconds: 3600  # each release is approved by hand in SignPath
           output-artifact-directory: signed/app
 
-      - name: Use the signed Tapshift.exe
+      - name: Use the signed Deskvert.exe
         if: env.SIGN == 'true'
         shell: pwsh
         run: |
-          Copy-Item signed/app/Tapshift.exe dist/Tapshift/Tapshift.exe -Force
-          $sig = Get-AuthenticodeSignature dist/Tapshift/Tapshift.exe
-          if ($sig.Status -ne "Valid") { throw "Tapshift.exe isn't validly signed: $($sig.Status)" }
+          Copy-Item signed/app/Deskvert.exe dist/Deskvert/Deskvert.exe -Force
+          $sig = Get-AuthenticodeSignature dist/Deskvert/Deskvert.exe
+          if ($sig.Status -ne "Valid") { throw "Deskvert.exe isn't validly signed: $($sig.Status)" }
 
       - name: Package (portable zip and installer)
         shell: pwsh
@@ -90,7 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: setup-unsigned
-          path: release/Tapshift-Setup-*.exe
+          path: release/Deskvert-Setup-*.exe
           if-no-files-found: error
 
       - name: Sign the installer (SignPath)
@@ -113,16 +113,24 @@ jobs:
         if: env.SIGN == 'true'
         shell: pwsh
         run: |
-          $signed = Get-ChildItem signed/setup -Filter "Tapshift-Setup-*.exe" | Select-Object -First 1
+          $signed = Get-ChildItem signed/setup -Filter "Deskvert-Setup-*.exe" | Select-Object -First 1
           if (-not $signed) { throw "SignPath returned no installer" }
           Copy-Item $signed.FullName "release/$($signed.Name)" -Force
           $sig = Get-AuthenticodeSignature "release/$($signed.Name)"
           if ($sig.Status -ne "Valid") { throw "The installer isn't validly signed: $($sig.Status)" }
 
+      # Deskvert was called Tapshift until 1.14. Copies installed before the rename look for an update file
+      # named Tapshift-Setup-<version>.exe, so the installer is published under that name too.
+      - name: The installer under its old name, for copies from before the rename
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem release -Filter "Deskvert-Setup-*.exe" | Select-Object -First 1
+          Copy-Item $setup.FullName ("release/" + ($setup.Name -replace '^Deskvert-', 'Tapshift-'))
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tapshift-release
+          name: deskvert-release
           path: release/*
 
       - name: Release notes from CHANGELOG.md
@@ -136,7 +144,7 @@ jobs:
           if ($start -ge 0) {
             for ($i = $start + 1; $i -lt $lines.Count -and -not $lines[$i].StartsWith("## "); $i++) { $notes += $lines[$i] }
           }
-          if (-not $notes) { $notes = @("Tapshift $ver") }
+          if (-not $notes) { $notes = @("Deskvert $ver") }
           $notes | Set-Content -Encoding utf8 release_notes.md
 
       - name: Publish GitHub Release

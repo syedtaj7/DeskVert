@@ -1080,7 +1080,7 @@ def a_unzip(p, t, n, card):
 
 
 def a_generic(p, t, n, card):
-    """For any kind of file without its own story yet: in, through Tapshift, out."""
+    """For any kind of file without its own story yet: in, through Deskvert, out."""
     src = card.src or "FILE"
     outs = card.cycle or ["NEW"]
     out = outs[n % len(outs)]

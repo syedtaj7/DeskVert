@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://syedtaj7.github.io/TapShift/sitemap.xml
+Sitemap: https://deskvert.vercel.app/sitemap.xml

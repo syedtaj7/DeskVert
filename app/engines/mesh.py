@@ -135,7 +135,7 @@ def read_ply(data: bytes) -> Mesh:
     for e in elements:
         if e["name"] == "face" or any(pr[0] == "list" for pr in e["props"]):
             if e["name"] != "face":
-                raise ConversionError("This PLY file has a layout Tapshift doesn't read.")
+                raise ConversionError("This PLY file has a layout Deskvert doesn't read.")
             lst = next(pr for pr in e["props"] if pr[0] == "list")
             ct, it = order + PLY_TYPES[lst[1]], order + PLY_TYPES[lst[2]]
             if len(e["props"]) == 1:  # try the common case: every face a triangle
@@ -276,7 +276,7 @@ def read_gltf(path: Path) -> Mesh:
         gltf = json.loads(data.decode("utf-8-sig"))
     used = set(gltf.get("extensionsUsed", []))
     if used & {"KHR_draco_mesh_compression", "EXT_meshopt_compression"}:
-        raise ConversionError("This model is compressed (Draco or meshopt), which Tapshift can't unpack.")
+        raise ConversionError("This model is compressed (Draco or meshopt), which Deskvert can't unpack.")
     buffers = _gltf_buffers(gltf, bin_chunk, path.parent)
     extras = bool(gltf.get("materials") or gltf.get("textures"))
     allv, allf = [], []
@@ -340,18 +340,18 @@ def write_stl(m: Mesh, out: Path) -> None:
     rec = np.zeros(len(t), dtype=np.dtype([("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")]))
     rec["n"], rec["v"] = n, t
     with open(long_path(out), "wb") as fh:
-        fh.write(b"Tapshift STL".ljust(80, b" ") + struct.pack("<I", len(t)) + rec.tobytes())
+        fh.write(b"Deskvert STL".ljust(80, b" ") + struct.pack("<I", len(t)) + rec.tobytes())
 
 
 def write_obj(m: Mesh, out: Path) -> None:
-    lines = ["# made with Tapshift"]
+    lines = ["# made with Deskvert"]
     lines += [f"v {x!r} {y!r} {z!r}" for x, y, z in m.v.tolist()]
     lines += [f"f {a + 1} {b + 1} {c + 1}" for a, b, c in m.f.tolist()]
     Path(long_path(out)).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def write_ply(m: Mesh, out: Path) -> None:
-    head = (f"ply\nformat binary_little_endian 1.0\ncomment made with Tapshift\nelement vertex {len(m.v)}\n"
+    head = (f"ply\nformat binary_little_endian 1.0\ncomment made with Deskvert\nelement vertex {len(m.v)}\n"
             "property double x\nproperty double y\nproperty double z\n"
             f"element face {len(m.f)}\nproperty list uchar int vertex_indices\nend_header\n").encode("ascii")
     faces = np.zeros(len(m.f), dtype=np.dtype([("n", "u1"), ("i", "<i4", 3)]))
@@ -385,7 +385,7 @@ def write_glb(m: Mesh, out: Path) -> None:
     idx = m.f.astype("<u4").reshape(-1)
     pb, ib = pos.tobytes(), idx.tobytes()
     gltf = {
-        "asset": {"version": "2.0", "generator": "Tapshift"},
+        "asset": {"version": "2.0", "generator": "Deskvert"},
         "scene": 0, "scenes": [{"nodes": [0]}], "nodes": [{"mesh": 0}],
         "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "mode": 4}]}],
         "buffers": [{"byteLength": len(pb) + len(ib)}],
