@@ -1,7 +1,7 @@
 # Third-party notices
 
 Deskvert is licensed under the **GNU Affero General Public License v3.0** (see [LICENSE](LICENSE)).
-Its complete source code is available at https://github.com/syedtaj7/TapShift.
+Its complete source code is available at https://github.com/syedtaj7/DeskVert.
 
 The Windows release bundles the following open-source components, unmodified. Each remains under its own
 license; license texts are in the [licenses](licenses) folder of this repository, and inside the installed

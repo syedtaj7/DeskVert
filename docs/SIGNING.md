@@ -8,7 +8,7 @@ Check SignPath's current terms and steps on their site; this is how the pieces f
 
 ## 1. Apply
 
-Apply at [signpath.org](https://signpath.org) with the repository (https://github.com/syedtaj7/TapShift). What
+Apply at [signpath.org](https://signpath.org) with the repository (https://github.com/syedtaj7/DeskVert). What
 SignPath Foundation asks of projects (from its terms):
 
 - Open source under an OSI-approved license (AGPL-3.0: yes), no proprietary code, actively maintained and already

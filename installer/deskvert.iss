@@ -11,9 +11,9 @@ AppName=Deskvert
 AppVersion={#AppVersion}
 AppVerName=Deskvert {#AppVersion}
 AppPublisher=Deskvert
-AppPublisherURL=https://github.com/syedtaj7/TapShift
-AppSupportURL=https://github.com/syedtaj7/TapShift/issues
-AppUpdatesURL=https://github.com/syedtaj7/TapShift/releases
+AppPublisherURL=https://github.com/syedtaj7/DeskVert
+AppSupportURL=https://github.com/syedtaj7/DeskVert/issues
+AppUpdatesURL=https://github.com/syedtaj7/DeskVert/releases
 ; Product name and version inside Setup itself (code signing checks these)
 VersionInfoVersion={#AppVersion}
 VersionInfoProductName=Deskvert
