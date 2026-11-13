@@ -27,9 +27,9 @@ from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QGridLayout, QHBo
 from . import theme
 from .chrome import ChromeWindow, label
 from .demo import DemoScene
-from .fx import (Clock, GradientTitle, PillButton, Segmented, StepDots, Toggle, ease_back, ease_in_out,
-                 ease_out, fade_in, font, mix, paint_check, paint_cursor, paint_file_icon, paint_keycap, phase,
-                 with_alpha)
+from .fx import (STILL_T, Clock, GradientTitle, PillButton, Segmented, StepDots, Toggle, ease_back, ease_in_out,
+                 ease_out, fade_in, font, mix, motion_ok, paint_check, paint_cursor, paint_file_icon, paint_keycap,
+                 phase, with_alpha)
 
 CPU_CHOICES = [("15", "Gentle"), ("25", "Balanced"), ("50", "Faster")]
 CPU_TEXT = {
@@ -611,8 +611,7 @@ class Page(QWidget):
         for i, w in enumerate(self.anim_items):
             fade_in(w, delay_ms=60 + i * 90)
         for clock in self.findChildren(Clock):
-            clock.restart()
-            clock._timer.start()
+            clock.run()
 
     def leave(self):
         pass
@@ -738,7 +737,7 @@ class _WebCard(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(theme.BG)
         p.drawRoundedRect(art, 8, 8)
-        tt = self.now + self.offset
+        tt = self.now + self.offset if motion_ok() else STILL_T
         p.save()
         p.setClipRect(art)
         p.translate(art.topLeft())
@@ -812,7 +811,7 @@ class BrowserPage(Page):
         for i, w in enumerate(self.anim_items):
             fade_in(w, delay_ms=40 + i * 45, duration=340, rise=10)
         self._t0 = _time.perf_counter()
-        self.timer.start()
+        self.timer.start()  # with motion off it still runs: cards lift as you point at them, nothing else moves
 
     def leave(self):
         self.timer.stop()
@@ -962,8 +961,7 @@ class MovesPage(Page):
 
     def enter(self):
         for clock in self.findChildren(Clock):
-            clock.restart()
-            clock._timer.start()
+            clock.run()
         for i, w in enumerate(self.anim_items):
             fade_in(w, delay_ms=40 + i * 40, duration=340, rise=10)
 
@@ -1031,6 +1029,8 @@ class SetupPage(Page):
              "themselves.", toggle("auto_jpg_downloads")),
             ("Browser pages", "Tap Ctrl + Shift on a browser window: the page as PDF, a picture or a QR code.",
              toggle("browser_actions")),
+            ("Reduce motion", "Still pictures instead of animations, and windows that simply appear.",
+             toggle("reduce_motion")),
         ]
         grid = QGridLayout()
         grid.setHorizontalSpacing(12)

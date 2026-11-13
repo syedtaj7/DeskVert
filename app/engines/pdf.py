@@ -1047,6 +1047,86 @@ def remove_blank(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
 TOOLS.update({"tables": tables, "blank": remove_blank})
 
 
+SIGNATURE_FONTS = ("segoesc.ttf", "inkfree.ttf", "segoepr.ttf")  # Segoe Script, Ink Free, Segoe Print
+
+
+def _signature_font() -> str | None:
+    import os
+
+    fonts = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "Fonts")
+    for name in SIGNATURE_FONTS:
+        p = os.path.join(fonts, name)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def sign(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    """A visible signature: your name in a handwriting font (or a picture of your signature), a line, and
+    "Signed by ... on ..." in small type. It's a picture of a signature, not a certificate signature."""
+    import datetime
+
+    import pymupdf
+
+    name = " ".join(str(opts.get("name", "")).split())
+    if not name:
+        raise ConversionError("Type the name to sign with.")
+    picture = str(opts.get("picture", "") or "").strip().strip('"')
+    if picture and not Path(picture).is_file():
+        raise ConversionError(f"The signature picture wasn't found: {picture}")
+    where = str(opts.get("pages", "Last page"))
+    left = str(opts.get("position", "Bottom right")) == "Bottom left"
+    dated = bool(opts.get("date", True))
+    today = datetime.date.today().strftime("%d %B %Y").lstrip("0")
+    small = f"Signed by {name}" + (f" on {today}" if dated else "")
+    font_file = _signature_font()
+    with _open(src) as d:
+        n = d.page_count
+        texts = _page_texts(d)
+        chosen = {"Last page": [n - 1], "First page": [0], "Every page": list(range(n))}.get(where, [n - 1])
+        for i in chosen:
+            page = d[i]
+            w, h = page.rect.width, page.rect.height  # as displayed
+            box_w, margin = min(220.0, w * 0.4), 36.0
+            x0 = margin if left else w - margin - box_w
+            base = h - margin - 14  # the signature line
+            if picture:
+                try:
+                    with pymupdf.open(picture) as pic:
+                        pw, ph = pic[0].rect.width, pic[0].rect.height
+                except Exception as e:  # noqa: BLE001
+                    raise ConversionError("The signature picture can't be opened.") from e
+                ih = min(52.0, box_w * ph / max(pw, 1))
+                iw = ih * pw / max(ph, 1)
+                rect = pymupdf.Rect(x0, base - ih - 2, x0 + iw, base - 2)
+                page.insert_image(rect * page.derotation_matrix, filename=picture, rotate=page.rotation,
+                                  keep_proportion=True)
+            else:
+                size = 22.0
+                kw = {"fontname": "sig", "fontfile": font_file} if font_file else {"fontname": "tiit"}
+                page.insert_text(_visible(page, x0 + 2, base - 6), name, fontsize=size, color=(0.08, 0.16, 0.42),
+                                 rotate=page.rotation, **kw)
+            a, b = _visible(page, x0, base), _visible(page, x0 + box_w, base)
+            page.draw_line(a, b, color=(0.45, 0.45, 0.5), width=0.6)
+            page.insert_text(_visible(page, x0, base + 11), small, fontname="helv", fontsize=7.5,
+                             color=(0.35, 0.35, 0.4), rotate=page.rotation)
+        _save(d, out)
+    with pymupdf.open(long_path(out)) as d:
+        if d.page_count != n:
+            raise VerificationError("the page count changed")
+        for i, page in enumerate(d):
+            words = _words(page.get_text())
+            want = _words(texts[i]) + (_words(small) if i in chosen else [])
+            if not _contains(words, want):
+                raise VerificationError(f"page {i + 1} is missing its signature or original text")
+    pages = "every page" if len(chosen) == n and n > 1 else f"page {chosen[0] + 1}"
+    notes.append(f"Checked: signed on {pages}; everything else is exactly as before.")
+    notes.append("This is a visible signature (a picture of it), not a certificate-based digital signature.")
+
+
+TOOLS["sign"] = sign
+
+
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     notes: list[str] = []

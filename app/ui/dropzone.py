@@ -18,7 +18,7 @@ from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPa
 from PySide6.QtWidgets import QWidget
 
 from . import theme
-from .fx import ease_back, ease_out, font, mix, with_alpha
+from .fx import ease_back, ease_out, font, mix, motion_ok, with_alpha
 
 log = logging.getLogger(__name__)
 
@@ -185,24 +185,25 @@ class DropZone(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         now = time.perf_counter()
-        t = now - self.t0
+        calm = not motion_ok()  # Reduce motion: the circle is simply there, nothing breathes or turns
+        t = 0.0 if calm else now - self.t0
         hot = max(0.0, min(1.0, self.hot))
-        pop = ease_back(min(1.0, t / 0.32), 1.5)
+        pop = 1.0 if calm else ease_back(min(1.0, t / 0.32), 1.5)
         c = QPointF(self.SIZE / 2, self.SIZE / 2)
         breathe = 1 + 0.018 * math.sin(t * 2 * math.pi * 0.9) * (1 - hot)
         r = self.R * (0.55 + 0.45 * pop) * (1 + 0.07 * hot) * breathe
-        p.setOpacity(ease_out(min(1.0, t / 0.2)))
+        p.setOpacity(1.0 if calm else ease_out(min(1.0, t / 0.2)))
         # a soft halo, brighter while something is over it
         glow(p, c, r + 34, theme.ACCENT, 0.55 + 0.45 * hot)
         # rings that spread out and fade: "drop here"
-        for i in range(2):
+        for i in range(0 if calm else 2):
             k = (t * 0.7 + i * 0.5) % 1.0
             p.setPen(QPen(with_alpha(theme.ACCENT, 0.4 * (1 - k) * (1 - hot) * min(1.0, t / 0.4)), 1.6))
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawEllipse(c, r + 2 + 26 * ease_out(k), r + 2 + 26 * ease_out(k))
         # the arrival ripple
         k = (now - self._hot_at) / 0.6
-        if 0 <= k < 1:
+        if 0 <= k < 1 and not calm:
             p.setPen(QPen(with_alpha(theme.ACCENT, 0.7 * (1 - k)), 3 * (1 - k) + 0.6))
             p.drawEllipse(c, r + 30 * ease_out(k), r + 30 * ease_out(k))
         # shadow, then the disc: a gentle gradient that blends into the accent as you hover

@@ -21,7 +21,8 @@ from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, 
 from PySide6.QtWidgets import QLabel, QScrollArea, QWidget
 
 from . import theme
-from .fx import clamp, ease_back, ease_in_out, ease_out, font, mix, paint_check, paint_cursor, phase, with_alpha
+from .fx import (STILL_T, clamp, ease_back, ease_in_out, ease_out, font, mix, motion_ok, paint_check, paint_cursor,
+                 phase, with_alpha)
 
 LOOP = 5.0  # every card acts out its story in five seconds, then starts again
 ART_W, ART_H = 300.0, 150.0  # every story is drawn in this box, then scaled into the card
@@ -1829,6 +1830,294 @@ def a_web_copied(p, t, n, card):
     sparkles(p, QPointF(268, 54), t, 2.75, theme.ACCENT, 6, 26)
 
 
+# ---------------------------------------------------------------- 1.13: more from pages, files and the sound world
+
+def a_web_reader(p, t, n, card):
+    _browser(p, QRectF(8, 14, 150, 118), "news.example.org/walk")
+    clean = ease_in_out(phase(t, 1.0, 1.8))
+    # the clutter: a cookie banner, an ad, a sidebar; it flies away
+    for k, (r, col, word) in enumerate(((QRectF(16, 108, 134, 16), QColor(60, 60, 70), "Accept cookies?"),
+                                        (QRectF(112, 42, 38, 52), COL["slides"], "AD"),
+                                        (QRectF(16, 40, 92, 10), with_alpha(theme.TEXT, 0.25), ""))):
+        k2 = clamp(clean * 1.4 - k * 0.2)
+        if k2 >= 1:
+            continue
+        with xf(p, r.center().x() + 60 * ease_in_out(k2) * (1 if k != 2 else -0.4), r.center().y()
+                - 20 * k2, 1 - 0.4 * k2, rot=12 * k2, alpha=1 - k2):
+            rr = QRectF(-r.width() / 2, -r.height() / 2, r.width(), r.height())
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(col)
+            p.drawRoundedRect(rr, 3, 3)
+            if word:
+                text(p, rr, word, 7.5, QFont.Weight.Bold, QColor(255, 255, 255), Qt.AlignmentFlag.AlignCenter)
+    lines(p, QRectF(18, 56, 88 + 40 * clean, 44), with_alpha(theme.TEXT, 0.3), 5, h=3)
+    k = pop(t, 2.0, 0.5)
+    if k > 0:
+        glow(p, QPointF(240, 70), 70, COL["pdf"], phase(t, 2.2, 2.6))
+        with xf(p, 240, 70 + bob(t, 2.6), k):
+            soft_shadow(p, QRectF(-36, -50, 72, 100), 5, 1.2)
+            page(p, QRectF(-36, -50, 72, 100), COL["pdf"], "PDF", "none")
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(theme.TEXT)
+            p.drawRoundedRect(QRectF(-26, -38, 40, 5), 2, 2)
+            lines(p, QRectF(-26, -26, 46, 34), with_alpha(theme.TEXT, 0.3), 6, h=2.6)
+        sparkles(p, QPointF(268, 26), t, 2.3, COL["pdf"], 6, 24)
+    text(p, QRectF(176, 128, 128, 14), "just the article", 9, QFont.Weight.DemiBold, theme.DIM,
+         Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 2.6, 3.0))
+
+
+def a_web_pictures(p, t, n, card):
+    _browser(p, QRectF(8, 14, 150, 118), "travel.example.org")
+    spots = [QRectF(18, 42, 60, 38), QRectF(86, 42, 60, 38), QRectF(18, 86, 60, 38), QRectF(86, 86, 60, 38)]
+    folder = QRectF(196, 54, 84, 62)
+    for k, r in enumerate(spots):
+        landscape(p, r, [COL["image"], COL["map"], COL["slides"], COL["video"]][k], 4)
+    _folder(p, folder, 0, back=True)
+    for k, r in enumerate(spots):  # copies fly into the folder, one after another, at their biggest
+        s = phase(t, 0.8 + k * 0.32, 1.5 + k * 0.32)
+        if 0 < s < 1:
+            e = ease_in_out(s)
+            x = r.center().x() + (folder.center().x() - r.center().x()) * e
+            y = r.center().y() + (folder.center().y() - 6 - r.center().y()) * e - 30 * math.sin(math.pi * e)
+            with xf(p, x, y, 0.8 - 0.3 * e, rot=-10 * math.sin(math.pi * e)):
+                soft_shadow(p, QRectF(-30, -19, 60, 38), 4, 1.0)
+                landscape(p, QRectF(-30, -19, 60, 38), [COL["image"], COL["map"], COL["slides"], COL["video"]][k], 4)
+    _folder(p, folder, math.sin(math.pi * phase(t, 0.9, 2.6)) * 0.6, back=False)
+    got = sum(1 for k in range(4) if t > 1.5 + k * 0.32)
+    text(p, QRectF(folder.left() - 10, folder.bottom() + 4, folder.width() + 20, 14),
+         f"{got} picture{'s' if got != 1 else ''}", 9.5, QFont.Weight.Bold, theme.ACCENT if got == 4 else theme.DIM,
+         Qt.AlignmentFlag.AlignCenter)
+    sparkles(p, QPointF(folder.right() - 6, folder.top() - 6), t, 2.8, theme.ACCENT, 6, 22)
+
+
+def a_video_frame(p, t, n, card):
+    strip = QRectF(14, 30, 170, 74)
+    soft_shadow(p, strip, 6, 1.0)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(28, 28, 34))
+    p.drawRoundedRect(strip, 6, 6)
+    for k in range(4):  # frames of the film
+        landscape(p, QRectF(strip.left() + 8 + k * 40, strip.top() + 14, 36, 46),
+                  [COL["image"], COL["map"], COL["slides"], COL["video"]][k], 2)
+    p.setBrush(QColor(70, 70, 80))
+    for k in range(9):
+        p.drawRoundedRect(QRectF(strip.left() + 8 + k * 18, strip.top() + 4, 9, 6), 1.5, 1.5)
+        p.drawRoundedRect(QRectF(strip.left() + 8 + k * 18, strip.bottom() - 10, 9, 6), 1.5, 1.5)
+    head = strip.left() + 8 + 160 * ease_in_out(phase(t, 0.2, 1.3)) * 0.62
+    p.setPen(QPen(theme.ACCENT, 2))
+    p.drawLine(QPointF(head, strip.top() - 6), QPointF(head, strip.bottom() + 6))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(theme.ACCENT)
+    p.drawEllipse(QPointF(head, strip.top() - 6), 4, 4)
+    text(p, QRectF(14, 110, 170, 14), "the middle, 0:42", 9, QFont.Weight.DemiBold, theme.DIM,
+         Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 1.2, 1.5))
+    flash = phase(t, 1.4, 1.75)
+    if 0 < flash < 1:
+        glow(p, QPointF(head, strip.center().y()), 40, QColor(255, 255, 255), 1 - flash)
+    k = pop(t, 1.7, 0.5)
+    if k > 0:
+        glow(p, QPointF(246, 70), 66, COL["image"], phase(t, 2.0, 2.4))
+        with xf(p, 246, 66 + bob(t, 2.4), k, rot=-4):
+            soft_shadow(p, QRectF(-40, -30, 80, 60), 4, 1.3)
+            p.setPen(QPen(theme.SURFACE, 3))
+            p.setBrush(theme.SURFACE)
+            p.drawRoundedRect(QRectF(-41, -31, 82, 62), 4, 4)
+            landscape(p, QRectF(-38, -28, 76, 56), COL["slides"], 3)
+        tag(p, QPointF(246, 116), "JPG", COL["image"], phase(t, 2.1, 2.4))
+        sparkles(p, QPointF(284, 30), t, 2.0, COL["image"], 6, 22)
+
+
+def a_audio_trim(p, t, n, card):
+    col = COL["audio"]
+    box = QRectF(20, 40, 260, 60)
+    a = 0.22 * ease_in_out(phase(t, 0.5, 1.4))
+    b = 1 - 0.3 * ease_in_out(phase(t, 0.8, 1.7))
+    squeeze = ease_in_out(phase(t, 2.0, 2.8))
+    p.setPen(Qt.PenStyle.NoPen)
+    bars = 52
+    for i in range(bars):
+        x = i / (bars - 1)
+        hgt = 6 + 22 * abs(math.sin(i * 0.9) * math.cos(i * 0.31))
+        inside = a <= x <= b
+        if not inside and squeeze > 0.95:
+            continue
+        # the kept part spreads out to the full width once the rest is gone
+        kx = x + ((x - a) / max(b - a, 0.01) - x) * squeeze if inside else x
+        xx = box.left() + box.width() * kx
+        p.setBrush(col if inside else with_alpha(theme.TEXT, 0.18 * (1 - squeeze)))
+        p.drawRoundedRect(QRectF(xx - 1.6, box.center().y() - hgt / 2, 3.2, hgt), 1.6, 1.6)
+    for x, label_ in ((a, "0:30"), (b, "2:15")):
+        if squeeze > 0.5:
+            break
+        hx = box.left() + box.width() * x
+        p.setPen(QPen(theme.ACCENT, 2))
+        p.drawLine(QPointF(hx, box.top() - 4), QPointF(hx, box.bottom() + 4))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(theme.ACCENT)
+        p.drawRoundedRect(QRectF(hx - 5, box.top() - 12, 10, 9), 3, 3)
+        text(p, QRectF(hx - 24, box.bottom() + 6, 48, 14), label_, 9, QFont.Weight.Bold, theme.ACCENT,
+             Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 1.0, 1.4) * (1 - phase(t, 1.9, 2.1)))
+    tag(p, QPointF(150, 126), "1:45 kept", col, phase(t, 2.8, 3.1))
+    sparkles(p, QPointF(150, 30), t, 2.9, col, 6, 28)
+
+
+def a_pdf_sign(p, t, n, card):
+    with xf(p, 110, 74, 1.0):
+        r = QRectF(-56, -64, 112, 128)
+        soft_shadow(p, r, 5, 1.0)
+        page(p, r, COL["pdf"], "", "none")
+        lines(p, QRectF(-44, -50, 80, 50), with_alpha(theme.TEXT, 0.25), 6, h=3)
+    line_y = 112
+    p.setPen(QPen(with_alpha(theme.TEXT, 0.35), 1))
+    p.drawLine(QPointF(108, line_y), QPointF(158, line_y))
+    # the signature writes itself
+    path = QPainterPath(QPointF(110, line_y - 4))
+    pts = [(116, line_y - 16), (121, line_y - 2), (126, line_y - 14), (131, line_y - 3), (137, line_y - 12),
+           (142, line_y - 4), (148, line_y - 10), (156, line_y - 6)]
+    for x, y in pts:
+        path.lineTo(QPointF(x, y))
+    draw = phase(t, 0.5, 1.6)
+    if draw > 0:
+        pen = rpen(QColor(30, 60, 160), 1.8)
+        p.save()
+        p.setClipRect(QRectF(100, line_y - 24, 8 + 60 * draw, 30))
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawPath(path)
+        p.restore()
+        if draw < 1:  # the pen
+            tip = QPointF(108 + 50 * draw, line_y - 8)
+            p.setPen(rpen(theme.TEXT, 2.4))
+            p.drawLine(tip, QPointF(tip.x() + 12, tip.y() - 16))
+    text(p, QRectF(104, line_y + 2, 70, 10), "Signed by Asha Rao", 5.5, QFont.Weight.Normal, theme.DIM,
+         alpha=phase(t, 1.6, 1.9))
+    arrow(p, 176, 206, 74, t, phase(t, 1.8, 2.1))
+    k = pop(t, 2.2, 0.5)
+    if k > 0:
+        glow(p, QPointF(246, 72), 60, COL["pdf"], phase(t, 2.4, 2.8))
+        with xf(p, 246, 72 + bob(t, 2.7), k):
+            soft_shadow(p, QRectF(-30, -40, 60, 80), 5, 1.2)
+            page(p, QRectF(-30, -40, 60, 80), COL["pdf"], "PDF", "lines")
+        done(p, t, 2.6, QPointF(276, 32), 18)
+        sparkles(p, QPointF(276, 32), t, 2.7, theme.SUCCESS, 5, 18)
+
+
+def a_msg(p, t, n, card):
+    with xf(p, 66, 70, 1.0 + 0.04 * math.sin(t * 3) * (1 - phase(t, 1.0, 1.2))):
+        r = QRectF(-44, -30, 88, 60)
+        soft_shadow(p, r, 6, 1.0)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(16, 110, 190))
+        p.drawRoundedRect(r, 6, 6)
+        p.setPen(rpen(QColor(255, 255, 255), 2))
+        p.drawPolyline([QPointF(-34, -18), QPointF(0, 6), QPointF(34, -18)])
+        text(p, QRectF(-44, 12, 88, 14), ".MSG", 9, QFont.Weight.Bold, QColor(255, 255, 255),
+             Qt.AlignmentFlag.AlignCenter)
+    text(p, QRectF(16, 108, 110, 14), "no Outlook needed", 8.5, QFont.Weight.DemiBold, theme.DIM,
+         Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 0.4, 0.8))
+    flow(p, QPointF(112, 68), QPointF(206, 68), t, 0.6, 1.6, QColor(16, 110, 190), 5, 16)
+    k = pop(t, 1.5, 0.5)
+    if k > 0:
+        glow(p, QPointF(240, 70), 66, COL["pdf"], phase(t, 1.8, 2.2))
+        with xf(p, 240, 68 + bob(t, 2.2), k):
+            soft_shadow(p, QRectF(-36, -48, 72, 96), 5, 1.2)
+            page(p, QRectF(-36, -48, 72, 96), COL["pdf"], "PDF", "none")
+            for i, w in enumerate((30, 40, 26)):  # From / To / Subject
+                p.setPen(Qt.PenStyle.NoPen)
+                p.setBrush(with_alpha(theme.TEXT, 0.5))
+                p.drawRoundedRect(QRectF(-26, -36 + i * 8, 10, 3), 1.5, 1.5)
+                p.setBrush(with_alpha(theme.TEXT, 0.25))
+                p.drawRoundedRect(QRectF(-12, -36 + i * 8, w, 3), 1.5, 1.5)
+            lines(p, QRectF(-26, -8, 48, 22), with_alpha(theme.TEXT, 0.25), 4, h=2.6)
+        tag(p, QPointF(240, 130), "+ attachments", COL["zip"], phase(t, 2.3, 2.6), px=8.5)
+        sparkles(p, QPointF(272, 24), t, 2.0, COL["pdf"], 6, 22)
+
+
+def a_rename(p, t, n, card):
+    old = ["IMG_8812.jpg", "DSC0042.jpg", "photo (3).jpg", "IMG_8790.jpg"]
+    new = ["2026-11-01 01.jpg", "2026-11-01 02.jpg", "2026-11-02 03.jpg", "2026-11-03 04.jpg"]
+    for i in range(4):
+        y = 30 + i * 24
+        r = QRectF(14, y, 110, 18)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(with_alpha(theme.TEXT, 0.06))
+        p.drawRoundedRect(r, 5, 5)
+        text(p, r.adjusted(8, 0, 0, 0), old[i], 8.5, QFont.Weight.Normal, theme.DIM)
+        s = phase(t, 0.8 + i * 0.25, 1.4 + i * 0.25)
+        flow(p, QPointF(126, y + 9), QPointF(168, y + 9), t, 0.7 + i * 0.25, 1.4 + i * 0.25, theme.ACCENT, 2, 4,
+             2.0)
+        if s > 0:
+            k = pop(t, 1.2 + i * 0.25, 0.4)
+            with xf(p, 232, y + 9, k):
+                rr = QRectF(-62, -9, 124, 18)
+                soft_shadow(p, rr, 5, 0.6)
+                p.setPen(QPen(with_alpha(theme.ACCENT, 0.5), 1))
+                p.setBrush(theme.SURFACE)
+                p.drawRoundedRect(rr, 5, 5)
+            text(p, QRectF(176, y, 124, 18), new[i], 8.5, QFont.Weight.DemiBold, theme.ACCENT,
+                 Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 1.35 + i * 0.25, 1.6 + i * 0.25))
+    text(p, QRectF(150, 128, 150, 14), "copies; originals kept", 8.5, QFont.Weight.DemiBold, theme.DIM,
+         Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 2.6, 3.0))
+    sparkles(p, QPointF(292, 26), t, 2.4, theme.ACCENT, 5, 18)
+
+
+def a_watch(p, t, n, card):
+    folder = QRectF(18, 46, 100, 72)
+    soft_shadow(p, folder, 7, 0.9)
+    _folder(p, folder, 0, back=True)
+    # the folder "watches": a soft pulse around it
+    ring = (t * 0.6) % 1.0
+    p.setPen(QPen(with_alpha(theme.ACCENT, 0.4 * (1 - ring)), 1.5))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(folder.adjusted(-6 * ring - 2, -6 * ring - 10, 6 * ring + 2, 6 * ring + 2), 9, 9)
+    for k, (label_, col) in enumerate((("DOCX", COL["doc"]), ("PNG", COL["image"]))):
+        at = 0.4 + k * 1.2
+        drop = phase(t, at, at + 0.7)
+        if drop <= 0:
+            continue
+        e = ease_in_out(drop)
+        x, y = 68 + (k * 10 - 5), 6 + 64 * e
+        if drop < 1:
+            with xf(p, x, y, 0.62):
+                page(p, QRectF(-22, -28, 44, 56), col, label_, "lines")
+        out_k = pop(t, at + 0.8, 0.45)
+        if out_k > 0:
+            flow(p, QPointF(122, 80), QPointF(210, 50 + k * 40), t, at + 0.6, at + 1.1, theme.ACCENT, 3, 8, 2.0)
+            with xf(p, 234, 50 + k * 42, out_k * 0.62):
+                soft_shadow(p, QRectF(-22, -28, 44, 56), 4, 1.0)
+                page(p, QRectF(-22, -28, 44, 56), COL["pdf"], "PDF", "lines")
+    _folder(p, folder, 0, back=False)
+    text(p, QRectF(folder.left(), folder.bottom() + 4, folder.width(), 14), "Inbox, watched", 8.5,
+         QFont.Weight.DemiBold, theme.DIM, Qt.AlignmentFlag.AlignCenter)
+    text(p, QRectF(196, 130, 100, 12), "by themselves", 8.5, QFont.Weight.DemiBold, theme.ACCENT,
+         Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 2.6, 3.0))
+
+
+def a_libre(p, t, n, card):
+    with xf(p, 62, 72, 1.0):
+        soft_shadow(p, QRectF(-34, -46, 68, 92), 5, 1.0)
+        page(p, QRectF(-34, -46, 68, 92), COL["doc"], "DOCX", "lines")
+    badge = pop(t, 0.5, 0.5)
+    if badge > 0:  # no Office: LibreOffice steps in
+        with xf(p, 150, 40, badge):
+            r = QRectF(-44, -11, 88, 22)
+            soft_shadow(p, r, 11, 0.8)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(24, 160, 90))
+            p.drawRoundedRect(r, 11, 11)
+            text(p, r, "LibreOffice", 9, QFont.Weight.Bold, QColor(255, 255, 255), Qt.AlignmentFlag.AlignCenter)
+        text(p, QRectF(106, 54, 90, 12), "no Office? fine", 8, QFont.Weight.DemiBold, theme.DIM,
+             Qt.AlignmentFlag.AlignCenter, alpha=phase(t, 0.8, 1.2))
+    flow(p, QPointF(100, 86), QPointF(204, 76), t, 1.0, 2.0, QColor(24, 160, 90), 5, 14)
+    k = pop(t, 1.9, 0.5)
+    if k > 0:
+        glow(p, QPointF(240, 72), 62, COL["pdf"], phase(t, 2.2, 2.6))
+        with xf(p, 240, 72 + bob(t, 2.5), k):
+            soft_shadow(p, QRectF(-34, -46, 68, 92), 5, 1.2)
+            page(p, QRectF(-34, -46, 68, 92), COL["pdf"], "PDF", "lines")
+        sparkles(p, QPointF(270, 28), t, 2.2, COL["pdf"], 6, 22)
+
+
 STORIES = {name[2:]: fn for name, fn in globals().items() if name.startswith("a_")}
 
 # (world, story, title, caption). Worlds come from universe.gather(); a world with no story
@@ -1843,6 +2132,8 @@ CARDS = [
     ("web", "web_cloud", "Shared links become files", "Google Drive, Dropbox and OneDrive links."),
     ("web", "web_webp", "WEBP downloads to JPG", "Downloaded pictures get a JPG copy, by themselves."),
     ("web", "web_copied", "Screenshots in a tap", "Copy a picture, tap Ctrl + Shift, pick a format."),
+    ("web", "web_reader", "Just the article", "A clean PDF: no ads, menus or cookie banners."),
+    ("web", "web_pictures", "Every picture on a page", "At their biggest, in one folder; icons left out."),
     ("pictures", "img_convert", "Any photo, any format", "iPhone HEIC to JPG, PNG, WEBP, AVIF and more."),
     ("pictures", "img_form", "Photo under 50 KB", "Exact size and pixels for upload forms."),
     ("pictures", "img_resize", "Resize", "Smaller pictures for mail and chat."),
@@ -1856,16 +2147,21 @@ CARDS = [
     ("pdf", "pdf_images", "Pages as pictures", "Each page saved as PNG or JPG."),
     ("pdf", "pdf_protect", "Lock with a password", "Strong encryption; unlock again any time."),
     ("pdf", "pdf_numbers", "Page numbers and watermarks", "Stamped on every page."),
+    ("pdf", "pdf_sign", "Sign a PDF", "Your name in handwriting, or a picture of your signature."),
     ("office", "office_pdf", "Word, Excel, PowerPoint to PDF", "DOCX, XLSX and PPTX, as PDF."),
+    ("office", "libre", "No Office? LibreOffice", "The free LibreOffice does it when Office isn't there."),
     ("ebooks", "ebook", "E-books to PDF", "EPUB, MOBI, FB2 and comics."),
     ("data", "sheet_csv", "Sheets to CSV", "Spreadsheets to plain, portable text."),
     ("data", "json_yaml", "JSON, YAML, TOML, XML", "Data files, rewritten line by line."),
     ("data", "contacts", "Contacts to a sheet", "vCard files become rows you can sort."),
     ("sound", "audio", "WAV to MP3", "Music and recordings, a tenth of the size."),
     ("sound", "video_sound", "Sound from a video", "Keep just the audio of a clip."),
+    ("sound", "video_frame", "A still from a video", "Any moment as a JPG, or nine in one sheet."),
+    ("sound", "audio_trim", "Trim a recording", "Keep only the part between two times."),
     ("subtitles", "subtitles", "Subtitles, any format", "SRT, VTT, ASS and more."),
     ("text", "markdown", "Markdown to a document", "Notes become a clean PDF or web page."),
     ("mail", "mail", "Saved e-mails to PDF", "EML and MHTML, printable and searchable."),
+    ("mail", "msg", "Outlook .msg to PDF", "Read without Outlook; attachments in a ZIP."),
     ("maps", "map", "GPS tracks", "GPX, KML, GeoJSON and more."),
     ("models", "model3d", "3D models", "STL, OBJ, PLY, glTF, plus a picture of it."),
     ("drawings", "cad", "CAD plans", "DXF drawings to SVG, PDF or PNG."),
@@ -1873,6 +2169,8 @@ CARDS = [
     ("fonts", "font", "Fonts", "Desktop fonts to web fonts and back."),
     ("archives", "zip", "Pack into ZIP or 7Z", "Many files, one small archive."),
     ("archives", "unzip", "Unpack anything", "ZIP, 7Z, RAR, TAR, opened in place."),
+    ("archives", "rename", "Rename many files", "Tidy names by date or number, as copies."),
+    ("archives", "watch", "Watch folders", "Files you drop in are converted by themselves."),
 ]
 
 
@@ -1918,7 +2216,7 @@ class ShowCard(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(theme.BG)
         p.drawRoundedRect(art, 8, 8)
-        tt = self.now + self.offset
+        tt = self.now + self.offset if motion_ok() else STILL_T
         n, t = int(tt // LOOP), tt % LOOP
         p.save()
         p.setClipRect(art)
@@ -2010,7 +2308,11 @@ class Showcase(QScrollArea):
 
     def start(self):
         self._t0 = time.perf_counter()
-        self.timer.start()
+        if motion_ok():
+            self.timer.start()
+        else:  # Reduce motion: every card shows its result, still
+            for c in self.gallery.cards:
+                c.update()
 
     def stop(self):
         self.timer.stop()

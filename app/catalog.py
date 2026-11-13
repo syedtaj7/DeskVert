@@ -254,6 +254,13 @@ _OFFICE_PROGIDS = {"word": "Word.Application", "excel": "Excel.Application", "po
 _office_cache: dict[str, bool] = {}
 
 
+def libre_installed() -> bool:
+    """The free LibreOffice: used for Word, Excel and PowerPoint files when Microsoft Office isn't there."""
+    from .engines.libre import find_soffice
+
+    return find_soffice() is not None
+
+
 def office_installed(kind: str) -> bool:
     if kind not in _office_cache:
         try:
@@ -312,7 +319,8 @@ def _doc_offers(files: list[Path]) -> list[Offer]:
     # Mixed document types: use the biggest group (e.g. 3 Word files + 1 PDF -> Word).
     kind = max(groups, key=lambda k: len(groups[k]))
     group = groups[kind]
-    if kind != "pdf" and not office_installed(kind):
+    libre = kind != "pdf" and not office_installed(kind)
+    if libre and not libre_installed():
         return []
     targets = {"word": WORD_TARGETS, "excel": EXCEL_TARGETS, "powerpoint": PPT_TARGETS, "pdf": PDF_TARGETS}[kind]
 
@@ -326,6 +334,9 @@ def _doc_offers(files: list[Path]) -> list[Offer]:
                        len(applicable))
         o.sources = applicable
         o.skipped_same = len(group) - len(applicable)
+        if libre:
+            o.warnings.append("Made by the free LibreOffice (Microsoft Office isn't installed): the layout can "
+                              "differ slightly.")
         offers.append(o)
     if kind == "pdf" and len(group) >= 2:
         o = _doc_offer(PDF_MERGE, "pdf", {"pdf"}, len(group))
@@ -410,7 +421,7 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
             merge = [o for o in offers if o.target.combine]
             rest = [o for o in offers if not o.target.combine]
             offers = tools + merge + rest + toolbox.ocr_offers(pdfs, None, pdf=True)
-        elif main == "word" and not office_installed("word"):
+        elif main == "word" and not office_installed("word") and not libre_installed():
             simple = [p for p in groups["word"] if p.suffix.lower() in (".txt", ".htm", ".html")]
             offers = toolbox.text_fallback_offers(simple) if simple else []
         if main == "word":
@@ -450,6 +461,8 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
         offers += toolbox.pack_offers(list(paths))
     if paths and kind != "clip":
         offers.append(toolbox.hash_offer(list(paths)))  # and any files can get a checksum
+        if len(paths) >= 2:
+            offers.append(toolbox.rename_offer(list(paths)))  # and many files can be renamed (as copies)
     return offers, others
 
 

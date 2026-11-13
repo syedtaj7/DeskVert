@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (QAbstractButton, QFrame, QGraphicsDropShadowEffec
                                QVBoxLayout, QWidget)
 
 from . import theme
-from .fx import with_alpha
+from .fx import motion_ok, with_alpha
 
 _FLAGS = Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
 
@@ -508,6 +508,7 @@ class ProgressPanel(_Card):
     show_folder = Signal(str)
     undo_requested = Signal(list)  # the files this conversion made
     details_requested = Signal()  # the list of every file in the batch
+    report_requested = Signal(str)  # what failed: opens Report a problem
 
     def __init__(self):
         super().__init__(self.W)
@@ -583,11 +584,15 @@ class ProgressPanel(_Card):
         self.copy_btn = button("Copy", "Copy the new file, to paste into a chat, an e-mail or a folder", self._copy)
         self.open_btn = button("Open", "Open the new file", self._open)
         self.details_btn = button("Details", "Every file, and why any failed", self._details)
+        self.report_btn = button("Report", "Tell the Tapshift developers (you see everything before it's sent)",
+                                 lambda: self.report_requested.emit(self._report_about))
+        self._report_about = ""
         self.action_btn = button("", "", self._action, primary=True)  # a one-off action, e.g. "Update" (offer())
         self.folder_btn = button("Show in folder", "Show the new file in File Explorer", self._open_folder, True)
         btns.addWidget(self.undo_btn)
         btns.addStretch(1)
-        for b in (self.cancel_btn, self.details_btn, self.copy_btn, self.open_btn, self.folder_btn, self.action_btn):
+        for b in (self.cancel_btn, self.report_btn, self.details_btn, self.copy_btn, self.open_btn, self.folder_btn,
+                  self.action_btn):
             btns.addWidget(b)
         self.btn_row = QWidget()
         self.btn_row.setLayout(btns)
@@ -622,8 +627,8 @@ class ProgressPanel(_Card):
         self.sub.setFixedHeight(self.sub.heightForWidth(self.text_w) if body else 0)
 
     def _buttons(self, *shown):
-        for b in (self.undo_btn, self.cancel_btn, self.details_btn, self.copy_btn, self.open_btn, self.folder_btn,
-                  self.action_btn):
+        for b in (self.undo_btn, self.cancel_btn, self.report_btn, self.details_btn, self.copy_btn, self.open_btn,
+                  self.folder_btn, self.action_btn):
             b.setVisible(b in shown)
         self.btn_row.setVisible(bool(shown))
 
@@ -690,7 +695,9 @@ class ProgressPanel(_Card):
                      + ([self.open_btn] if one else []) + [self.folder_btn])
             self._buttons(*shown)
         else:
-            self._buttons(*(([self.details_btn] if details else []) + ([self.folder_btn] if output else [])))
+            self._report_about = f"{title}: {body}" if kind == "error" else ""
+            self._buttons(*(([self.report_btn] if kind == "error" else []) + ([self.details_btn] if details else [])
+                            + ([self.folder_btn] if output else [])))
         self._hide_after = 9000 if kind == "success" else 14000
         self._place_and_show()
         self._countdown(self._hide_after)
@@ -738,7 +745,10 @@ class ProgressPanel(_Card):
         self.card.adjustSize()
         self.layout().activate()
         self.adjustSize()
-        area = QGuiApplication.primaryScreen().availableGeometry()
+        # On the screen you're working on (where the mouse is); once showing, it stays on its screen.
+        showing = self.isVisible() and not self._leaving
+        screen = (self.screen() if showing else None) or QGuiApplication.screenAt(QCursor.pos())             or QGuiApplication.primaryScreen()
+        area = screen.availableGeometry()
         margin = self.layout().contentsMargins()
         # the card's edge sits 12 px from the screen's edge (the window around it holds the shadow)
         home = QPoint(area.right() - self.width() + margin.right() - 12, area.bottom() - self.height() + margin.bottom() - 12)
@@ -761,6 +771,8 @@ class ProgressPanel(_Card):
         self._animate(home, 1.0, 320)
 
     def _animate(self, pos: QPoint, opacity: float, ms: int, then=None):
+        if not motion_ok():
+            ms = 1  # Reduce motion: no slide, the card is simply there (and simply gone)
         group = QParallelAnimationGroup(self)
         a = QPropertyAnimation(self, b"pos", group)
         a.setDuration(ms)

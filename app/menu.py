@@ -64,7 +64,8 @@ KIND_WORDS = {"image": ("picture", "pictures"), "document": ("document", "docume
               "notebook": ("notebook", "notebooks"), "weblink": ("web link", "web links"),
               "clip": ("selection", "selections")}
 # Every kind of file: the ways to pack them.
-PACK = ("Pack", "ZIP, 7Z, checksum", ["archive.zip", "archive.7z", "archive.targz", "hash.sha256"])
+PACK = ("Pack", "ZIP, 7Z, rename, checksum", ["archive.zip", "archive.7z", "archive.targz", "rename.copies",
+                                              "hash.sha256"])
 REPACK = ("Repack", "ZIP, 7Z, TAR.GZ", ["archive.tozip", "archive.to7z", "archive.totargz"])
 FAN_MAX = 8  # choices in one fan; bigger groups open fans of their own (a web, never a list)
 # Big branches, split into named fans of their own: (kind, branch) -> [(label, caption, keys)].
@@ -241,6 +242,8 @@ def build_menu(paths: list[Path], s: Settings) -> tuple[list[Node], list[Node], 
         nodes.append(n)
     z = toolbox.zip_offer(list(paths))
     nodes.append(_leaf(z))
+    if len(paths) >= 2:
+        nodes.append(_leaf(toolbox.rename_offer(list(paths))))
     return nodes, _quick(nodes, s, "mixed"), unsupported
 
 

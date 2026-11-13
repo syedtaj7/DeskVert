@@ -71,7 +71,7 @@ def build_jobs(offer: Offer, options: dict, settings: Settings, dest: str = "") 
             "folder": bool(t.folder),
         }
 
-    if t.folder:
+    if t.folder and not t.combine:  # one new folder per file (combined ones, like Rename, make one folder)
         return [job([s], f"{s.stem} ({t.folder})") for s in offer.sources]
     if t.combine:
         roots = [Path(r) for r in options.get("_roots") or []]

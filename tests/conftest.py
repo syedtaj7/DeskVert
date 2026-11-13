@@ -14,6 +14,8 @@ _home = tempfile.mkdtemp(prefix="tapshift-tests-")
 os.environ["APPDATA"] = os.path.join(_home, "Roaming")
 os.environ["LOCALAPPDATA"] = os.path.join(_home, "Local")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # windows are built and driven, never shown
+# Offscreen Qt only knows fonts it's told about; without them, documents Qt lays out (e-mails) have no text.
+os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "Fonts"))
 
 from app.lowimpact import cap_this_process  # noqa: E402
 

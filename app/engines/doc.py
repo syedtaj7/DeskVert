@@ -362,6 +362,13 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
         raise ConversionError("This file is password-protected. Remove the password in Office first.")
     notes: list[str] = []
     which = app_for(src)
+    from ..catalog import office_installed
+
+    if not office_installed(which):  # no Microsoft Office for this file: the free LibreOffice, if it's there
+        from . import libre
+
+        libre.convert(src, out, fmt, which, notes)
+        return notes
     if which == "word":
         convert_word(src, out, fmt, notes)
     elif which == "excel":

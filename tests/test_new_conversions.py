@@ -355,3 +355,38 @@ def test_picker_builds_for_new_kinds(tmp_path):
                  "i.ics", "j.ipynb", "k.srt", "l.pdf", "m.jpg"):
         nodes, _quick, left_out = build_menu([tmp_path / name], Settings())
         assert nodes and not left_out, name
+
+
+# ---------------------------------------------------------------- LibreOffice, when Office isn't installed
+
+def test_libreoffice_does_office_files_when_office_is_missing(tmp_path, monkeypatch):
+    """A stand-in soffice (it behaves like LibreOffice's command line) checks the whole path: the offers,
+    the command, the private profile, and the checks on the result. The real LibreOffice isn't needed."""
+    import sys
+
+    from app import catalog
+    from app.engines import libre
+
+    fake = tmp_path / "fake_soffice.py"
+    fake.write_text(
+        "import sys, pathlib, pymupdf\n"
+        "a = sys.argv[1:]\n"
+        "assert '--headless' in a and any(x.startswith('-env:UserInstallation=file:') for x in a)\n"
+        "filt = a[a.index('--convert-to') + 1]; outdir = pathlib.Path(a[a.index('--outdir') + 1]); src = pathlib.Path(a[-1])\n"
+        "assert filt == 'pdf:writer_pdf_Export', filt\n"
+        "d = pymupdf.open(); p = d.new_page(); p.insert_text((72, 72), src.read_text(encoding='utf-8'))\n"
+        "d.save(str(outdir / (src.stem + '.pdf')))\n", encoding="utf-8")
+    cmd = tmp_path / "soffice.cmd"
+    cmd.write_text(f'@"{sys.executable}" "{fake}" %*\n', encoding="utf-8")
+    monkeypatch.setattr(libre, "_found", [str(cmd)])
+    monkeypatch.setattr(catalog, "office_installed", lambda kind: False)
+    doc = tmp_path / "Letter.txt"
+    doc.write_text("Dear neighbours, the garden party moves to Sunday because of the forecast rain.", encoding="utf-8")
+    offers, _ = catalog.offers_for([doc], Settings())
+    pdf = next(o for o in offers if o.target.key == "doc.pdf")
+    assert any("LibreOffice" in w for w in pdf.warnings)
+    job = build_jobs(pdf, {o.key: o.default for o in pdf.options}, Settings())[0]
+    job["id"] = uuid.uuid4().hex[:12]
+    res = run_job(job)
+    assert res["ok"], res.get("error")
+    assert any("LibreOffice" in n for n in res["notes"]) and Path(res["output"]).suffix == ".pdf"

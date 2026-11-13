@@ -189,6 +189,13 @@ BLURBS = {
     "webpage.pdf": "The whole page, sharp and searchable",
     "webpage.png": "The whole page as one long picture",
     "qr.png": "A code any phone camera opens",
+    "media.trim": "Keep only the part you need",
+    "pdf.sign": "Your signature on the page",
+    "rename.copies": "Tidy names, as copies in a new folder",
+    "videoframe.frame": "One moment of the video, as a picture",
+    "videoframe.sheet": "Nine moments in one picture",
+    "webextra.reader": "Just the article: no ads, menus or banners",
+    "webextra.pictures": "Every picture on the page, biggest size",
     "clip.pdf": "Just your selection, as a clean PDF",
     "clip.png": "Your selection as one sharp picture",
     "clip.txt": "Only the words, no formatting",
@@ -250,16 +257,10 @@ def real_warning(o: Offer) -> str:
 
 
 def animations_enabled() -> bool:
-    """Windows' Settings > Accessibility > Visual effects > Animation effects."""
-    try:
-        import ctypes
+    """Windows' Animation effects, and Tapshift's own Reduce motion setting."""
+    from .fx import motion_ok
 
-        v = ctypes.c_int(1)
-        if ctypes.windll.user32.SystemParametersInfoW(0x1042, 0, ctypes.byref(v), 0):  # SPI_GETCLIENTAREAANIMATION
-            return bool(v.value)
-    except Exception:
-        pass
-    return True
+    return motion_ok()
 
 
 # ---------------------------------------------------------------- springs

@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.13.0
+
+### More from the browser
+- **Just the article:** tap Ctrl + Shift on a page and pick **Article as PDF**: the headline, text and pictures,
+  without menus, ads, cookie banners or comments, laid out calmly with a line saying where it came from.
+- **Every picture on a page:** **All pictures** saves each picture at the biggest size the page offers, in one
+  folder. Icons and tiny pictures are left out; each one is opened to check it's a real picture.
+
+### New tools
+- **A still from a video:** any moment (the first frame, a tenth in, the middle, three quarters in) as a JPG at
+  the video's own size, or a **frames sheet** of nine moments with their times. Windows' own decoder reads only
+  the frames needed; nothing is re-encoded.
+- **Trim a recording:** keep only the part between two times (MP3, M4A, WAV, FLAC, WMA stay what they are).
+- **Sign a PDF:** your name in a handwriting font (or a picture of your signature) with the date, on the last
+  page, the first or every page. A visible signature, not a certificate signature.
+- **Outlook .msg e-mails** to PDF, HTML, text or Markdown, and their attachments as a ZIP, without Outlook.
+- **Rename many files:** tidy copies in a new folder, named by date taken or a number ("2026-11-13 01.jpg",
+  "Holiday 03.jpg"). Your originals keep their names.
+- **Watch folders** (Settings > General): files you put in a chosen folder are converted by themselves (PDF,
+  JPG, PNG, WEBP, Compress, MP3, TXT), into a "Converted" folder inside it. Only new files.
+
+### Reach and comfort
+- **No Microsoft Office? LibreOffice:** Word, Excel and PowerPoint files are converted by the free LibreOffice
+  when Office isn't installed, in a private profile of its own; every result is checked the same way.
+- **Report a problem** (tray menu, About, and a Report button on a red card): you see exactly what would be
+  shared, with your name, folders and file names hidden, and a filled-in GitHub issue opens in your browser.
+  Tapshift sends nothing itself.
+- **The result card appears on the screen you're working on** (where the mouse is), not always the main one.
+- **Reduce motion** (Settings > General and the tour): still pictures instead of animations, windows that
+  simply appear. Windows' own Animation effects setting is followed too.
+- Reading a browser selection no longer adds your own clipboard a second time to Windows' clipboard history.
+- New animated cards in the gallery for all of the above.
+
+Tapshift now converts 197 kinds of files in 171 ways.
+
 ## 1.12.0
 
 ### Straight from your browser

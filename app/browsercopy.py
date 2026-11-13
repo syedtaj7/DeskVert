@@ -100,12 +100,23 @@ def snapshot() -> list[tuple[int, bytes]] | None:
         user32.CloseClipboard()
 
 
+def _quiet_formats() -> list[tuple[int, bytes]]:
+    """Marks that keep a put-back copy out of Windows' clipboard history and cloud clipboard: it's already
+    there from when you copied it, so it isn't recorded a second time."""
+    zero = (0).to_bytes(4, "little")
+    return [(user32.RegisterClipboardFormatW("CanIncludeInClipboardHistory"), zero),
+            (user32.RegisterClipboardFormatW("CanUploadToCloudClipboard"), zero)]
+
+
 def restore(items: list[tuple[int, bytes]]) -> bool:
     """Put a snapshot back (an empty one empties the clipboard, as it was)."""
     if not _open():
         return False
     try:
         user32.EmptyClipboard()
+        if items:
+            names = {f for f, _ in items}
+            items = list(items) + [(f, d) for f, d in _quiet_formats() if f not in names]
         for fmt, data in items:
             h = kernel32.GlobalAlloc(GMEM_MOVEABLE, max(1, len(data)))
             if not h:

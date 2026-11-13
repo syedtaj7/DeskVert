@@ -225,6 +225,10 @@ def build_guide_sections(sections: Sections) -> list[str]:
                           "PDF, as one long picture, or as a QR code. It uses the Edge or Chrome already on your "
                           "PC, with a fresh, empty profile (no cookies), so pages behind a sign-in show the "
                           "sign-in page."),
+        ("Just the article", "Also on the browser tap: <b>Article as PDF</b> keeps the headline, text and pictures "
+                             "and leaves out menus, ads, cookie banners and comments."),
+        ("All pictures on a page", "<b>All pictures</b> saves every picture on the page at the biggest size it "
+                                   "offers, in one folder; icons and tiny pictures are left out."),
         ("QR code for a link", "Drag a link in and pick <b>QR code</b>. Tapshift reads the code back before saving "
                                "it, so it always scans."),
         ("Shared links become files", "Drag a Google Drive, Docs, Dropbox or OneDrive share link in: the file "
@@ -277,21 +281,29 @@ def build_guide_sections(sections: Sections) -> list[str]:
          "ICO, TGA, PDF, several images in <b>1 PDF</b>, <b>Read text</b> (OCR)"],
         ["<b>PDF</b>", "<b>Compress</b>, <b>Lock / Unlock</b> with a password, keep or remove <b>Pages</b>, "
                        "<b>Rotate</b>, page <b>Numbers</b>, <b>Watermark</b>, merge into <b>1 PDF</b>, Split, "
-                       "PNG / JPG pages, TXT, <b>Searchable</b> PDF from scans (OCR)"],
+                       "PNG / JPG pages, TXT, <b>Searchable</b> PDF from scans (OCR), <b>Sign</b> with your name "
+                       "or a picture of your signature"],
         ["<b>Word</b>: DOCX, DOC, ODT, RTF, TXT, HTML", "PDF, DOCX, ODT, RTF, TXT, DOC"],
         ["<b>Excel</b>: XLSX, XLS, ODS", "PDF, XLSX, CSV (first sheet), ODS, XLS"],
         ["<b>PowerPoint</b>: PPTX, PPT, ODP", "PDF, PPTX, ODP, PPT, or PNG / JPG slides in a new folder"],
         ["<b>Data</b>: CSV, TSV, JSON", "XLSX, JSON, CSV, Tidy or Minify JSON"],
         ["<b>Markdown</b>: MD", "PDF, HTML, DOCX (with Word)"],
         ["<b>Archives</b>: ZIP, 7Z, RAR, TAR, GZ, XZ, ISO…", "<b>Extract</b> into a folder, or repack as ZIP"],
-        ["<b>Audio</b>: MP3, M4A, WAV, FLAC, WMA…", "Into each other, with a quality choice"],
-        ["<b>Video</b>: MP4, MOV, MKV, AVI…", "<b>The sound only</b>, as MP3, M4A, WAV, FLAC or WMA"],
+        ["<b>Audio</b>: MP3, M4A, WAV, FLAC, WMA…", "Into each other, with a quality choice; <b>Trim</b> to keep "
+                                                   "only a part"],
+        ["<b>Video</b>: MP4, MOV, MKV, AVI…", "A still <b>Picture</b> of any moment, a <b>Frames sheet</b> of nine "
+                                             "moments, or <b>the sound only</b> as MP3, M4A, WAV, FLAC or WMA"],
+        ["<b>E-mails</b>: EML, Outlook MSG, MHTML", "PDF, HTML, TXT, Markdown, or the attachments as a ZIP (no "
+                                                    "Outlook needed)"],
         ["<b>Web</b>: links (.url), saved pages (HTML)", "Page as <b>PDF</b> or one long <b>picture</b>, "
+                                                         "<b>Article as PDF</b>, <b>All pictures</b>, "
                                                          "<b>QR code</b>, <b>Tables</b> to Excel or CSV"],
-        ["<b>Any files</b>", "<b>ZIP</b>: pack the selected files into one zip"],
+        ["<b>Any files</b>", "<b>ZIP</b> or 7Z, a <b>Checksum</b>, and <b>Rename</b> many files at once (as copies "
+                             "with tidy names, in a new folder)"],
     ])
     b = para("Word, Excel and PowerPoint conversions use your installed Microsoft Office, so the result looks "
-             "exactly like it does in Office. Text recognition uses the one built into Windows. Every tool saves "
+             "exactly like it does in Office; without Office, the free LibreOffice is used if it's installed. "
+             "Text recognition uses the one built into Windows. Every tool saves "
              "a new file next to the original, such as <b>photo (compressed).jpg</b>; the original is never "
              "changed. The picker shows the full list for whatever you select.")
     for w in (a, t, b):
@@ -359,6 +371,10 @@ def build_guide_sections(sections: Sections) -> list[str]:
         ("Copied files", "If nothing is selected, Tapshift uses files you copied with Ctrl + C."),
         ("Browser features", "Drag and convert, Browser pages and WEBP downloads to JPG can each be turned off "
                              "in Settings → General."),
+        ("Watch folders", "Settings → General: pick a folder and what to make (PDF, JPG, Compress…). New files you "
+                          "put there are converted by themselves, into a “Converted” folder inside."),
+        ("Reduce motion", "Settings → General: still pictures instead of animations. Windows' own Animation effects "
+                          "setting is followed too."),
     ])
     for w in (a, b):
         lay.addWidget(w)
@@ -379,6 +395,9 @@ def build_guide_sections(sections: Sections) -> list[str]:
         ("A scanned PDF has no text", "Use <b>Read text</b> or <b>Searchable</b> in the picker. They use Windows' "
                                       "own text recognition, in the languages installed in Windows (Settings "
                                       "→ Time & language → Language)."),
+        ("Report a problem", "Tray menu \u2192 Report a problem, or the Report button on a red card. You see everything "
+                             "first, with your name and folders hidden; GitHub opens in your browser to post it. "
+                             "Tapshift sends nothing itself."),
         ("Still stuck?", "Tray menu \u2192 Open log folder, and include <b>app.log</b> when reporting an issue on "
                          "GitHub."),
     ])
