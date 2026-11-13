@@ -30,7 +30,7 @@ class CompoundFile:
 
     def __init__(self, data: bytes):
         if len(data) < 512 or data[:8] != MAGIC:
-            raise ConversionError("This isn't an Outlook message (.msg) Tapshift can read.")
+            raise ConversionError("This isn't an Outlook message (.msg) Deskvert can read.")
         self.data = data
         self.ss = 1 << struct.unpack_from("<H", data, 0x1E)[0]
         self.mss = 1 << struct.unpack_from("<H", data, 0x20)[0]
@@ -217,7 +217,7 @@ def to_eml(src: Path) -> bytes:
             except LookupError:
                 html_text = html_raw.decode(top.codepage, errors="replace")
     if not body and not html_text:
-        raise ConversionError("This e-mail has no text in it that Tapshift can read (it may hold only a "
+        raise ConversionError("This e-mail has no text in it that Deskvert can read (it may hold only a "
                               "rich-text body, which isn't supported).")
     msg.set_content(body or re.sub(r"<[^>]+>", " ", html_text))
     if html_text:

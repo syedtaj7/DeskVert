@@ -1,4 +1,4 @@
-"""Draws the Tapshift logo into assets/tapshift.ico (16-256 px) for the .exe and installer."""
+"""Draws the Deskvert logo into assets/deskvert.ico (16-256 px) for the .exe and installer."""
 
 import io
 import sys
@@ -27,8 +27,8 @@ for size in (16, 20, 24, 32, 40, 48, 64, 128, 256):
     pm.save(buf, "PNG")
     frames.append(Image.open(io.BytesIO(bytes(buf.data()))).convert("RGBA"))
 
-out = ROOT / "assets" / "tapshift.ico"
+out = ROOT / "assets" / "deskvert.ico"
 out.parent.mkdir(exist_ok=True)
 frames[-1].save(out, format="ICO", sizes=[f.size for f in frames], append_images=frames[:-1])
-frames[-1].save(ROOT / "assets" / "tapshift.png")
+frames[-1].save(ROOT / "assets" / "deskvert.png")
 print("wrote", out)

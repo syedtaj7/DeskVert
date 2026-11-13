@@ -5,10 +5,10 @@
 Please report security problems **privately**, not as a public issue:
 **[Report a vulnerability](https://github.com/syedtaj7/TapShift/security/advisories/new)** (GitHub's private reporting).
 
-Include what an attacker could do, the Tapshift version, and the steps or a sample file that shows it. You'll get a
-reply as soon as possible, and a fix is released as a normal update (Tapshift tells people about updates by itself).
+Include what an attacker could do, the Deskvert version, and the steps or a sample file that shows it. You'll get a
+reply as soon as possible, and a fix is released as a normal update (Deskvert tells people about updates by itself).
 
-## What Tapshift is careful about
+## What Deskvert is careful about
 
 - **Your files are only read.** Every result is made in a private work folder, opened again and checked, then moved
   next to the original. Originals are never edited, moved or deleted.
@@ -21,4 +21,4 @@ reply as soon as possible, and a fix is released as a normal update (Tapshift te
 
 ## Supported versions
 
-Only the latest release gets fixes. Tapshift updates itself, so staying current is one click.
+Only the latest release gets fixes. Deskvert updates itself, so staying current is one click.

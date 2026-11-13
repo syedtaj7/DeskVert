@@ -26,7 +26,7 @@ from pathlib import Path
 
 from ..errors import ConversionError
 
-NO_PASSWORD = "\u00a7tapshift-no-password\u00a7"  # wrong on purpose: protected files fail fast instead of prompting
+NO_PASSWORD = "\u00a7deskvert-no-password\u00a7"  # wrong on purpose: protected files fail fast instead of prompting
 MSO_AUTOMATION_SECURITY_FORCE_DISABLE = 3
 
 PROCESS_TERMINATE = 0x0001

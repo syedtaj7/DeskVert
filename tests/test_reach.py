@@ -119,8 +119,31 @@ def test_layout_check_answers_yes_or_no():
 
 
 def test_send_to_shortcut_is_made_and_removed(tmp_path):
-    link = tmp_path / "SendTo" / "Tapshift.lnk"
+    link = tmp_path / "SendTo" / "Deskvert.lnk"
     winutil.set_sendto(True, link)
     assert link.exists() and link.stat().st_size > 0
     winutil.set_sendto(False, link)
     assert not link.exists()
+
+
+def test_settings_carry_over_from_the_old_name(tmp_path, monkeypatch):
+    """Tapshift became Deskvert (1.14): its settings move over once, the first time Deskvert starts."""
+    from app import paths
+
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    (tmp_path / "Tapshift").mkdir()
+    (tmp_path / "Tapshift" / "settings.json").write_text('{"theme": "dark"}', encoding="utf-8")
+    folder = paths.config_dir()
+    assert folder == tmp_path / "Deskvert"
+    assert (folder / "settings.json").read_text(encoding="utf-8") == '{"theme": "dark"}'
+    (folder / "settings.json").write_text('{"theme": "light"}', encoding="utf-8")
+    assert (paths.config_dir() / "settings.json").read_text(encoding="utf-8") == '{"theme": "light"}'  # once only
+
+
+def test_web_clips_from_before_the_rename_are_still_clips(tmp_path):
+    from app import toolbox
+
+    old = tmp_path / "Clip.html"
+    old.write_bytes(b'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content="Tapshift web clip">'
+                    b'</head><body><p>hello</p></body></html>')
+    assert toolbox.is_web_clip(old)

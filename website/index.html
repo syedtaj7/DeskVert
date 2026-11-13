@@ -3,45 +3,45 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tapshift: free file converter for Windows. Select, tap Ctrl + Shift, pick a format</title>
-  <meta name="description" content="Tapshift converts files right where they are. Select files, tap Ctrl + Shift and pick a format: HEIC to JPG, compress PDFs, Word to PDF, video stills and more. Free, open source, offline.">
+  <title>Deskvert: free file converter for Windows. Select, tap Ctrl + Shift, pick a format</title>
+  <meta name="description" content="Deskvert converts files right where they are. Select files, tap Ctrl + Shift and pick a format: HEIC to JPG, compress PDFs, Word to PDF, video stills and more. Free, open source, offline.">
   <meta name="keywords" content="file converter, HEIC to JPG, compress PDF, Word to PDF, image converter, Windows, free, open source, offline converter">
   <meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
-  <link rel="canonical" href="https://syedtaj7.github.io/TapShift/">
+  <link rel="canonical" href="https://deskvert.vercel.app/">
   <link rel="icon" href="assets/favicon.ico" sizes="any">
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/logo.png">
 
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Tapshift">
-  <meta property="og:title" content="Tapshift: convert any file with one tap">
+  <meta property="og:site_name" content="Deskvert">
+  <meta property="og:title" content="Deskvert: convert any file with one tap">
   <meta property="og:description" content="Select files, tap Ctrl + Shift, pick a format. A free, open-source file converter for Windows that works offline.">
-  <meta property="og:url" content="https://syedtaj7.github.io/TapShift/">
-  <meta property="og:image" content="https://syedtaj7.github.io/TapShift/assets/og-image.png">
+  <meta property="og:url" content="https://deskvert.vercel.app/">
+  <meta property="og:image" content="https://deskvert.vercel.app/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Tapshift: convert any file with one tap">
+  <meta name="twitter:title" content="Deskvert: convert any file with one tap">
   <meta name="twitter:description" content="Select files, tap Ctrl + Shift, pick a format. Free and open source, for Windows.">
-  <meta name="twitter:image" content="https://syedtaj7.github.io/TapShift/assets/og-image.png">
+  <meta name="twitter:image" content="https://deskvert.vercel.app/assets/og-image.png">
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Tapshift",
+    "name": "Deskvert",
     "operatingSystem": "Windows 10, Windows 11",
     "applicationCategory": "UtilitiesApplication",
     "description": "A file converter that lives in the Windows tray. Select files, tap Ctrl + Shift and pick a format. 197 kinds of files in 171 ways, offline.",
-    "url": "https://syedtaj7.github.io/TapShift/",
+    "url": "https://deskvert.vercel.app/",
     "downloadUrl": "https://github.com/syedtaj7/TapShift/releases/latest",
     "softwareVersion": "1.13.0",
     "license": "https://www.gnu.org/licenses/agpl-3.0.html",
     "isAccessibleForFree": true,
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-    "image": "https://syedtaj7.github.io/TapShift/assets/og-image.png",
-    "screenshot": "https://syedtaj7.github.io/TapShift/assets/og-image.png"
+    "image": "https://deskvert.vercel.app/assets/og-image.png",
+    "screenshot": "https://deskvert.vercel.app/assets/og-image.png"
   }
   </script>
 
@@ -52,7 +52,7 @@
   <script>
     // the saved theme choice, before anything paints (no flash)
     document.documentElement.classList.remove("no-js");
-    try { const t = localStorage.getItem("tapshift-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    try { const t = localStorage.getItem("deskvert-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
 </head>
 <body>
@@ -60,9 +60,9 @@
   <canvas id="sky" aria-hidden="true"></canvas>
 
   <header class="nav">
-    <a class="brand" href="#top" aria-label="Tapshift home">
+    <a class="brand" href="#top" aria-label="Deskvert home">
       <img src="assets/logo.png" alt="" width="30" height="30">
-      <span>Tap<b>shift</b></span>
+      <span>Desk<b>vert</b></span>
     </a>
     <nav class="nav-links" aria-label="Sections">
       <a href="#how">How it works</a>
@@ -75,7 +75,7 @@
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch light or dark">
         <i class="ph ph-moon-stars" aria-hidden="true"></i>
       </button>
-      <a class="icon-btn" href="https://github.com/syedtaj7/TapShift" aria-label="Tapshift on GitHub"><i class="ph ph-github-logo" aria-hidden="true"></i></a>
+      <a class="icon-btn" href="https://github.com/syedtaj7/TapShift" aria-label="Deskvert on GitHub"><i class="ph ph-github-logo" aria-hidden="true"></i></a>
       <a class="btn btn-primary btn-small js-download" href="https://github.com/syedtaj7/TapShift/releases/latest" aria-label="Download for Windows">
         <i class="ph-bold ph-windows-logo" aria-hidden="true"></i><span>Download for Windows</span>
       </a>
@@ -96,7 +96,7 @@
         </div>
       </div>
 
-      <div class="stage" id="stage" aria-label="The Tapshift picker. Point at a format to try it.">
+      <div class="stage" id="stage" aria-label="The Deskvert picker. Point at a format to try it.">
         <div class="keys" aria-hidden="true"><span class="key" data-k="ctrl">Ctrl</span><span class="plus">+</span><span class="key" data-k="shift">Shift</span></div>
         <div class="disc" id="disc">
           <div class="ring ring-1" aria-hidden="true"></div>
@@ -141,7 +141,7 @@
         <figure class="demo reveal">
           <img class="themed" data-dark="assets/shots/demo-dark.webp" data-light="assets/shots/demo-light.webp"
                src="assets/shots/demo-dark.webp" width="1360" height="792" loading="lazy"
-               alt="Tapshift in File Explorer: a picture is selected, Ctrl + Shift opens the picker, WEBP is chosen and the converted file is saved">
+               alt="Deskvert in File Explorer: a picture is selected, Ctrl + Shift opens the picker, WEBP is chosen and the converted file is saved">
         </figure>
       </div>
     </section>
@@ -153,7 +153,7 @@
       <p class="sub reveal">Edge, Chrome, Brave, Firefox. Nothing to install in the browser: hold Ctrl + Shift while you drag, or tap it on a page.</p>
       <div class="bento">
         <article class="cell cell-big spot reveal" data-story="web_drag">
-          <img class="themed" alt="A picture dragged out of a web page onto the Tapshift circle, then a choice of formats" loading="lazy">
+          <img class="themed" alt="A picture dragged out of a web page onto the Deskvert circle, then a choice of formats" loading="lazy">
           <h3>Drag anything in</h3><p>Hold Ctrl + Shift while dragging a picture, link or file. Drop it on the circle, pick a format.</p>
         </article>
         <article class="cell spot reveal" data-story="web_table">
@@ -185,7 +185,7 @@
           <h3>Save the whole page</h3><p>As a PDF or one long picture.</p>
         </article>
         <article class="cell spot reveal" data-story="web_copied">
-          <img class="themed" alt="A screenshot snip opening in Tapshift" loading="lazy">
+          <img class="themed" alt="A screenshot snip opening in Deskvert" loading="lazy">
           <h3>Screenshots in a tap</h3><p>Snip with Win + Shift + S, tap Ctrl + Shift.</p>
         </article>
       </div>
@@ -242,7 +242,7 @@
     <section class="light" id="light">
       <div class="light-copy">
         <h2 class="reveal">Light on old laptops.</h2>
-        <p class="sub reveal">You choose how much of the processor Tapshift may use, and Windows enforces it. Your music keeps playing, your calls stay smooth.</p>
+        <p class="sub reveal">You choose how much of the processor Deskvert may use, and Windows enforces it. Your music keeps playing, your calls stay smooth.</p>
         <div class="seg reveal" role="radiogroup" aria-label="Processor limit">
           <button type="button" role="radio" aria-checked="false" data-cpu="15">Gentle</button>
           <button type="button" role="radio" aria-checked="true" data-cpu="25">Balanced</button>
@@ -258,7 +258,7 @@
     <!-- download -->
     <section class="download" id="download">
       <img class="dl-logo reveal" src="assets/logo.png" alt="" width="88" height="88" loading="lazy">
-      <h2 class="reveal">Get Tapshift.</h2>
+      <h2 class="reveal">Get Deskvert.</h2>
       <p class="sub reveal">Free and open source (AGPL-3.0). Windows 10 or 11, 64-bit. No admin rights needed.</p>
       <div class="cta-row center reveal">
         <a class="btn btn-primary btn-big magnetic js-download" href="https://github.com/syedtaj7/TapShift/releases/latest">
@@ -278,12 +278,12 @@
     <section class="faq" id="faq">
       <h2 class="reveal">Questions</h2>
       <div class="qa">
-        <details class="reveal"><summary>Is it really free?</summary><p>Yes. Tapshift is free and open source under the AGPL-3.0. No trial, no account, no ads.</p></details>
+        <details class="reveal"><summary>Is it really free?</summary><p>Yes. Deskvert is free and open source under the AGPL-3.0. No trial, no account, no ads.</p></details>
         <details class="reveal"><summary>Do I need Microsoft Office?</summary><p>Only for Word, Excel and PowerPoint files, and the free LibreOffice works too. Everything else needs nothing extra.</p></details>
-        <details class="reveal"><summary>Does it upload my files?</summary><p>Never. Conversions happen on your PC. Tapshift only goes online to check for updates (you can turn that off) and to fetch something you drag in from a web page.</p></details>
-        <details class="reveal"><summary>Ctrl + Shift switches my keyboard layout.</summary><p>Pick Ctrl + Shift + Space in Settings instead. Tapshift offers it by itself the first time if it notices.</p></details>
-        <details class="reveal"><summary>Can it download YouTube videos?</summary><p>No. Streaming sites don't allow it, so Tapshift doesn't do it. Dragging from a video page gives its thumbnail picture.</p></details>
-        <details class="reveal"><summary>How do I update or uninstall?</summary><p>Tapshift tells you when a new version is out and installs it with one click. Uninstall from the Start menu, the tray icon or Windows Settings; it removes everything.</p></details>
+        <details class="reveal"><summary>Does it upload my files?</summary><p>Never. Conversions happen on your PC. Deskvert only goes online to check for updates (you can turn that off) and to fetch something you drag in from a web page.</p></details>
+        <details class="reveal"><summary>Ctrl + Shift switches my keyboard layout.</summary><p>Pick Ctrl + Shift + Space in Settings instead. Deskvert offers it by itself the first time if it notices.</p></details>
+        <details class="reveal"><summary>Can it download YouTube videos?</summary><p>No. Streaming sites don't allow it, so Deskvert doesn't do it. Dragging from a video page gives its thumbnail picture.</p></details>
+        <details class="reveal"><summary>How do I update or uninstall?</summary><p>Deskvert tells you when a new version is out and installs it with one click. Uninstall from the Start menu, the tray icon or Windows Settings; it removes everything.</p></details>
         <details class="reveal"><summary>Something went wrong. How do I report it?</summary><p>In the tray menu, choose Report a problem. It shows exactly what would be shared, with your name and folders hidden, and opens a filled-in GitHub issue.</p></details>
       </div>
     </section>
@@ -297,12 +297,12 @@
         <li>Committers and reviewers: <a href="https://github.com/syedtaj7">syedtaj7</a></li>
         <li>Approvers: <a href="https://github.com/syedtaj7">syedtaj7</a></li>
       </ul>
-      <p>Privacy: Tapshift doesn't send information to other networked systems unless you ask it to, apart from the update check you can turn off. The full list is in the <a href="https://github.com/syedtaj7/TapShift/blob/main/PRIVACY.md">privacy policy</a>.</p>
+      <p>Privacy: Deskvert doesn't send information to other networked systems unless you ask it to, apart from the update check you can turn off. The full list is in the <a href="https://github.com/syedtaj7/TapShift/blob/main/PRIVACY.md">privacy policy</a>.</p>
     </section>
   </main>
 
   <footer class="foot">
-    <div class="brand"><img src="assets/logo.png" alt="" width="24" height="24" loading="lazy"><span>Tap<b>shift</b></span></div>
+    <div class="brand"><img src="assets/logo.png" alt="" width="24" height="24" loading="lazy"><span>Desk<b>vert</b></span></div>
     <nav aria-label="Project links">
       <a href="https://github.com/syedtaj7/TapShift">GitHub</a>
       <a href="https://github.com/syedtaj7/TapShift/blob/main/CHANGELOG.md">What's new</a>

@@ -1,4 +1,4 @@
-"""`Tapshift.exe --selftest <folder>`: runs real conversions through the same
+"""`Deskvert.exe --selftest <folder>`: runs real conversions through the same
 worker processes the app uses, and writes selftest.json into <folder>.
 Used to check a built release (everything bundled, workers start, engines work)."""
 
@@ -79,7 +79,7 @@ def _make_extras(folder: Path) -> dict[str, Path]:
     files["csvpeople"].write_text("Name,Phone,Email\nAsha Rao,+91 98765 43210,asha@example.com\n", encoding="utf-8")
     files["srt"].write_text("1\n00:00:01,000 --> 00:00:03,500\n<i>Hello</i> there\n\n"
                             "2\n00:01:02,250 --> 00:01:04,000\nSecond line\n", encoding="utf-8")
-    files["yaml"].write_text("name: Tapshift\nprice: 0.10\nreleased: 2026-11-09\nusers:\n  - {id: 1}\n  - {id: 2}\n",
+    files["yaml"].write_text("name: Deskvert\nprice: 0.10\nreleased: 2026-11-09\nusers:\n  - {id: 1}\n  - {id: 2}\n",
                              encoding="utf-8")
     import zipfile
 
@@ -97,7 +97,7 @@ def _make_extras(folder: Path) -> dict[str, Path]:
                    '</h1><p>' + " ".join(f"Line {i} of a quiet story about a river." for i in range(60)) +
                    '</p></body></html>')
     files["csv"].write_text("item,qty,price\nApple,3,1.20\nPear,10,0.8\n", encoding="utf-8")
-    files["json"].write_text('{"name":"Tapshift","tools":["zip","ocr"],"ratio":1.10}', encoding="utf-8")
+    files["json"].write_text('{"name":"Deskvert","tools":["zip","ocr"],"ratio":1.10}', encoding="utf-8")
     files["md"].write_text("# Read me\n\nA **short** document with a list:\n\n- one\n- two\n", encoding="utf-8")
     img = QImage(1400, 500, QImage.Format.Format_RGB32)
     img.fill(QColor("white"))
@@ -136,7 +136,7 @@ def _make_extras(folder: Path) -> dict[str, Path]:
     files["page"].write_text("<html><body><h1>Prices</h1><table><tr><th>Item</th><th>Price</th></tr>"
                              "<tr><td>Apple</td><td>1.20</td></tr><tr><td>Pear</td><td>0.80</td></tr></table>"
                              "</body></html>", encoding="utf-8")
-    files["link"] = folder / "Tapshift.url"
+    files["link"] = folder / "Deskvert.url"
     files["link"].write_text("[InternetShortcut]\nURL=https://github.com/syedtaj7/TapShift\n", encoding="utf-8")
     return files
 
@@ -251,7 +251,7 @@ def run(folder: Path) -> int:
         case([extras["srt"]], "Shift timing", {"seconds": "+1.5"}, name="srt->Shift timing")
         case([samples / "Mountains.jpg"], "Crop", {"ratio": "1:1 square"})
         case([samples / "Mountains.jpg"], "Passport sheet")
-        case([samples / "Mountains.jpg"], "Watermark", {"text": "Tapshift"})
+        case([samples / "Mountains.jpg"], "Watermark", {"text": "Deskvert"})
         case([samples / "Mountains.jpg"], "Checksum")
         # 1.12: from the browser (saved page tables, QR codes for links, website icons)
         case([extras["page"]], "Tables", name="html table->Tables (XLSX)")

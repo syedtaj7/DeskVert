@@ -5,7 +5,7 @@
 - png:  Illustrator (.ai) -> PNG.
 - svgz / svg: SVG <-> SVGZ (the same drawing, gzip-compressed or not).
 
-Drawn by MuPDF (already part of Tapshift). The result is opened again and checked.
+Drawn by MuPDF (already part of Deskvert). The result is opened again and checked.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
             with pymupdf.open("svg", _svg_bytes(src)) as doc:
                 pdf = pymupdf.open("pdf", doc.convert_to_pdf())
                 pages = pdf.page_count
-                pdf.set_metadata({"title": src.stem, "creator": "Tapshift"})
+                pdf.set_metadata({"title": src.stem, "creator": "Deskvert"})
                 pdf.save(long_path(out), garbage=3, deflate=True)
                 pdf.close()
         with pymupdf.open(long_path(out)) as d:

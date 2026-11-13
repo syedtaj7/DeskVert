@@ -65,7 +65,7 @@ def to_pdf(src: Path, out: Path, notes: list[str]) -> None:
         data = doc.convert_to_pdf()
         title = (doc.metadata or {}).get("title") or src.stem
     with pymupdf.open("pdf", data) as pdf:
-        pdf.set_metadata({"title": title, "creator": "Tapshift"})
+        pdf.set_metadata({"title": title, "creator": "Deskvert"})
         pdf.save(long_path(out), garbage=3, deflate=True)
     with pymupdf.open(long_path(out)) as d:
         if d.page_count != pages:
@@ -122,7 +122,7 @@ def comic_to_pdf(src: Path, out: Path, notes: list[str]) -> None:
         if pdf.page_count == 0:
             raise ConversionError("The pictures in this comic couldn't be read.")
         n = pdf.page_count
-        pdf.set_metadata({"title": src.stem, "creator": "Tapshift"})
+        pdf.set_metadata({"title": src.stem, "creator": "Deskvert"})
         pdf.save(long_path(out), garbage=3, deflate=True)
         pdf.close()
     finally:

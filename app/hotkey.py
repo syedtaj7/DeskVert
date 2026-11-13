@@ -284,7 +284,7 @@ class ModifierTapListener:
         cls.hInstance = hinst
         # A class name of its own: when the listener restarts (new shortcut, end of the welcome tour),
         # reusing one name made Windows keep the old, freed window procedure, so taps stopped after one.
-        cls.lpszClassName = f"TapshiftTapListener-{id(self):x}-{self._tid:x}"
+        cls.lpszClassName = f"DeskvertTapListener-{id(self):x}-{self._tid:x}"
         if not user32.RegisterClassExW(ctypes.byref(cls)):
             self.error = "Couldn't start the Ctrl+Shift listener."
             self._ready.set()

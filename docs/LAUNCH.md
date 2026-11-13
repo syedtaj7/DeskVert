@@ -37,7 +37,7 @@ points people there.
 
 Submit `packaging/winget/manifests/...` as a pull request to
 [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) (or with `wingetcreate submit`). After it's
-merged: `winget install Syedtaj7.Tapshift`. Each new release needs a new manifest PR.
+merged: `winget install Syedtaj7.Deskvert`. Each new release needs a new manifest PR.
 
 ### 5. Repository page
 

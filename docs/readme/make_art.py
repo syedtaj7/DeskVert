@@ -277,7 +277,7 @@ def hero() -> str:
                 f'fill="{S1}" stroke="{S3}"/><circle class="dot" cx="102" cy="110" r="5" fill="{ACC}"/>'
                 f'<text class="s sb" x="118" y="116" font-size="15" fill="{TEXT}">v1.3 · free &amp; open source</text></g>')
     body.append(f'<g class="rise" style="animation-delay:.15s"><text class="s b" x="76" y="236" font-size="104" '
-                f'fill="{TEXT}" letter-spacing="-3">Tapshift</text></g>')
+                f'fill="{TEXT}" letter-spacing="-3">Deskvert</text></g>')
     body.append(f'<rect class="fb under" x="82" y="258" width="150" height="8" rx="4" fill="{ACC}" '
                 f'style="transform-origin:left center"/>')
     for i, (txt, col) in enumerate((("Select a file.", TEXT), ("Tap Ctrl + Shift.", TEXT), ("Pick a format.", ACC))):
@@ -312,7 +312,7 @@ def hero() -> str:
                 f'<text class="s sb" x="50" y="31" font-size="16" fill="{TEXT}">photo (compressed).jpg</text>'
                 f'<text class="s" x="{tw - 22}" y="31" font-size="14" fill="{DIM}" text-anchor="end">96 KB · verified</text>'
                 f'</g></g>')
-    return svg(W, H, "\n".join(body), css, "Tapshift: select a file, tap Ctrl + Shift, pick a format")
+    return svg(W, H, "\n".join(body), css, "Deskvert: select a file, tap Ctrl + Shift, pick a format")
 
 
 # ======================================================================= ticker

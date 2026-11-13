@@ -1,4 +1,4 @@
-"""Everything Tapshift converts, counted live from the catalog, shown kind by kind.
+"""Everything Deskvert converts, counted live from the catalog, shown kind by kind.
 
 Nothing here is hard-coded: the worlds, their file types and their actions are
 read from what the picker would offer, so every new conversion shows up in the
@@ -63,7 +63,7 @@ def gather() -> tuple[list[World], int, int]:
     worlds: list[World] = []
     every_ext: set[str] = set()
     every_key: set[str] = set()
-    probe = Path("C:/tapshift-tour")  # never read: offers depend on the name only
+    probe = Path("C:/deskvert-tour")  # never read: offers depend on the name only
     for key, title, tagline, exts in _definitions():
         w = World(key, title, tagline, sorted(e.lstrip(".").upper() for e in exts))
         labels: dict[str, None] = {}
@@ -99,7 +99,7 @@ WORLD_COLOR = {"pictures": "image", "pdf": "pdf", "office": "doc", "ebooks": "bo
 
 
 class FormatMap(Clock):
-    """Every kind of file in a list; the chosen one gets a live story of what Tapshift does with it,
+    """Every kind of file in a list; the chosen one gets a live story of what Deskvert does with it,
     its numbers, and every format it takes and gives, as chips.
 
     It steps through the kinds by itself, one full story each; point at a kind to see it, click to

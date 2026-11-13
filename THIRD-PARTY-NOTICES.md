@@ -1,6 +1,6 @@
 # Third-party notices
 
-Tapshift is licensed under the **GNU Affero General Public License v3.0** (see [LICENSE](LICENSE)).
+Deskvert is licensed under the **GNU Affero General Public License v3.0** (see [LICENSE](LICENSE)).
 Its complete source code is available at https://github.com/syedtaj7/TapShift.
 
 The Windows release bundles the following open-source components, unmodified. Each remains under its own
@@ -27,14 +27,14 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
 | PyYAML / libyaml | Reading and writing YAML | MIT | https://github.com/yaml/pyyaml |
 | pywinrt (winrt-runtime, winrt-Windows.*) | Windows text recognition (OCR) | MIT | https://github.com/pywinrt/pywinrt |
-| PyInstaller bootloader | Starting Tapshift.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
+| PyInstaller bootloader | Starting Deskvert.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
 
 Image codecs bundled inside Pillow (libjpeg-turbo, libpng, zlib, libtiff, libwebp, libavif, dav1d, aom, FreeType,
 Little CMS, OpenJPEG) are under BSD, zlib, MIT or similar permissive licenses; see
 https://github.com/python-pillow/Pillow/blob/main/LICENSE and the Pillow wheel's license files.
 
 **Replacing libraries (LGPL):** Qt and the other LGPL libraries ship as separate DLL files inside the
-Tapshift program folder (`_internal`), so you can replace them with your own builds.
+Deskvert program folder (`_internal`), so you can replace them with your own builds.
 
 **Microsoft Office** is not included. Word, Excel and PowerPoint conversions use the copy of Office already
 installed on the user's computer, under its own license.

@@ -148,7 +148,7 @@ class SettingsWindow(ChromeWindow):
     install_update = Signal(str)  # path of a downloaded, verified installer
 
     def __init__(self, s: Settings, autostart: bool):
-        super().__init__("Tapshift Settings", QSize(860, 600))
+        super().__init__("Deskvert Settings", QSize(860, 600))
         self.s = s
         row = QHBoxLayout(self.body)
         row.setContentsMargins(0, 6, 0, 0)
@@ -200,8 +200,8 @@ class SettingsWindow(ChromeWindow):
                             clip),
                 setting_row("Keep the original's date", "Give new files the same 'modified' date as the original.",
                             dates),
-                setting_row("Right-click menu and Send to", "Adds “Convert with Tapshift” to the right-click "
-                            "menu of files and folders (Windows 11: Show more options), and Tapshift to Send to.",
+                setting_row("Right-click menu and Send to", "Adds “Convert with Deskvert” to the right-click "
+                            "menu of files and folders (Windows 11: Show more options), and Deskvert to Send to.",
                             menu),
                 setting_row("Drag and convert", "Hold Ctrl + Shift while dragging a picture or a file from "
                             "anywhere (a browser, an e-mail, a chat): drop it on the circle that appears.", drag),
@@ -215,7 +215,7 @@ class SettingsWindow(ChromeWindow):
                 setting_row("Tell me about updates", "Every few hours, asks GitHub for the newest version number "
                             "and lets you know when there is one. Nothing about you or your files is sent.",
                             auto_upd),
-                setting_row("Welcome tour", "Walk through how Tapshift works again.", tour)]
+                setting_row("Welcome tour", "Walk through how Deskvert works again.", tour)]
         lay.addWidget(a)
         for r in rows:
             lay.addWidget(r)
@@ -264,8 +264,8 @@ class SettingsWindow(ChromeWindow):
             self.changed.emit("max_cpu_percent", int(v))
 
         cpu.changed.connect(cpu_changed)
-        b = para("Windows itself enforces this limit for Tapshift and the hidden Office copies it uses. When "
-                 "nothing is converting, Tapshift uses no processor time at all.")
+        b = para("Windows itself enforces this limit for Deskvert and the hidden Office copies it uses. When "
+                 "nothing is converting, Deskvert uses no processor time at all.")
         r1 = setting_row("Processor limit", cpu_text, cpu)
         lay.addWidget(a)
         lay.addWidget(r1)
@@ -309,7 +309,7 @@ class SettingsWindow(ChromeWindow):
         top.addWidget(logo)
         col = QVBoxLayout()
         col.setSpacing(0)
-        col.addWidget(GradientTitle("Tapshift", 40, align=Qt.AlignmentFlag.AlignLeft))
+        col.addWidget(GradientTitle("Deskvert", 40, align=Qt.AlignmentFlag.AlignLeft))
         col.addWidget(label(f"Version {__version__}", 13, dim=True))
         top.addSpacing(8)
         top.addLayout(col, 1)
@@ -349,7 +349,7 @@ class SettingsWindow(ChromeWindow):
         bh.setLayout(btns)
         # Appropriate legal notice (AGPL-3.0 section 0): license, no warranty, where the source is.
         credits = para(
-            "Tapshift is free software: you can redistribute and modify it under the terms of the GNU Affero "
+            "Deskvert is free software: you can redistribute and modify it under the terms of the GNU Affero "
             "General Public License, version 3. It comes with no warranty. "
             f"Source code: <a style='color:{theme.rgba(theme.ACCENT)}' href='{github_url()}'>"
             f"github.com/{GITHUB_REPO}</a><br><br>"

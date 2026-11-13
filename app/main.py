@@ -26,7 +26,7 @@ from .ui import theme
 from .ui.panels import Notice, ProgressPanel
 from .ui.popup import Popup
 
-log = logging.getLogger("tapshift")
+log = logging.getLogger("deskvert")
 
 UPDATE_FIRST_MS = 90_000  # first look for a new version a minute and a half after start (not during start-up)
 UPDATE_POLL_MS = 30 * 60_000  # then wake every half hour to see whether it's time to look again
@@ -47,7 +47,7 @@ def setup_logging() -> None:
         if issubclass(kind, KeyboardInterrupt):
             sys.__excepthook__(kind, value, tb)
             return
-        logging.getLogger("tapshift").error("unexpected error", exc_info=(kind, value, tb))
+        logging.getLogger("deskvert").error("unexpected error", exc_info=(kind, value, tb))
 
     sys.excepthook = log_uncaught
 
@@ -68,7 +68,7 @@ def _alive(w) -> bool:
 
 class Controller(QObject):
     hotkey_pressed = Signal(int)
-    show_requested = Signal()  # Tapshift was started again while running
+    show_requested = Signal()  # Deskvert was started again while running
     pick_requested = Signal()  # files arrived from the right-click menu
     update_checked = Signal(object)  # a Release from GitHub (or None), from the background check
     drag_started = Signal()  # Ctrl+Shift held during a drag (from the listener thread)
@@ -94,7 +94,7 @@ class Controller(QObject):
         self.drop_ready.connect(self._drop_ready)
         self.page_found.connect(self._page_found)
         self.selection_found.connect(self._selection_found)
-        self._own_clip_until = 0.0  # Tapshift's own copy of a selection (and putting the clipboard back)
+        self._own_clip_until = 0.0  # Deskvert's own copy of a selection (and putting the clipboard back)
         self._drop_notes: list[str] = []
         self._drop_site = ""
         self._clip_changed = 0.0  # when the clipboard last got a picture (a screenshot, "Copy image"...)
@@ -133,6 +133,12 @@ class Controller(QObject):
         self.progress_timer.timeout.connect(self._poll_progress)
 
         self.hotkey_pressed.connect(self.on_hotkey)
+        try:  # Tapshift is now Deskvert: take over its start-up, right-click and Send to entries
+            moved = winutil.move_from_old_name()
+            if any(moved.values()):
+                log.info("moved over from the old name: %s", moved)
+        except Exception:  # noqa: BLE001
+            log.exception("moving over from the old name failed")
         if winutil.autostart_enabled():
             try:
                 winutil.set_autostart(True)  # keep the start-up entry pointing at this copy (e.g. after installing)
@@ -140,7 +146,7 @@ class Controller(QObject):
                 pass
         self.show_requested.connect(lambda: self.show_settings(0))
         winutil.watch_show_requests(self.show_requested.emit)
-        # Right-click "Convert with Tapshift": Explorer starts one copy per file; gather them briefly.
+        # Right-click "Convert with Deskvert": Explorer starts one copy per file; gather them briefly.
         self._pick_timer = QTimer(self)
         self._pick_timer.setSingleShot(True)
         self._pick_timer.setInterval(350)
@@ -193,7 +199,7 @@ class Controller(QObject):
 
     # ------------------------------------------------------------ updates
     def _auto_check_updates(self, force: bool = False) -> None:
-        """Ask GitHub (in the background) whether a newer Tapshift exists. At most every few hours."""
+        """Ask GitHub (in the background) whether a newer Deskvert exists. At most every few hours."""
         s = self.settings
         if not s.auto_update_check and not force:
             return
@@ -216,14 +222,14 @@ class Controller(QObject):
             return
         log.info("update available: %s", rel.version)
         self.available_update = rel
-        self.update_action.setText(f"Update to Tapshift {rel.version}\u2026")
+        self.update_action.setText(f"Update to Deskvert {rel.version}\u2026")
         self.tray.setToolTip(f"{APP_NAME} {__version__} \u00b7 {rel.version} is available")
         # Tell you once a day at most for the same version, not every few hours.
         seen, _, when = self.settings.update_noticed.partition("@")
         if seen == rel.version and time.time() - float(when or 0) < NOTICE_AGAIN_S:
             return
         what = rel.notes[0] if rel.notes else "Improvements and fixes."
-        shown = self.panel.offer("info", f"Tapshift {rel.version} is available",
+        shown = self.panel.offer("info", f"Deskvert {rel.version} is available",
                                  f"You have {__version__}. New: {what}", "Update",
                                  lambda: self.show_settings(5, check_updates=True))
         if shown:
@@ -317,7 +323,7 @@ class Controller(QObject):
         self.cancel_action = m.addAction("Cancel conversions", self.jobs.cancel)
         self.cancel_action.setEnabled(False)
         m.addSeparator()
-        m.addAction("How to use Tapshift", self.show_guide)
+        m.addAction("How to use Deskvert", self.show_guide)
         m.addAction("Settings", lambda: self.show_settings(0))
         m.addAction("Customize the picker", lambda: self.show_settings(4))
         m.addAction("Welcome tour", self.show_tour)
@@ -325,14 +331,14 @@ class Controller(QObject):
         self.pause_action = m.addAction("Pause shortcut")
         self.pause_action.setCheckable(True)
         self.pause_action.toggled.connect(lambda v: setattr(self, "paused", v))
-        m.addAction("About Tapshift", lambda: self.show_settings(5))
+        m.addAction("About Deskvert", lambda: self.show_settings(5))
         m.addAction("Report a problem…", self.show_report)
         self.update_action = m.addAction("Check for updates\u2026", lambda: self.show_settings(5, check_updates=True))
         rel = getattr(self, "available_update", None)
         if rel is not None:
-            self.update_action.setText(f"Update to Tapshift {rel.version}\u2026")
+            self.update_action.setText(f"Update to Deskvert {rel.version}\u2026")
         if winutil.uninstaller() is not None:
-            m.addAction("Uninstall Tapshift\u2026", self.uninstall)
+            m.addAction("Uninstall Deskvert\u2026", self.uninstall)
         m.addAction("Quit", self.quit)
         self.menu = m
         self.tray.setContextMenu(m)
@@ -346,7 +352,7 @@ class Controller(QObject):
             self.recent_menu.addAction(Path(path).name, lambda p=path: winutil.show_in_explorer(p))
 
     def _tray_activated(self, reason) -> None:
-        # Clicking the icon opens Tapshift itself; the latest files are under "Recent conversions".
+        # Clicking the icon opens Deskvert itself; the latest files are under "Recent conversions".
         if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
             self.show_settings(0)
 
@@ -412,7 +418,7 @@ class Controller(QObject):
             QTimer.singleShot(0, self._restyle)
         if first:
             how = "Tap" if is_modifier_tap(self.settings.hotkey) else "Press"
-            self.panel.message("success", "Tapshift is ready",
+            self.panel.message("success", "Deskvert is ready",
                                f"{how} {self.key_label} with a file selected in File Explorer.", 5000)
 
     def show_report(self, about: str = "") -> None:
@@ -539,7 +545,7 @@ class Controller(QObject):
             self.jobs.reset_pool()  # the next conversion starts with the new limit
 
     def try_samples(self) -> None:
-        folder = make_samples(documents_dir() / "Tapshift Samples")
+        folder = make_samples(documents_dir() / "Deskvert Samples")
         winutil.show_in_explorer(folder / "Sunset.png")
         how = "tap" if is_modifier_tap(self.settings.hotkey) else "press"
         self.panel.message("info", "Try it now",
@@ -684,7 +690,7 @@ class Controller(QObject):
 
     def _dropped(self, dropped) -> None:
         """Something was let go on the circle. Real files open the picker at once; anything else is saved
-        (or fetched) into Downloads\\Tapshift first, off the UI thread."""
+        (or fetched) into Downloads\\Deskvert first, off the UI thread."""
         from . import dropread
 
         self._drop_site = dropped.from_video_site  # a video site's thumbnail: say so in the picker
@@ -700,8 +706,8 @@ class Controller(QObject):
         if dropped.url and not dropped.blobs:
             host = dropped.url.split("/")[2] if dropped.url.lower().startswith(("http://", "https://")) else ""
             self.panel.message("info", "Fetching what you dropped",
-                               f"From {host}. It's saved in Downloads\\Tapshift, then the picker opens."
-                               if host else "Saving it in Downloads\\Tapshift.", 30000)
+                               f"From {host}. It's saved in Downloads\\Deskvert, then the picker opens."
+                               if host else "Saving it in Downloads\\Deskvert.", 30000)
 
         def work():
             try:
@@ -739,7 +745,7 @@ class Controller(QObject):
             pass
 
     def _copied_picture(self, fresh_only: bool) -> bool:
-        """A picture on the clipboard (a screenshot, a browser's "Copy image"): saved in Downloads\\Tapshift,
+        """A picture on the clipboard (a screenshot, a browser's "Copy image"): saved in Downloads\\Deskvert,
         then the picker. Outside File Explorer only if it was copied in the last few minutes."""
         if fresh_only and time.monotonic() - self._clip_changed > 300:
             return False
@@ -835,7 +841,7 @@ class Controller(QObject):
 
         if not url.lower().startswith(("http://", "https://")):
             self._show_notice("Couldn't read this page's address",
-                              "Tapshift reads it from the browser's address bar. Try again once the page has loaded, "
+                              "Deskvert reads it from the browser's address bar. Try again once the page has loaded, "
                               "or drag the padlock icon next to the address onto the circle instead.", "info")
             return
         try:
@@ -944,16 +950,16 @@ class Controller(QObject):
                 notes.append(f"This is the {site} video's thumbnail picture: videos on streaming sites can't be "
                              "downloaded.")
             notes += getattr(self, "_drop_notes", [])
-            notes.append("Saved in Downloads\\Tapshift" + (" from the web" if where == "downloaded" else "")
+            notes.append("Saved in Downloads\\Deskvert" + (" from the web" if where == "downloaded" else "")
                          + "; the new file goes next to it.")
         elif where == "page":
             if site:
                 notes.append(f"A {site} page: save it or make a QR code. The video itself can't be downloaded.")
-            notes.append("The link is kept in Downloads\\Tapshift; what you make goes next to it.")
+            notes.append("The link is kept in Downloads\\Deskvert; what you make goes next to it.")
         elif where == "clip":
-            notes.append("Your selection is saved as a web clip in Downloads\\Tapshift, with where it came from.")
+            notes.append("Your selection is saved as a web clip in Downloads\\Deskvert, with where it came from.")
         elif where == "copied":
-            notes.append("The copied picture is saved in Downloads\\Tapshift; the new file goes next to it.")
+            notes.append("The copied picture is saved in Downloads\\Deskvert; the new file goes next to it.")
         if self._roots:
             n = len(self._roots)
             notes.append(f"{'This folder' if n == 1 else f'These {n} folders'}: {len(files)} "
@@ -963,7 +969,7 @@ class Controller(QObject):
         group = [p for p in files if p not in left_out] or files
         if left_out and len(left_out) == len(files):
             # Nothing to convert, but the files can still be zipped: say why ZIP is the only choice.
-            notes.append(explain_unsupported(files)[1].split(". Tapshift")[0] + ". You can still zip it.")
+            notes.append(explain_unsupported(files)[1].split(". Deskvert")[0] + ". You can still zip it.")
         elif left_out:
             notes.append(f"{len(left_out)} file(s) of an unsupported type: only ZIP includes them.")
         center = f"1 {group[0].suffix.upper().lstrip('.') or 'file'}" if len(group) == 1 else f"{len(group)} files"
@@ -1062,8 +1068,8 @@ class Controller(QObject):
         self.quit()
 
     def uninstall(self) -> None:
-        """Hand over to the uninstaller (it asks "remove Tapshift?" first) and quit,
-        so Tapshift's files aren't in use."""
+        """Hand over to the uninstaller (it asks "remove Deskvert?" first) and quit,
+        so Deskvert's files aren't in use."""
         if winutil.start_uninstall():
             self.quit()
 
@@ -1073,13 +1079,13 @@ class Controller(QObject):
         self.jobs.shutdown()
         self.tray.hide()
         if restart_cmd:
-            os.environ.pop("TAPSHIFT_THEME", None)
+            os.environ.pop("DESKVERT_THEME", None)
             subprocess.Popen(restart_cmd, close_fds=True, creationflags=0x00000008)  # DETACHED_PROCESS
         self.app.quit()
 
 
 def make_samples(folder: Path) -> Path:
-    """A few small files to try Tapshift on, drawn with Qt (no extra files to ship)."""
+    """A few small files to try Deskvert on, drawn with Qt (no extra files to ship)."""
     from PySide6.QtCore import QPointF, QRectF, Qt
     from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter, QPainterPath, QRadialGradient
 
@@ -1120,8 +1126,8 @@ def make_samples(folder: Path) -> Path:
           ((70, 120, 150), (40, 84, 110), (20, 50, 70)), "JPG")
     notes = folder / "Meeting notes.txt"
     if not notes.exists():
-        notes.write_text("Meeting notes\n\nTry Tapshift on this file too: select it, tap Ctrl + Shift and pick PDF.\n"
-                         "Word does the conversion, and Tapshift checks every word made it across.\n",
+        notes.write_text("Meeting notes\n\nTry Deskvert on this file too: select it, tap Ctrl + Shift and pick PDF.\n"
+                         "Word does the conversion, and Deskvert checks every word made it across.\n",
                          encoding="utf-8")
     return folder
 
@@ -1150,15 +1156,15 @@ def main() -> int:
         from .selftest import run as selftest
 
         i = sys.argv.index("--selftest")
-        target = Path(sys.argv[i + 1]) if len(sys.argv) > i + 1 else Path.cwd() / "tapshift-selftest"
+        target = Path(sys.argv[i + 1]) if len(sys.argv) > i + 1 else Path.cwd() / "deskvert-selftest"
         return selftest(target)
     picks = []
-    if "--pick" in sys.argv:  # right-click "Convert with Tapshift"
+    if "--pick" in sys.argv:  # right-click "Convert with Deskvert"
         picks = [a for a in sys.argv[sys.argv.index("--pick") + 1:] if not a.startswith("--")]
     mutex = winutil.single_instance(wait_seconds=8.0 if "--restarted" in sys.argv else 0.0)
     if mutex is None:
         if picks:
-            winutil.send_pick(picks)  # the running Tapshift opens the picker for these files
+            winutil.send_pick(picks)  # the running Deskvert opens the picker for these files
         else:
             winutil.signal_running_instance()  # already running: bring its window to the front instead
         return 0

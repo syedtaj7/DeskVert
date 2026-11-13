@@ -1,8 +1,8 @@
 # Code signing with SignPath (free for open source)
 
-Tapshift's release workflow is ready for [SignPath Foundation](https://signpath.org)'s free code signing. Until it's
+Deskvert's release workflow is ready for [SignPath Foundation](https://signpath.org)'s free code signing. Until it's
 set up, releases are built exactly as before, unsigned. Once it's set up, every release tag produces a signed
-`Tapshift.exe` (inside the installer and the portable zip) and a signed `Tapshift-Setup-<version>.exe`.
+`Deskvert.exe` (inside the installer and the portable zip) and a signed `Deskvert-Setup-<version>.exe`.
 
 Check SignPath's current terms and steps on their site; this is how the pieces fit together.
 
@@ -17,7 +17,7 @@ SignPath Foundation asks of projects (from its terms):
 - Multi-factor authentication on GitHub and SignPath for everyone involved.
 - Every release is **approved by hand** in SignPath (you'll get two requests per release: the app, then the
   installer; the workflow waits up to an hour for each).
-- Product name and version are set in the files and enforced (both files carry "Tapshift" and the version).
+- Product name and version are set in the files and enforced (both files carry "Deskvert" and the version).
 - A **Code signing policy** published on the project page (below).
 
 ## 2. Publish the code signing policy
@@ -33,7 +33,7 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 - Approvers: [syedtaj7](https://github.com/syedtaj7)
 
 Only files built from this repository by its GitHub Actions release workflow are signed, and each release is
-approved by hand. Privacy: see [PRIVACY.md](PRIVACY.md). Tapshift doesn't send any information to other networked
+approved by hand. Privacy: see [PRIVACY.md](PRIVACY.md). Deskvert doesn't send any information to other networked
 systems unless you ask it to (the exceptions, such as the update check, are listed there).
 ```
 
@@ -64,7 +64,7 @@ The workflow signs as soon as `SIGNPATH_ORGANIZATION_ID` is set.
 
 ## 5. The first signed release
 
-Tag a release as usual. In the workflow run, the "Sign Tapshift.exe" step waits for your approval in SignPath,
+Tag a release as usual. In the workflow run, the "Sign Deskvert.exe" step waits for your approval in SignPath,
 then packaging continues, then "Sign the installer" waits again. The workflow checks both signatures
 (`Get-AuthenticodeSignature`) before publishing; if signing fails, nothing is published.
 

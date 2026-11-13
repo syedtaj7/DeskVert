@@ -1,4 +1,4 @@
-"""Check GitHub for a newer Tapshift, download its installer and start it.
+"""Check GitHub for a newer Deskvert, download its installer and start it.
 
 Runs when you ask (Settings > About > Check for updates, or the tray menu) and,
 unless turned off (Settings > General > Tell me about updates), quietly every few
@@ -30,7 +30,7 @@ from . import GITHUB_REPO, __version__
 
 API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 DOWNLOAD_PREFIX = f"https://github.com/{GITHUB_REPO}/releases/download/"
-HEADERS = {"Accept": "application/vnd.github+json", "User-Agent": "Tapshift-updater"}
+HEADERS = {"Accept": "application/vnd.github+json", "User-Agent": "Deskvert-updater"}
 CHUNK = 64 * 1024
 
 
@@ -111,12 +111,14 @@ def fetch_latest(timeout: float = 12) -> Release:
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         raise UpdateError("Couldn't reach GitHub. Check your internet connection and try again.") from e
     except ValueError as e:
-        raise UpdateError("GitHub sent an answer Tapshift couldn't read. Try again later.") from e
+        raise UpdateError("GitHub sent an answer Deskvert couldn't read. Try again later.") from e
     version = (data.get("tag_name") or "").lstrip("vV")
     if not version:
         raise UpdateError("No release was found on GitHub.")
     assets = [a for a in (_asset(x) for x in data.get("assets") or []) if a]
-    setup = next((a for a in assets if a.name.lower().startswith("tapshift-setup") and a.name.lower().endswith(".exe")),
+    # Deskvert-Setup-<ver>.exe; releases also carry the old Tapshift-Setup name for copies from before the rename
+    setup = next((a for a in assets if a.name.lower().startswith(("deskvert-setup", "tapshift-setup"))
+                  and a.name.lower().endswith(".exe")),
                  None)
     portable = next((a for a in assets if a.name.lower().endswith("-portable.zip")), None)
     return Release(version, data.get("html_url") or f"https://github.com/{GITHUB_REPO}/releases/latest",
@@ -130,7 +132,7 @@ def updates_dir() -> Path:
 
 
 def download(asset: Asset, progress=None, cancelled=None, timeout: float = 30) -> Path:
-    """Download to %LOCALAPPDATA%\\Tapshift\\updates, then check size and SHA-256.
+    """Download to %LOCALAPPDATA%\\Deskvert\\updates, then check size and SHA-256.
     ``progress(done, total)`` is called as bytes arrive; ``cancelled()`` returning True stops it."""
     folder = updates_dir()
     for old in folder.glob("*"):  # keep only the one we're fetching
@@ -179,6 +181,6 @@ def download(asset: Asset, progress=None, cancelled=None, timeout: float = 30) -
 
 def launch_installer(path: Path) -> None:
     """Run the installer quietly (a small progress window, no questions). It closes
-    Tapshift, installs over it, and starts the new version (the /RELAUNCH switch)."""
+    Deskvert, installs over it, and starts the new version (the /RELAUNCH switch)."""
     subprocess.Popen([str(path), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/RELAUNCH"],
                      close_fds=True, creationflags=0x00000008)  # DETACHED_PROCESS

@@ -1,4 +1,4 @@
-"""Tapshift's visual system: one neutral base, ONE accent, no gradients, no glows.
+"""Deskvert's visual system: one neutral base, ONE accent, no gradients, no glows.
 
 Rules (keep them consistent everywhere):
 - Color: neutrals for surfaces and text, a single accent for "the thing to act
@@ -58,7 +58,7 @@ def _settings_value(name: str, default: str) -> str:
 
 
 def _mode(choice: str | None = None) -> str:
-    forced = os.environ.get("TAPSHIFT_THEME")
+    forced = os.environ.get("DESKVERT_THEME")
     if forced in ("dark", "light"):
         return forced
     choice = choice or _settings_value("theme", "auto")
@@ -205,7 +205,7 @@ def refresh(theme_choice: str | None = None, palette: str | None = None) -> None
     """(Re)compute the look. Called at import and when the look changes in Settings,
     so new choices apply right away; everything reads colors as ``theme.NAME`` when it paints."""
     mode = _mode(theme_choice)
-    pal = palette or os.environ.get("TAPSHIFT_PALETTE") or _settings_value("palette", "verdant")
+    pal = palette or os.environ.get("DESKVERT_PALETTE") or _settings_value("palette", "verdant")
     globals().update(_compute(mode, pal), MODE=mode)
 
 
@@ -214,7 +214,7 @@ refresh()
 
 def paint_logo(p: QPainter, c: QPointF, size: float, progress: float = 1.0, spin: float = 0.0,
                busy: bool = False, color: QColor | None = None) -> None:
-    """The Tapshift mark: five ring segments around a dot, in the accent color.
+    """The Deskvert mark: five ring segments around a dot, in the accent color.
     ``progress`` 0..1 draws the segments in (for animations), ``spin`` rotates (degrees)."""
     col = color or ACCENT
     r = size * 0.40

@@ -1,6 +1,6 @@
 """Report a problem: what goes into a GitHub issue, made private first.
 
-Tapshift never sends anything itself. It fills in a new GitHub issue in your browser (you read it,
+Deskvert never sends anything itself. It fills in a new GitHub issue in your browser (you read it,
 change it, and post it yourself, or not), and it can copy the same text. Before anything is shown,
 your user name and folder paths are replaced (C:\\Users\\you\\... becomes %USERPROFILE%\\...) and
 file names in the log are shortened to their type.
@@ -49,7 +49,7 @@ def system_info() -> str:
     from .catalog import libre_installed, office_installed
 
     office = [k for k in ("word", "excel", "powerpoint") if office_installed(k)]
-    rows = [f"Tapshift {__version__}",
+    rows = [f"Deskvert {__version__}",
             f"Windows {platform.version()} ({platform.machine()})",
             "Microsoft Office: " + (", ".join(office) if office else "not installed"),
             "LibreOffice: " + ("installed" if libre_installed() else "not installed")]

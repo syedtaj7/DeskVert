@@ -1,6 +1,6 @@
 """Markdown / plain text / simple HTML -> PDF, HTML or DOCX.
 
-Rendered by Qt's own text engine (already part of Tapshift, no browser):
+Rendered by Qt's own text engine (already part of Deskvert, no browser):
 - pdf:  A4 with page numbers. Markdown keeps headings, lists, tables, links,
         code and local images; plain text keeps its line layout (monospace).
 - html: one self-contained web page
@@ -30,7 +30,7 @@ def _app():
 
     app = QGuiApplication.instance()
     if app is None:
-        app = QGuiApplication(["tapshift-worker"])
+        app = QGuiApplication(["deskvert-worker"])
         pal = app.palette()
         pal.setColor(QPalette.ColorRole.Link, QColor("#1a5fb4"))  # documents use plain link blue
         app.setPalette(pal)
@@ -145,7 +145,7 @@ def to_pdf(src: Path, out: Path, notes: list[str]) -> None:
     writer.setPageMargins(QMarginsF(20, 18, 20, 18), QPageLayout.Unit.Millimeter)
     writer.setResolution(300)
     writer.setTitle(src.stem)
-    writer.setCreator("Tapshift")
+    writer.setCreator("Deskvert")
     doc.print_(writer)  # paginates and adds page numbers
     del writer  # finishes the file
     try:

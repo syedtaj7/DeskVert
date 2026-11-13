@@ -2,7 +2,7 @@
 
 Windows can't open iWork files, but each one carries a picture of itself:
 newer files a preview of the first page (preview.jpg), older ones a full PDF
-(QuickLook/Preview.pdf). Tapshift takes that out, as it is:
+(QuickLook/Preview.pdf). Deskvert takes that out, as it is:
 
 - jpg: the preview picture
 - pdf: the full PDF when the file has one; otherwise the preview picture as a

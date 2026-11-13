@@ -341,7 +341,7 @@ def _remove_workdirs(job: dict) -> None:
         except OSError:
             pass
     src = Path(job["sources"][0])
-    shutil.rmtree(src.parent / f".tapshift-{job['id']}", ignore_errors=True)
+    shutil.rmtree(src.parent / f".deskvert-{job['id']}", ignore_errors=True)
 
 
 def clean_stale_workdirs() -> None:

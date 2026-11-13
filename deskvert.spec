@@ -1,5 +1,5 @@
-# PyInstaller recipe for Tapshift (one-folder, windowed).
-# Build with:  tools\build_release.ps1   (or: pyinstaller tapshift.spec --noconfirm)
+# PyInstaller recipe for Deskvert (one-folder, windowed).
+# Build with:  tools\build_release.ps1   (or: pyinstaller deskvert.spec --noconfirm)
 
 import re
 from pathlib import Path
@@ -32,7 +32,7 @@ hidden = [
 a = Analysis(
     ["run.pyw"],
     pathex=[str(ROOT)],
-    datas=[(str(ROOT / "assets" / "tapshift.ico"), "assets"),
+    datas=[(str(ROOT / "assets" / "deskvert.ico"), "assets"),
            # License texts and third-party notices travel with the app (AGPL/GPL/LGPL obligations).
            (str(ROOT / "LICENSE"), "licenses"),
            (str(ROOT / "THIRD-PARTY-NOTICES.md"), "licenses"),
@@ -43,10 +43,10 @@ a = Analysis(
               "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf"],
     noarchive=False,
 )
-# Not needed: Qt's software OpenGL fallback (Tapshift only draws 2D) and Qt's UI translations (English UI).
+# Not needed: Qt's software OpenGL fallback (Deskvert only draws 2D) and Qt's UI translations (English UI).
 a.binaries = [b for b in a.binaries if not b[0].lower().endswith("opengl32sw.dll")]
 a.datas = [d for d in a.datas if not (d[0].replace("\\", "/").find("/translations/") >= 0 and d[0].endswith(".qm"))]
-# PyMuPDF 2.x ships AI layout models (onnxruntime) Tapshift never uses; newer PyInstaller hooks collect them.
+# PyMuPDF 2.x ships AI layout models (onnxruntime) Deskvert never uses; newer PyInstaller hooks collect them.
 # Keep them out on every build machine, so the app stays the same small size.
 _HEAVY = ("pymupdf/layout", "onnxruntime", "networkx", "google/protobuf", "flatbuffers", "pymupdf4llm")
 a.datas = [d for d in a.datas if not any(h in d[0].replace("\\", "/").lower() for h in _HEAVY)]
@@ -59,10 +59,10 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="Tapshift",
-    icon=str(ROOT / "assets" / "tapshift.ico"),
+    name="Deskvert",
+    icon=str(ROOT / "assets" / "deskvert.ico"),
     console=False,
     version=str(ROOT / "tools" / "version_info.txt"),
     upx=False,
 )
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Tapshift")
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Deskvert")

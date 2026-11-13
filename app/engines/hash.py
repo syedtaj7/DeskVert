@@ -1,7 +1,7 @@
 """SHA-256 checksums: a small text file that proves files arrived unchanged.
 
 One line per file, in the standard "sha256sum" form ("<hash> *<name>"), so
-other tools (and Tapshift itself) can check the files later. Files from a
+other tools (and Deskvert itself) can check the files later. Files from a
 selected folder are listed with their path inside it. The files are read twice
 and both readings must agree.
 """

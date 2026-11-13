@@ -257,7 +257,7 @@ def real_warning(o: Offer) -> str:
 
 
 def animations_enabled() -> bool:
-    """Windows' Animation effects, and Tapshift's own Reduce motion setting."""
+    """Windows' Animation effects, and Deskvert's own Reduce motion setting."""
     from .fx import motion_ok
 
     return motion_ok()

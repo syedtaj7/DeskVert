@@ -27,7 +27,7 @@ MAX_PICTURES = 150
 MAX_PICTURE_BYTES = 30 * 1024 * 1024
 MAX_TOTAL = 400 * 1024 * 1024
 MIN_SIDE = 120  # smaller than this on both sides: an icon or a spacer, not a picture you want
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Tapshift"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Deskvert"
 PICTURE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".bmp", ".heic", ".tif", ".tiff")
 NOISE = re.compile(r"(^|[\s_-])(ads?|advert\w*|banner|cookie\w*|consent|promo\w*|related|share|sharing|social|"
                    r"comments?|newsletter|subscribe|sidebar|popup|modal|breadcrumbs?|recommend\w*|sponsor\w*|"
@@ -232,7 +232,7 @@ def article(page: str, url: str) -> tuple[str, str]:
     if best is None or _text_len(best) < 400:
         best = max(scores, key=scores.get) if scores else root.find("body")
     if best is None or _text_len(best) < 80:
-        raise ConversionError("Tapshift couldn't find an article on this page. Try “Page as PDF” instead.")
+        raise ConversionError("Deskvert couldn't find an article on this page. Try “Page as PDF” instead.")
     # tidy what's left: only reading tags, pictures at their biggest, links absolute
     for el in list(best.iter()):
         if not isinstance(el.tag, str):

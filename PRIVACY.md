@@ -1,8 +1,8 @@
 # Privacy
 
-**Tapshift has no account, no analytics and no telemetry.** Your files are converted on your PC and never uploaded.
+**Deskvert has no account, no analytics and no telemetry.** Your files are converted on your PC and never uploaded.
 
-## When Tapshift goes online
+## When Deskvert goes online
 
 Only for these, and only when they happen:
 
@@ -18,9 +18,9 @@ folders hidden), and you decide whether to post it.
 
 ## What stays on your PC
 
-- **Settings:** `%APPDATA%\Tapshift`. **Logs:** `%LOCALAPPDATA%\Tapshift\logs` (they name the files you convert;
+- **Settings:** `%APPDATA%\Deskvert`. **Logs:** `%LOCALAPPDATA%\Deskvert\logs` (they name the files you convert;
   they never leave your PC unless you share them).
-- **Things you drop or tap in a browser** are saved in `Downloads\Tapshift`.
-- **Reading a browser selection:** Tapshift copies the selection (as you would with Ctrl + C), reads it, and puts
+- **Things you drop or tap in a browser** are saved in `Downloads\Deskvert`.
+- **Reading a browser selection:** Deskvert copies the selection (as you would with Ctrl + C), reads it, and puts
   your clipboard back exactly as it was.
 - **Uninstalling** removes the app, its settings and its logs.

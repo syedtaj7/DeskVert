@@ -165,7 +165,7 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
         writer.setPageMargins(QMarginsF(18, 16, 18, 16), QPageLayout.Unit.Millimeter)
         writer.setResolution(300)
         writer.setTitle(str(m.msg.get("Subject") or sources[0].stem))
-        writer.setCreator("Tapshift")
+        writer.setCreator("Deskvert")
         doc.print_(writer)
         del writer
         with pymupdf.open(long_path(out)) as d:

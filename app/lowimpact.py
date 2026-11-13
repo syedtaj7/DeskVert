@@ -61,7 +61,7 @@ class _CpuRate(ctypes.Structure):
 
 
 def engine_threads() -> int:
-    env = os.environ.get("TAPSHIFT_THREADS")
+    env = os.environ.get("DESKVERT_THREADS")
     if env and env.isdigit():
         return max(1, int(env))
     return 2

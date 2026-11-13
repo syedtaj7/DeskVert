@@ -1,4 +1,4 @@
-"""The "How to use Tapshift" guide window, plus the sidebar navigation and
+"""The "How to use Deskvert" guide window, plus the sidebar navigation and
 section stack shared with the Settings window."""
 
 from __future__ import annotations
@@ -189,10 +189,10 @@ def build_guide_sections(sections: Sections) -> list[str]:
     # 1. Quick start
     page, lay = section_page()
     a = h1("Quick start")
-    b = para("Tapshift converts files right where they are, with one shortcut.")
+    b = para("Deskvert converts files right where they are, with one shortcut.")
     demo = DemoScene(width=560, height=308)
     c = bullets([
-        ("Select one or more files", "In File Explorer or on the Desktop. Mixed selections are fine: Tapshift "
+        ("Select one or more files", "In File Explorer or on the Desktop. Mixed selections are fine: Deskvert "
                                      "uses the biggest group of same-type files."),
         ("Tap " + keys_html("Ctrl", "Shift"), "Press both together and let go. The picker opens at your mouse "
                                               "pointer."),
@@ -209,14 +209,14 @@ def build_guide_sections(sections: Sections) -> list[str]:
     page, lay = section_page()
     a = h1("From your browser")
     b = para("Works with Edge, Chrome, Brave, Firefox and Opera, with nothing to install in the browser. "
-             "Everything is saved in <b>Downloads\\Tapshift</b>.")
+             "Everything is saved in <b>Downloads\\Deskvert</b>.")
     c = bullets([
         ("Drag anything in", f"Hold {keys_html('Ctrl', 'Shift')} while you drag a picture, link or file out of a "
                              "page. A circle appears: drop on it and pick a format. You always get the biggest "
                              "picture the page offers, not the small preview."),
         ("Selected text", f"Select text on a page and tap {keys_html('Ctrl', 'Shift')}: the picker offers only "
                           "what fits a selection: a clean PDF, Word, Markdown, plain text or a picture of it, each "
-                          "with a line saying where it came from. Tapshift reads the selection by copying it and "
+                          "with a line saying where it came from. Deskvert reads the selection by copying it and "
                           "then puts your clipboard back exactly as it was."),
         ("Tables to Excel", "Select a table the same way: <b>Tables</b> makes an Excel workbook, one sheet per "
                             "table, or a CSV."),
@@ -229,7 +229,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
                              "and leaves out menus, ads, cookie banners and comments."),
         ("All pictures on a page", "<b>All pictures</b> saves every picture on the page at the biggest size it "
                                    "offers, in one folder; icons and tiny pictures are left out."),
-        ("QR code for a link", "Drag a link in and pick <b>QR code</b>. Tapshift reads the code back before saving "
+        ("QR code for a link", "Drag a link in and pick <b>QR code</b>. Deskvert reads the code back before saving "
                                "it, so it always scans."),
         ("Shared links become files", "Drag a Google Drive, Docs, Dropbox or OneDrive share link in: the file "
                                       "itself downloads, with its real name. It must be shared with anyone who "
@@ -241,7 +241,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
                           "page that shows the lines to paste into your site."),
         ("WEBP downloads to JPG", "Optional, in Settings: pictures you download as WEBP or AVIF get a JPG copy next "
                                   "to them, by themselves. The download itself is kept."),
-        ("Videos", "Dragging from YouTube or other video sites gives the thumbnail. Tapshift doesn't download "
+        ("Videos", "Dragging from YouTube or other video sites gives the thumbnail. Deskvert doesn't download "
                    "streaming video."),
     ])
     for w in (a, b, c):
@@ -323,7 +323,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
         ("New folders for many files", "Slides or PDF pages as images, and split PDFs, go into a new folder "
                                        "such as <b>Report (pages PNG)</b>."),
         ("Show in folder", "Click it on the card, or find it under Recent conversions in the tray menu. Clicking "
-                           "the tray icon opens Tapshift."),
+                           "the tray icon opens Deskvert."),
         ("If something fails", "The card turns red and says why, in plain words. Your original is untouched."),
     ])
     for w in (a, b):
@@ -336,7 +336,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
     page, lay = section_page()
     a = h1("Your files are safe")
     b = bullets([
-        ("Originals are only read", "Tapshift never edits, moves or deletes the file you converted."),
+        ("Originals are only read", "Deskvert never edits, moves or deletes the file you converted."),
         ("Built privately, then checked", "Each result is created in a private work folder, opened again and "
                                           "compared with the original: pixels for lossless images, quality for "
                                           "lossy ones, page and slide counts, the text of documents, every cell "
@@ -364,11 +364,11 @@ def build_guide_sections(sections: Sections) -> list[str]:
                     "Explorer, on the Desktop, on a browser window, and anywhere when you've copied a picture."),
         ("Keyboard layouts", "If Ctrl + Shift also switches your keyboard layout, choose "
                              f"{keys_html('Ctrl', 'Shift', 'Space')} in Settings instead."),
-        ("Tray menu", "Right-click the Tapshift icon by the clock: recent conversions, cancel, pause the shortcut, "
+        ("Tray menu", "Right-click the Deskvert icon by the clock: recent conversions, cancel, pause the shortcut, "
                       "this guide, Settings and Quit."),
         ("Performance", "Gentle, Balanced or Faster: how much of the processor conversions may use (15%, 25% or "
                         "50%). Windows enforces the limit."),
-        ("Copied files", "If nothing is selected, Tapshift uses files you copied with Ctrl + C."),
+        ("Copied files", "If nothing is selected, Deskvert uses files you copied with Ctrl + C."),
         ("Browser features", "Drag and convert, Browser pages and WEBP downloads to JPG can each be turned off "
                              "in Settings → General."),
         ("Watch folders", "Settings → General: pick a folder and what to make (PDF, JPG, Compress…). New files you "
@@ -397,7 +397,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
                                       "→ Time & language → Language)."),
         ("Report a problem", "Tray menu \u2192 Report a problem, or the Report button on a red card. You see everything "
                              "first, with your name and folders hidden; GitHub opens in your browser to post it. "
-                             "Tapshift sends nothing itself."),
+                             "Deskvert sends nothing itself."),
         ("Still stuck?", "Tray menu \u2192 Open log folder, and include <b>app.log</b> when reporting an issue on "
                          "GitHub."),
     ])
@@ -411,7 +411,7 @@ def build_guide_sections(sections: Sections) -> list[str]:
 
 class GuideWindow(ChromeWindow):
     def __init__(self):
-        super().__init__("How to use Tapshift", QSize(940, 640))
+        super().__init__("How to use Deskvert", QSize(940, 640))
         row = QHBoxLayout(self.body)
         row.setContentsMargins(0, 6, 0, 0)
         row.setSpacing(18)

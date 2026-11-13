@@ -2,7 +2,7 @@
 
 Each watched folder has one action ("PDF", "JPG", "Compress"...). A new file is converted once it has
 finished arriving (the same size twice in a row), and the result goes into a "Converted" folder inside
-the watched one, so results are never picked up again. Only files added after Tapshift started
+the watched one, so results are never picked up again. Only files added after Deskvert started
 watching count (the files already there are listed when watching starts, and left alone). Nothing is ever
 deleted or moved.
 """

@@ -168,11 +168,11 @@ def read_docx(src: Path) -> tuple[list[Block], str]:
     try:
         z = zipfile.ZipFile(long_path(src))
     except zipfile.BadZipFile as e:
-        raise ConversionError("This isn't a Word document Tapshift can read (it may be an old .doc, or "
+        raise ConversionError("This isn't a Word document Deskvert can read (it may be an old .doc, or "
                               "damaged).") from e
     with z:
         if "word/document.xml" not in z.namelist():
-            raise ConversionError("This isn't a Word document Tapshift can read.")
+            raise ConversionError("This isn't a Word document Deskvert can read.")
         root = _xml(z, "word/document.xml")
         heads, ordered = _docx_styles(z), _docx_ordered(z)
     body = root.find(W + "body")

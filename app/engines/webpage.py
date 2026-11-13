@@ -3,10 +3,10 @@
 The page is opened by the Microsoft Edge (or Google Chrome) already on this PC, in a
 private copy with its own empty profile: your browsing data, sign-ins and history are
 never touched, and pages that need a sign-in come out signed-out. Nothing new is
-downloaded. The browser runs inside Tapshift's processor limit and is closed after.
+downloaded. The browser runs inside Deskvert's processor limit and is closed after.
 
 Links come from .url files (Windows internet shortcuts): what a link dragged out of a
-browser becomes, and what Tapshift saves when you tap Ctrl+Shift on a browser window.
+browser becomes, and what Deskvert saves when you tap Ctrl+Shift on a browser window.
 """
 
 from __future__ import annotations

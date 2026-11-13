@@ -102,7 +102,7 @@ class UpdatePanel(QFrame):
         if self._busy:
             return
         self._busy = True
-        self._show("Checking for updates…", "Asking GitHub for the latest version of Tapshift.")
+        self._show("Checking for updates…", "Asking GitHub for the latest version of Deskvert.")
 
         def work():
             try:
@@ -118,16 +118,16 @@ class UpdatePanel(QFrame):
         self._busy = False
         self.release = rel
         if not updater.is_newer(rel.version):
-            self._show("You're up to date", f"Tapshift {__version__} is the latest version.",
+            self._show("You're up to date", f"Deskvert {__version__} is the latest version.",
                        secondary=("Check again", self.start_check))
             return
         what = rel.notes or ["Improvements and fixes."]
         if uninstaller() is not None and rel.setup is not None:
-            self._show(f"Tapshift {rel.version} is available", f"You have {__version__}. What's new:", what,
+            self._show(f"Deskvert {rel.version} is available", f"You have {__version__}. What's new:", what,
                        primary=(f"Download ({_mb(rel.setup.size)})", self._download),
                        secondary=("Release page", lambda: self._open(rel.page)))
         else:  # the portable zip (or no installer in this release): get it from the release page
-            self._show(f"Tapshift {rel.version} is available",
+            self._show(f"Deskvert {rel.version} is available",
                        f"You have {__version__}. This copy wasn't installed with Setup, so download the new "
                        "version from the release page. What's new:", what,
                        primary=("Open download page", lambda: self._open(rel.page)))
@@ -139,7 +139,7 @@ class UpdatePanel(QFrame):
         self._busy, self._cancel = True, False
         self.bar.setRange(0, max(1, rel.setup.size))
         self.bar.setValue(0)
-        self._show(f"Downloading Tapshift {rel.version}…", f"0 of {_mb(rel.setup.size)}", bar=True,
+        self._show(f"Downloading Deskvert {rel.version}…", f"0 of {_mb(rel.setup.size)}", bar=True,
                    secondary=("Cancel", self._cancel_download))
 
         def work():
@@ -166,8 +166,8 @@ class UpdatePanel(QFrame):
     def _on_downloaded(self, path: str):
         self._busy = False
         ver = self.release.version if self.release else ""
-        self._show(f"Tapshift {ver} is ready to install",
-                   "Checked: the file matches the one published on GitHub. Tapshift will close, install the "
+        self._show(f"Deskvert {ver} is ready to install",
+                   "Checked: the file matches the one published on GitHub. Deskvert will close, install the "
                    "update and open again; conversions still running will stop.",
                    primary=("Install and restart", lambda: self.install_requested.emit(path)),
                    secondary=("Later", self.hide))

@@ -5,7 +5,7 @@
   or re-encoded, so it stays light).
 
 Video re-encoding (making videos smaller, 720p, WebM, GIF) isn't offered: it's
-the heavy kind of work Tapshift keeps off low-end laptops.
+the heavy kind of work Deskvert keeps off low-end laptops.
 
 Every result is opened again: its length must match the source's.
 """

@@ -46,7 +46,7 @@ from .engines.media import AUDIO_EXTS, VIDEO_EXTS  # noqa: E402  (plain sets, no
 # Picture edits work on these (other formats: convert first).
 EDIT_IMAGE_FMTS = {"jpg", "png", "webp", "bmp", "tiff"}
 MARKDOWN_EXTS = {".md", ".markdown", ".mdown", ".mkd"}
-# Raster images Windows OCR can read (after Tapshift decodes them).
+# Raster images Windows OCR can read (after Deskvert decodes them).
 OCR_IMAGE_FMTS = {"jpg", "png", "webp", "heic", "avif", "gif", "bmp", "tiff", "tga", "psd", "raw"}
 
 # ---------------------------------------------------------------- page ranges
@@ -674,7 +674,7 @@ def pdf_tools(pdfs: list[Path]) -> list[Offer]:
             "are."], [], unlocked))
     if locked:
         offers.insert(0, _offer(PDF_UNLOCK, "remove password", [
-            "Removes the password, using the password you type. Tapshift can't open PDFs without it."], [
+            "Removes the password, using the password you type. Deskvert can't open PDFs without it."], [
             Option("password", "Current password", "password", "", required=True),
         ], locked))
     return offers
@@ -800,16 +800,18 @@ def markdown_offers(files: list[Path], word_installed: bool) -> list[Offer]:
     return offers
 
 
-WEB_CLIP_MARK = b'<meta name="generator" content="Tapshift web clip">'
+WEB_CLIP_MARK = b'<meta name="generator" content="Deskvert web clip">'
+OLD_CLIP_MARK = b'<meta name="generator" content="Tapshift web clip">'  # clips saved before the rename
 
 
 def is_web_clip(p: Path) -> bool:
-    """Text or a table taken from a web page (saved by Tapshift as a small .html with a marker)."""
+    """Text or a table taken from a web page (saved by Deskvert as a small .html with a marker)."""
     if p.suffix.lower() not in (".html", ".htm"):
         return False
     try:
         with open(p, "rb") as f:
-            return WEB_CLIP_MARK in f.read(2048)
+            head = f.read(2048)
+        return WEB_CLIP_MARK in head or OLD_CLIP_MARK in head
     except OSError:
         return False
 
@@ -918,8 +920,8 @@ def hash_offer(files: list[Path]) -> Offer:
 
 
 def text_fallback_offers(files: list[Path]) -> list[Offer]:
-    """TXT/HTML when Microsoft Word isn't installed: Tapshift can still make a PDF itself."""
-    return [_offer(TEXT_PDF, "A4 document", ["Made by Tapshift (Microsoft Word isn't installed)."], [], files)]
+    """TXT/HTML when Microsoft Word isn't installed: Deskvert can still make a PDF itself."""
+    return [_offer(TEXT_PDF, "A4 document", ["Made by Deskvert (Microsoft Word isn't installed)."], [], files)]
 
 
 def output_ext(t: Target, source: Path, options: dict) -> str:

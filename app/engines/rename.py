@@ -1,6 +1,6 @@
 """Batch rename: copies of the selected files with tidy new names, in a new folder.
 
-Your originals keep their names (Tapshift never changes the files you select); delete them yourself
+Your originals keep their names (Deskvert never changes the files you select); delete them yourself
 once you're happy with the copies. Names come from a pattern:
 
     {date}  the day the photo was taken (or the file was last changed): 2026-11-13

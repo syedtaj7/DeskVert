@@ -22,11 +22,11 @@ def test_names_folders_and_files_are_hidden(monkeypatch):
 
 def test_issue_link_is_filled_in_and_never_too_long(tmp_path, monkeypatch):
     log = tmp_path / "app.log"
-    log.write_text("\n".join(f"2026-11-13 10:00:{i:02d} INFO tapshift: step {i} " + "x" * 200 for i in range(60)),
+    log.write_text("\n".join(f"2026-11-13 10:00:{i:02d} INFO deskvert: step {i} " + "x" * 200 for i in range(60)),
                    encoding="utf-8")
     monkeypatch.setattr(report, "log_dir", lambda: tmp_path)
     body = report.issue_body("Word files fail to convert.")
-    assert "Word files fail" in body and "Tapshift" in body and "step 59" in body
+    assert "Word files fail" in body and "Deskvert" in body and "step 59" in body
     url = report.issue_url("Word to PDF fails", body)
     assert url.startswith("https://github.com/") and "/issues/new?" in url and len(url) <= report.MAX_URL
     q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
