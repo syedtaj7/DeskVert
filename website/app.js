@@ -10,15 +10,19 @@
   // ---------------------------------------------------------------- theme (auto, light, dark)
   const darkQuery = matchMedia("(prefers-color-scheme: dark)");
   const isDark = () => root.dataset.theme === "dark" || (root.dataset.theme !== "light" && darkQuery.matches);
+  // the animations are the app's own, as short videos: a still picture at once, the video only while on screen
+  const mediaName = (v) => v.dataset.media || v.closest("[data-story]")?.dataset.story;
+  const mediaSrc = (v, ext) => "assets/media/" + mediaName(v) + "-" + (isDark() ? "dark" : "light") + "." + ext;
   function applyTheme() {
-    const dark = isDark();
-    $$("img.themed").forEach((img) => {
-      const story = img.closest("[data-story]")?.dataset.story;
-      const src = story ? `assets/stories/${story}-${dark ? "dark" : "light"}.webp` : img.dataset[dark ? "dark" : "light"];
-      if (src && img.getAttribute("src") !== src) img.src = src;
+    $$("video.themed").forEach((v) => {
+      v.poster = mediaSrc(v, "jpg");
+      if (v.dataset.live) { // playing already: swap to the other theme's video in place
+        v.src = mediaSrc(v, "mp4");
+        v.play().catch(() => {});
+      }
     });
     const icon = $("#theme-toggle i");
-    if (icon) icon.className = dark ? "ph ph-sun" : "ph ph-moon-stars";
+    if (icon) icon.className = isDark() ? "ph ph-sun" : "ph ph-moon-stars";
     sky.recolor();
   }
   $("#theme-toggle")?.addEventListener("click", () => {
@@ -246,17 +250,18 @@
     io.observe(el);
   });
 
-  // ---------------------------------------------------------------- the sideways strip: lazy loading judges pictures by their
-  // place in the layout (not where the strip has slid them), so load them all as the section comes near
-  const pan = $("#everything");
-  if (pan) {
-    const near = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      near.disconnect();
-      $$("img", pan).forEach((img) => { img.loading = "eager"; });
-    }, { rootMargin: "900px 0px" });
-    near.observe(pan);
-  }
+  // ---------------------------------------------------------------- videos play only while they're on screen
+  // (watching where they really are, so the sideways strip works too); less motion: the still picture only
+  const playing = new IntersectionObserver((entries) => {
+    entries.forEach(({ target: v, isIntersecting }) => {
+      if (isIntersecting && !reduce) {
+        if (!v.dataset.live) { v.src = mediaSrc(v, "mp4"); v.dataset.live = "1"; }
+        v.muted = true;
+        v.play().catch(() => {});
+      } else if (!isIntersecting && v.dataset.live) v.pause();
+    });
+  }, { rootMargin: "200px 0px" });
+  $$("video.themed").forEach((v) => playing.observe(v));
 
   // ---------------------------------------------------------------- counters
   const counted = new IntersectionObserver((entries) => {

@@ -7,7 +7,7 @@ Same app, new name: Deskvert converts files right on your desktop.
 
 - **Nothing to do:** updating from Tapshift keeps your settings, start-up, right-click and Send to entries,
   and installs over the old copy (the old program file and shortcuts are removed).
-- New website: https://deskvert.vercel.app
+- New website: https://deskvert-website.vercel.app
 - Files saved in the old `Downloads\Tapshift` folder stay there; new ones go to `Downloads\Deskvert`.
 
 ## 1.13.0
