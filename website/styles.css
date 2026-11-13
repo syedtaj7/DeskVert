@@ -183,7 +183,7 @@ section { position: relative; z-index: 1; padding: clamp(72px, 10vw, 140px) clam
 .step h3 { font-size: 1.3rem; margin-top: 4px; }
 .step p { color: var(--dim); margin-top: 6px; }
 .demo { margin: 0; position: sticky; top: 100px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--bg); }
-.demo img { width: 100%; height: auto; }
+.demo video { width: 100%; height: auto; display: block; aspect-ratio: 1360 / 792; background: var(--bg); }
 
 /* ---------------------------------------------------------------- browser bento */
 .bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 48px; }
@@ -194,7 +194,7 @@ section { position: relative; z-index: 1; padding: clamp(72px, 10vw, 140px) clam
   transition: transform .5s var(--ease), box-shadow .4s;
 }
 .cell-big { grid-column: span 2; grid-row: span 2; }
-.cell img { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; background: var(--bg); object-fit: cover; }
+.cell video { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; background: var(--bg); object-fit: cover; display: block; }
 .cell h3 { margin: 16px 6px 0; }
 .cell-big h3 { font-size: 1.5rem; margin-top: 22px; }
 .cell p { color: var(--dim); font-size: .94rem; margin: 6px 6px 0; line-height: 1.45; }
@@ -233,7 +233,7 @@ section { position: relative; z-index: 1; padding: clamp(72px, 10vw, 140px) clam
 .pan h2 { padding: 0 clamp(16px, 5vw, 64px); margin-bottom: 36px; }
 .pan-track { display: flex; gap: 18px; padding: 0 clamp(16px, 5vw, 64px); width: max-content; will-change: transform; }
 .slide { width: min(380px, 78vw); flex: 0 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 12px 18px; }
-.slide img { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; background: var(--bg); }
+.slide video { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; background: var(--bg); object-fit: cover; display: block; }
 .slide h3 { margin: 14px 6px 0; }
 .slide p { color: var(--dim); font-size: .94rem; margin: 4px 6px 0; }
 /* scroll-driven where the browser has it (Edge, Chrome); others scroll sideways by hand */
