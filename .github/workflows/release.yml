@@ -119,14 +119,6 @@ jobs:
           $sig = Get-AuthenticodeSignature "release/$($signed.Name)"
           if ($sig.Status -ne "Valid") { throw "The installer isn't validly signed: $($sig.Status)" }
 
-      # Deskvert was called Tapshift until 1.14. Copies installed before the rename look for an update file
-      # named Tapshift-Setup-<version>.exe, so the installer is published under that name too.
-      - name: The installer under its old name, for copies from before the rename
-        shell: pwsh
-        run: |
-          $setup = Get-ChildItem release -Filter "Deskvert-Setup-*.exe" | Select-Object -First 1
-          Copy-Item $setup.FullName ("release/" + ($setup.Name -replace '^Deskvert-', 'Tapshift-'))
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
