@@ -49,6 +49,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="fx.css?v=3">
   <script>
     // the saved theme choice, before anything paints (no flash)
     document.documentElement.classList.remove("no-js");
@@ -58,6 +59,8 @@
 <body>
   <a class="skip" href="#main">Skip to the content</a>
   <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="glow" id="glow" aria-hidden="true"></div>
+  <div class="progress" aria-hidden="true"></div>
 
   <header class="nav">
     <a class="brand" href="#top" aria-label="Deskvert home">
@@ -65,6 +68,7 @@
       <span>Desk<b>vert</b></span>
     </a>
     <nav class="nav-links" aria-label="Sections">
+      <a href="#try">Try it</a>
       <a href="#how">How it works</a>
       <a href="#browser">From the browser</a>
       <a href="#everything">Everything it does</a>
@@ -86,7 +90,7 @@
     <!-- hero: the picker itself, live -->
     <section class="hero" id="top">
       <div class="hero-copy">
-        <h1 class="rise">Convert any file<br>with <em>one tap.</em></h1>
+        <h1 class="rise" aria-label="Convert any file with one tap."><span aria-hidden="true">Convert <span class="swap" id="swap">HEIC &rarr; JPG</span></span><br><span aria-hidden="true">with <em>one tap.</em></span></h1>
         <p class="lead rise" style="--d:.12s">Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format. Free, open source, and nothing leaves your PC.</p>
         <div class="cta-row rise" style="--d:.24s">
           <a class="btn btn-primary magnetic js-download" href="https://github.com/syedtaj7/DeskVert/releases/latest">
@@ -94,6 +98,13 @@
           </a>
           <a class="btn btn-ghost" href="#how"><i class="ph ph-play-circle" aria-hidden="true"></i><span>Watch it work</span></a>
         </div>
+      </div>
+
+      <div class="stickers" id="stickers" aria-hidden="true">
+        <span class="sticker" style="--x:1%;--y:88%;--r:-9deg">No upload</span>
+        <span class="sticker alt" style="--x:44%;--y:6%;--r:7deg">Free forever</span>
+        <span class="sticker" style="--x:86%;--y:84%;--r:-4deg">Works offline</span>
+        <button class="sticker key-sticker" type="button" id="try-keys" style="--x:19%;--y:89%;--r:4deg">Psst. Tap <b>Ctrl</b> + <b>Shift</b></button>
       </div>
 
       <div class="stage" id="stage" aria-label="The Deskvert picker. Point at a format to try it.">
@@ -113,6 +124,43 @@
           <div><strong></strong><span></span></div>
         </div>
         <div class="ghost" id="ghost" aria-hidden="true"><i class="ph-fill ph-cursor"></i></div>
+      </div>
+    </section>
+
+    <!-- try: a real conversion in the browser, nothing uploaded -->
+    <section class="try" id="try" aria-labelledby="try-title">
+      <div class="try-copy">
+        <h2 id="try-title" class="reveal">Try it right here.</h2>
+        <p class="sub reveal">Drop a picture. It's converted by your browser, on your computer; nothing is uploaded. The app does the same for 197 kinds of files.</p>
+        <div class="try-controls reveal">
+          <div class="seg" role="radiogroup" aria-label="Convert to" id="try-format">
+            <button type="button" role="radio" aria-checked="true" data-fmt="image/jpeg">JPG</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="image/png">PNG</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="image/webp">WEBP</button>
+          </div>
+          <label class="quality" id="try-quality-row">Quality <input type="range" id="try-quality" min="40" max="100" value="82"><output id="try-quality-out">82</output></label>
+        </div>
+      </div>
+      <div class="try-stage">
+        <label class="drop" id="drop" tabindex="0">
+          <input type="file" id="try-file" accept="image/*" hidden>
+          <span class="drop-ring" aria-hidden="true"></span>
+          <span class="drop-orbit" aria-hidden="true"><b>JPG</b><b>PNG</b><b>WEBP</b><b>AVIF</b><b>GIF</b><b>BMP</b></span>
+          <span class="drop-core">
+            <i class="ph-bold ph-download-simple" aria-hidden="true"></i>
+            <strong>Drop a picture</strong>
+            <small>or click to choose one</small>
+          </span>
+        </label>
+        <div class="result" id="result" aria-live="polite" hidden>
+          <img id="result-img" alt="The converted picture">
+          <div class="result-info">
+            <strong id="result-name"></strong>
+            <span id="result-sizes"></span>
+            <a class="btn btn-primary btn-small" id="result-save" download><i class="ph-bold ph-download-simple" aria-hidden="true"></i><span>Save it</span></a>
+          </div>
+        </div>
+        <p class="try-note" id="try-note" role="status"></p>
       </div>
     </section>
 
@@ -299,6 +347,8 @@
     </section>
   </main>
 
+  <div class="giant" aria-hidden="true"><span>DESKVERT</span></div>
+
   <footer class="foot">
     <div class="brand"><img src="assets/logo.png" alt="" width="24" height="24" loading="lazy"><span>Desk<b>vert</b></span></div>
     <nav aria-label="Project links">
@@ -312,5 +362,6 @@
   </footer>
 
   <script src="app.js" defer></script>
+  <script src="fx.js?v=3" defer></script>
 </body>
 </html>

@@ -9,7 +9,7 @@
       ]
     },
     {
-      "source": "/(styles.css|app.js)",
+      "source": "/(styles.css|app.js|fx.css|fx.js)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
       ]

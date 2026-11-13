@@ -1,0 +1,199 @@
+/* Deskvert website: the extra motion and texture (fx.js adds .fx to <html> when it runs) */
+
+/* ---------------------------------------------------------------- texture: film grain over everything */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] body::after { opacity: .07; mix-blend-mode: screen; filter: invert(1); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body::after { opacity: .07; mix-blend-mode: screen; filter: invert(1); } }
+
+/* ---------------------------------------------------------------- the soft light under the pointer */
+.glow {
+  position: fixed; left: 0; top: 0; width: 560px; height: 560px; margin: -280px 0 0 -280px; z-index: 0; pointer-events: none;
+  border-radius: 50%; background: radial-gradient(closest-side, var(--accent-soft), transparent); opacity: 0;
+  transition: opacity .6s; will-change: transform;
+}
+.glow.on { opacity: 1; }
+
+/* ---------------------------------------------------------------- how far down the page you are */
+.progress { display: none; }
+@supports (animation-timeline: scroll()) {
+  .progress {
+    display: block; position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 30; pointer-events: none;
+    background: var(--accent); transform-origin: 0 50%; animation: grow linear both; animation-timeline: scroll(root);
+  }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+/* ---------------------------------------------------------------- hero: the conversion in the headline keeps changing */
+.swap {
+  display: inline-block; white-space: nowrap; color: var(--accent); font-style: normal;
+  padding: 0 .16em; margin: 0 -.04em; border-radius: .16em; background: var(--accent-soft);
+  font-feature-settings: "tnum"; transition: background .3s;
+}
+.swap.busy { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* stickers to grab and throw */
+.stickers { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.sticker {
+  position: absolute; left: var(--x); top: var(--y); pointer-events: auto; touch-action: none; cursor: grab; user-select: none;
+  font: inherit; font-size: .9rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; color: var(--text);
+  padding: 9px 16px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface);
+  box-shadow: 0 10px 26px -14px rgb(0 0 0 / .45), inset 0 -2px 0 rgb(0 0 0 / .06);
+  translate: var(--tx, 0px) var(--ty, 0px); rotate: calc(var(--r) + var(--spin, 0deg));
+  animation: bob 5s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -1.3s);
+}
+.sticker.alt { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.sticker b { font-weight: 800; padding: 0 .3em; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.sticker.held { cursor: grabbing; animation-play-state: paused; box-shadow: 0 24px 40px -16px rgb(0 0 0 / .5); scale: 1.08; z-index: 2; }
+.key-sticker { cursor: pointer; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(1.5deg); } }
+
+/* ---------------------------------------------------------------- the picker, on this page (Ctrl + Shift) */
+.qp { position: fixed; z-index: 50; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+.qp.on { pointer-events: auto; }
+.qp-hub {
+  position: absolute; left: -54px; top: -54px; width: 108px; height: 108px; border-radius: 50%;
+  display: grid; place-content: center; justify-items: center; text-align: center; gap: 1px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow), 0 0 0 10px var(--accent-soft);
+  transform: scale(.2); opacity: 0; transition: transform .5s var(--ease), opacity .2s;
+}
+.qp.on .qp-hub { transform: none; opacity: 1; }
+.qp-hub i { font-size: 1.7rem; color: var(--accent); }
+.qp-hub strong { font-size: .8rem; line-height: 1.1; }
+.qp-hub small { font-size: .7rem; color: var(--dim); }
+.qp-ring {
+  position: absolute; left: -132px; top: -132px; width: 264px; height: 264px; border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--dim) 40%, transparent); transform: scale(.4) rotate(-40deg); opacity: 0;
+  transition: transform .7s var(--ease), opacity .3s;
+}
+.qp.on .qp-ring { transform: none; opacity: 1; }
+.qp-chip {
+  position: absolute; left: -33px; top: -33px; width: 66px; height: 66px; border-radius: 50%; cursor: pointer;
+  display: grid; place-content: center; font: inherit; font-size: .74rem; font-weight: 700; line-height: 1.05; text-align: center;
+  background: var(--surface-2, var(--surface)); color: var(--text); border: 1px solid var(--line);
+  box-shadow: 0 8px 20px -10px rgb(0 0 0 / .55);
+  transform: translate(0, 0) scale(.3); opacity: 0;
+  transition: transform .55s var(--ease), opacity .25s, background .2s, color .2s, box-shadow .2s;
+  transition-delay: calc(var(--i) * 28ms), calc(var(--i) * 28ms), 0s, 0s, 0s;
+}
+.qp.on .qp-chip { transform: translate(var(--cx), var(--cy)) scale(1); opacity: 1; }
+.qp-chip:hover, .qp-chip:focus-visible { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 6px var(--accent-soft), 0 14px 30px -10px var(--accent); }
+.qp-chip.tool { font-size: .66rem; background: var(--surface); }
+.qp-toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 55; display: flex; gap: 12px; align-items: center;
+  padding: 14px 20px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+  translate: -50% 0; transform: translateY(30px) scale(.95); opacity: 0; transition: transform .6s var(--ease), opacity .3s; pointer-events: none;
+}
+.qp-toast.on { transform: none; opacity: 1; }
+.qp-toast i { font-size: 1.8rem; color: var(--accent); }
+.qp-toast strong { display: block; font-size: .96rem; }
+.qp-toast span { color: var(--dim); font-size: .84rem; font-family: var(--mono); }
+
+/* ---------------------------------------------------------------- try it right here */
+.try { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(28px, 5vw, 80px); align-items: center; }
+.try-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; margin-top: 30px; }
+.try-controls .seg { margin-top: 0; }
+.seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); }
+.quality { display: flex; align-items: center; gap: 12px; color: var(--dim); font-weight: 600; font-size: .95rem; transition: opacity .3s; }
+.quality.off { opacity: .35; pointer-events: none; }
+.quality input { accent-color: var(--accent); width: 140px; }
+.quality output { font-family: var(--mono); color: var(--text); min-width: 3ch; }
+.try-stage { position: relative; display: grid; justify-items: center; gap: 18px; }
+
+.drop {
+  position: relative; width: min(100%, 390px); aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; text-align: center;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--surface) 90%, var(--accent) 10%), var(--surface) 65%);
+  border: 1px solid var(--line); box-shadow: var(--shadow); transition: transform .6s var(--ease), box-shadow .4s;
+}
+.drop:hover { transform: scale(1.015); }
+.drop.over { transform: scale(1.05); box-shadow: 0 0 0 14px var(--accent-soft), var(--shadow); }
+.drop-ring { position: absolute; inset: 9%; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--dim) 45%, transparent); animation: spin 50s linear infinite; }
+.drop.over .drop-ring { border-color: var(--accent); animation-duration: 6s; }
+.drop-orbit { position: absolute; inset: 0; animation: spin 40s linear infinite reverse; }
+.drop-orbit b {
+  position: absolute; left: 50%; top: 50%; font-size: .72rem; font-weight: 700; padding: 6px 10px; border-radius: 99px;
+  background: var(--bg); border: 1px solid var(--line); color: var(--dim);
+  left: calc(50% + 41% * sin(var(--a) * 1deg)); top: calc(50% - 41% * cos(var(--a) * 1deg)); translate: -50% -50%;
+  animation: spin 40s linear infinite; /* turns back as the orbit turns, so the labels stay upright */
+}
+.drop-orbit b:nth-child(1) { --a: 0; } .drop-orbit b:nth-child(2) { --a: 60; } .drop-orbit b:nth-child(3) { --a: 120; }
+.drop-orbit b:nth-child(4) { --a: 180; } .drop-orbit b:nth-child(5) { --a: 240; } .drop-orbit b:nth-child(6) { --a: 300; }
+.drop-core { position: relative; display: grid; justify-items: center; gap: 2px; width: 46%; aspect-ratio: 1; place-content: center; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
+.drop-core i { font-size: 2.2rem; color: var(--accent); transition: transform .5s var(--ease); }
+.drop:hover .drop-core i, .drop.over .drop-core i { transform: translateY(5px); }
+.drop-core strong { font-size: 1rem; }
+.drop-core small { color: var(--dim); font-size: .8rem; }
+.drop.busy .drop-core i { animation: spin 1s linear infinite; }
+
+.result {
+  width: min(100%, 480px); display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; align-items: center;
+  padding: 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+  animation: pop .6s var(--ease) both;
+}
+.result[hidden] { display: none; }
+.result img { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+.result-info { display: grid; gap: 4px; justify-items: start; min-width: 0; }
+.result-info strong { font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.result-info span { color: var(--dim); font-family: var(--mono); font-size: .86rem; }
+.result-info .btn { margin-top: 6px; }
+.result-info .smaller { color: var(--accent); font-weight: 700; }
+.try-note { color: var(--dim); font-size: .92rem; text-align: center; max-width: 44ch; min-height: 1.4em; }
+@keyframes pop { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+
+/* ---------------------------------------------------------------- headings arrive word by word */
+.split .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .12em; margin-bottom: -.12em; }
+.split .w > span { display: inline-block; transform: translateY(105%) rotate(4deg); transform-origin: 0 100%; transition: transform 1s var(--ease); transition-delay: calc(var(--i) * 55ms); }
+.split.in .w > span { transform: none; }
+.split em .w > span { padding-right: .06em; }
+
+/* ---------------------------------------------------------------- cards lean toward the pointer */
+.fx .tilt { transform-style: preserve-3d; }
+.fx .cell.in, .fx .slide.tilt {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px));
+  transition: opacity .9s var(--ease), transform .4s var(--ease), box-shadow .3s;
+}
+.fx .cell.in:hover { --ty: -6px; }
+
+/* videos wipe open when they come into view */
+.fx .cell video, .fx .slide video, .fx .demo video { clip-path: inset(0 0 100% 0 round 12px); transition: clip-path 1.1s var(--ease) .15s; }
+.fx .cell video.shown, .fx .slide video.shown, .fx .demo video.shown { clip-path: inset(0 0 0 0 round 12px); }
+.fx .demo video { clip-path: inset(0 100% 0 0); }
+.fx .demo video.shown { clip-path: inset(0 0 0 0); }
+
+/* ---------------------------------------------------------------- the name, huge, filling with colour */
+.giant { position: relative; z-index: 1; overflow: hidden; padding: 40px 0 0; text-align: center; line-height: .8; user-select: none; }
+.giant span {
+  display: inline-block; font-size: clamp(4.5rem, 21vw, 22rem); font-weight: 800; letter-spacing: -.06em; padding: 0 .04em .06em;
+  color: transparent; -webkit-text-stroke: 1.5px color-mix(in srgb, var(--text) 22%, transparent);
+  background: linear-gradient(100deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--text))) no-repeat 0 0 / var(--fill, 0%) 100%;
+  -webkit-background-clip: text; background-clip: text; transition: background-size 1.8s var(--ease);
+}
+.giant.in span { --fill: 100%; }
+@supports (animation-timeline: view()) {
+  .giant span { transition: none; animation: fill linear both; animation-timeline: view(); animation-range: entry 10% cover 55%; }
+  @keyframes fill { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+}
+
+/* ---------------------------------------------------------------- phones and tablets */
+@media (max-width: 860px) {
+  .try { grid-template-columns: 1fr; }
+  .stickers { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0 0; }
+  .sticker { position: relative; left: auto; top: auto; font-size: .82rem; }
+}
+@media (max-width: 560px) {
+  .drop-orbit b { font-size: .64rem; padding: 4px 8px; }
+  .result { grid-template-columns: 88px minmax(0, 1fr); }
+  .result img { width: 88px; height: 88px; }
+}
+@media (pointer: coarse) { .glow { display: none; } }
+
+/* ---------------------------------------------------------------- less motion: everything simply there */
+@media (prefers-reduced-motion: reduce) {
+  .split .w > span { transform: none; }
+  .fx .cell video, .fx .slide video, .fx .demo video { clip-path: none; }
+  .giant span { --fill: 100%; animation: none; }
+  .glow, .progress { display: none; }
+}
