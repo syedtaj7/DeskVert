@@ -38,6 +38,7 @@ class Batch:
     jobs: list[dict]
     skipped_same: int = 0
     results: list[dict] = field(default_factory=list)
+    action: dict = field(default_factory=dict)  # what was chosen (key, target, label, options), and "auto"
 
 
 def build_jobs(offer: Offer, options: dict, settings: Settings, dest: str = "") -> list[dict]:
@@ -117,9 +118,9 @@ class JobManager(QObject):
     def busy(self) -> bool:
         return self._busy.is_set() or not self._queue.empty()
 
-    def submit(self, offer: Offer, options: dict, dest: str = "") -> None:
+    def submit(self, offer: Offer, options: dict, dest: str = "", action: dict | None = None) -> None:
         jobs = build_jobs(offer, options, self.settings, dest)
-        self._queue.put(Batch(offer.target.label, jobs, offer.skipped_same))
+        self._queue.put(Batch(offer.target.label, jobs, offer.skipped_same, action=dict(action or {})))
 
     def cancel(self) -> None:
         self._cancel.set()

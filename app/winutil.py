@@ -310,61 +310,6 @@ def set_autostart(enabled: bool) -> None:
                 pass
 
 
-# ---------------------------------------------------------------- moving over from the old name
-OLD_NAME = "Tapshift"  # Deskvert's name until 1.14
-
-
-def _delete_tree(root, path: str) -> bool:
-    """Delete a registry key and everything under it (False if it wasn't there)."""
-    import winreg
-
-    try:
-        with winreg.OpenKey(root, path, 0, winreg.KEY_READ | winreg.KEY_WRITE) as k:
-            while True:
-                try:
-                    sub = winreg.EnumKey(k, 0)
-                except OSError:
-                    break
-                _delete_tree(root, path + "\\" + sub)
-        winreg.DeleteKey(root, path)
-        return True
-    except OSError:
-        return False
-
-
-def move_from_old_name() -> dict:
-    """Tapshift became Deskvert: take over its start-up entry, and remove its right-click and Send to
-    entries (Deskvert adds its own). Returns what was found, e.g. {"autostart": True}."""
-    import winreg
-
-    found = {"autostart": False, "menu": False, "sendto": False}
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_READ | winreg.KEY_SET_VALUE) as k:
-            try:
-                winreg.QueryValueEx(k, OLD_NAME)
-                found["autostart"] = True
-                winreg.DeleteValue(k, OLD_NAME)
-            except OSError:
-                pass
-    except OSError:
-        pass
-    if found["autostart"]:
-        try:
-            set_autostart(True)  # it started with Windows before the rename: it still does
-        except OSError:
-            pass
-    for key in (r"Software\Classes\*\shell" + "\\" + OLD_NAME, r"Software\Classes\Directory\shell" + "\\" + OLD_NAME):
-        found["menu"] |= _delete_tree(winreg.HKEY_CURRENT_USER, key)
-    old_link = sendto_link().with_name(OLD_NAME + ".lnk")
-    if old_link.exists():
-        try:
-            old_link.unlink()
-            found["sendto"] = True
-        except OSError:
-            pass
-    return found
-
-
 def is_fullscreen(hwnd: int) -> bool:
     """A window covering its whole screen (a game, a video player, a slideshow): Deskvert stays out of its way."""
     try:
@@ -376,6 +321,9 @@ def is_fullscreen(hwnd: int) -> bool:
             return False
         if win32gui.GetClassName(hwnd) in ("Progman", "WorkerW", "Shell_TrayWnd"):  # the desktop and taskbar
             return False
+        style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
+        if style & win32con.WS_CAPTION == win32con.WS_CAPTION:
+            return False  # a normal window with a title bar, maximized (or not): never "full screen"
         left, top, right, bottom = win32gui.GetWindowRect(hwnd)
         mon = win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST))
         m_left, m_top, m_right, m_bottom = mon["Monitor"]

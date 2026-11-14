@@ -468,10 +468,7 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
 
 
 _COMING = {
-    "Kindle book": {".azw", ".azw3", ".kfx"},
-    "WOFF2 font": {".woff2"},
-    "AutoCAD DWG drawing": {".dwg"},
-    "subtitle file": {".scc"},
+    "Kindle KFX book": {".kfx"},
 }
 _NEVER = {
     "program": {".exe", ".msi", ".dll", ".bat", ".cmd", ".ps1", ".sys", ".com", ".scr"},
@@ -490,6 +487,9 @@ def explain_unsupported(paths: list[Path]) -> tuple[str, str]:
     if dk and dk[0] != "pdf" and not office_installed(dk[0]):
         app = {"word": "Word", "excel": "Excel", "powerpoint": "PowerPoint"}[dk[0]]
         return title, f"Converting {p.suffix.upper().lstrip('.')} files needs Microsoft {app}, which isn't installed."
+    if ext == ".dwg":
+        return title, (f"Converting DWG drawings needs the free ODA File Converter from opendesign.com. Install it "
+                       "and Deskvert uses it by itself; nothing else to set up.")
     if ext in MEDIA_EXTS:
         return title, (f"{name} {'are audio or video files' if many else 'is an audio or video file'} Windows "
                        "can't read. Deskvert converts sound with Windows' own converter; re-encoding video isn't "

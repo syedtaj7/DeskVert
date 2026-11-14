@@ -26,6 +26,8 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
 | PyYAML / libyaml | Reading and writing YAML | MIT | https://github.com/yaml/pyyaml |
 | vtracer | Tracing pictures into SVG drawings | MIT | https://github.com/visioncortex/vtracer |
+| fontTools | WOFF2 web fonts | MIT | https://github.com/fonttools/fonttools |
+| Brotli | WOFF2 compression | MIT | https://github.com/google/brotli |
 | pywinrt (winrt-runtime, winrt-Windows.*) | Windows text recognition (OCR) | MIT | https://github.com/pywinrt/pywinrt |
 | PyInstaller bootloader | Starting Deskvert.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
 

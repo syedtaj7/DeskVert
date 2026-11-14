@@ -45,6 +45,22 @@ jobs:
         shell: pwsh
         run: tools/build_release.ps1 -Stage app
 
+      # The built app runs its own conversions (pictures, PDFs, documents, sound, video stills, archives...) the
+      # way people will run them: a build that fails any of them is never packaged or published.
+      - name: Self-test the built app
+        shell: pwsh
+        run: |
+          # the usual Windows temp folder: Windows' sound converter can't open files in the runner's own temp folder
+          $out = Join-Path $env:TEMP "deskvert-selftest"
+          $p = Start-Process -FilePath "dist/Deskvert/Deskvert.exe" -ArgumentList "--selftest", "`"$out`"" -Wait -PassThru
+          $report = Join-Path $out "selftest.json"
+          if (-not (Test-Path $report)) { throw "The built app didn't write a self-test report (exit code $($p.ExitCode))" }
+          $r = Get-Content $report -Raw | ConvertFrom-Json
+          foreach ($c in $r.results) { if (-not $c.ok) { Write-Host "FAILED  $($c.case): $($c.error)" } }
+          $passed = @($r.results | Where-Object { $_.ok }).Count
+          Write-Host "Self-test: $passed of $($r.results.Count) passed in $($r.seconds) s (frozen: $($r.frozen))"
+          if (-not $r.ok -or $p.ExitCode -ne 0) { throw "The built app failed its self-test" }
+
       # ---- sign Deskvert.exe, so the zip and the installer carry the signed app
       - name: Upload Deskvert.exe for signing
         if: env.SIGN == 'true'

@@ -54,4 +54,10 @@
   <url><loc>https://deskvert-website.vercel.app/convert/shapefile-to-geojson</loc></url>
   <url><loc>https://deskvert-website.vercel.app/convert/srt-to-vtt</loc></url>
   <url><loc>https://deskvert-website.vercel.app/convert/ttf-to-woff</loc></url>
+  <url><loc>https://deskvert-website.vercel.app/convert/ttf-to-woff2</loc></url>
+  <url><loc>https://deskvert-website.vercel.app/convert/woff2-to-ttf</loc></url>
+  <url><loc>https://deskvert-website.vercel.app/convert/scc-to-srt</loc></url>
+  <url><loc>https://deskvert-website.vercel.app/convert/azw3-to-epub</loc></url>
+  <url><loc>https://deskvert-website.vercel.app/convert/azw3-to-pdf</loc></url>
+  <url><loc>https://deskvert-website.vercel.app/convert/mov-to-gif</loc></url>
 </urlset>

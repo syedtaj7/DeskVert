@@ -126,29 +126,6 @@ def test_send_to_shortcut_is_made_and_removed(tmp_path):
     assert not link.exists()
 
 
-def test_settings_carry_over_from_the_old_name(tmp_path, monkeypatch):
-    """Tapshift became Deskvert (1.14): its settings move over once, the first time Deskvert starts."""
-    from app import paths
-
-    monkeypatch.setenv("APPDATA", str(tmp_path))
-    (tmp_path / "Tapshift").mkdir()
-    (tmp_path / "Tapshift" / "settings.json").write_text('{"theme": "dark"}', encoding="utf-8")
-    folder = paths.config_dir()
-    assert folder == tmp_path / "Deskvert"
-    assert (folder / "settings.json").read_text(encoding="utf-8") == '{"theme": "dark"}'
-    (folder / "settings.json").write_text('{"theme": "light"}', encoding="utf-8")
-    assert (paths.config_dir() / "settings.json").read_text(encoding="utf-8") == '{"theme": "light"}'  # once only
-
-
-def test_web_clips_from_before_the_rename_are_still_clips(tmp_path):
-    from app import toolbox
-
-    old = tmp_path / "Clip.html"
-    old.write_bytes(b'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content="Tapshift web clip">'
-                    b'</head><body><p>hello</p></body></html>')
-    assert toolbox.is_web_clip(old)
-
-
 def test_an_installed_copy_is_found_from_windows_record(tmp_path, monkeypatch):
     """No unins000.exe next to Deskvert.exe, but Windows' uninstall record says it was installed here."""
     import sys
@@ -188,6 +165,12 @@ def test_full_screen_apps_are_left_alone(monkeypatch):
     from app import winutil
 
     rects = {1: (0, 0, 1920, 1080), 2: (100, 100, 900, 700), 3: (-8, -8, 1928, 1088)}  # game, window, maximized+
+    import win32con
+
+    styles = {1: win32con.WS_POPUP, 2: win32con.WS_OVERLAPPEDWINDOW, 3: win32con.WS_POPUP,
+              4: win32con.WS_OVERLAPPEDWINDOW | win32con.WS_MAXIMIZE}  # 4: a maximized app, taskbar hidden
+    rects[4] = (-8, -8, 1928, 1088)
+    monkeypatch.setattr(win32gui, "GetWindowLong", lambda h, i: styles[h])
     monkeypatch.setattr(win32gui, "IsWindowVisible", lambda h: True)
     monkeypatch.setattr(win32gui, "GetClassName", lambda h: "VALORANTUnrealWindow")
     monkeypatch.setattr(win32gui, "GetWindowRect", lambda h: rects[h])
@@ -195,5 +178,6 @@ def test_full_screen_apps_are_left_alone(monkeypatch):
     monkeypatch.setattr(win32api, "GetMonitorInfo", lambda m: {"Monitor": (0, 0, 1920, 1080), "Work": (0, 0, 1920, 1040)})
     assert winutil.is_fullscreen(1) and not winutil.is_fullscreen(2)
     assert winutil.is_fullscreen(3)  # covers the whole screen too
+    assert not winutil.is_fullscreen(4)  # has a title bar: a normal window, even with an auto-hiding taskbar
     monkeypatch.setattr(win32gui, "GetClassName", lambda h: "Progman")
     assert not winutil.is_fullscreen(1)  # the desktop itself is never "a full-screen app"

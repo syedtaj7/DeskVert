@@ -125,3 +125,70 @@ def test_an_update_is_downloaded_in_the_app_whether_installed_or_not(qapp, monke
     assert opened == [update_ui.WHATS_NEW]  # the other button is What's new, not a download page
     panel._on_checked(updater.Release("99.0.0", "https://example.org/release", [], None, None))
     assert panel.primary.text() == "Open the release page"  # only when a release has no installer
+
+
+def test_always_do_this(qapp, tmp_path):
+    """After a conversion the card offers "Always do this for HEIC files"; then HEIC files skip the picker,
+    and the card offers something else for them."""
+    from types import SimpleNamespace
+
+    from app.jobs import Batch
+    from app.main import Controller
+    from app.settings import Settings
+    from app.ui.panels import ProgressPanel
+
+    a, b = tmp_path / "a.heic", tmp_path / "b.heic"
+    for f in (a, b):
+        f.write_bytes(b"x")
+    panel = ProgressPanel()
+    submitted, saved = [], []
+    settings = Settings()
+    settings.save = lambda: saved.append(dict(settings.always))
+    fake = SimpleNamespace(settings=settings, panel=panel, _one_kind=Controller._one_kind,
+                           _offer_for=lambda files, action: SimpleNamespace(sources=files),
+                           _submit=lambda offer, options, key, auto=False: submitted.append((key, options, auto)))
+    fake._make_always = lambda ext, action: Controller._make_always(fake, ext, action)
+    fake._choose_other = lambda files: None
+    action = {"key": "image.jpg", "target": "image.jpg", "label": "JPG", "options": {"quality": 90}, "auto": False,
+              "files": [str(a)]}
+    ok = [{"ok": True, "output": str(tmp_path / "a.jpg"), "sources": [str(a)]}]
+
+    assert not Controller._run_always(fake, [a, b])  # nothing chosen yet: the picker opens
+    Controller._offer_always(fake, Batch("JPG", [], action=action), ok)
+    assert panel.extra_btn.text() == "Always do this for HEIC files"
+    panel._extra()
+    assert settings.always[".heic"]["target"] == "image.jpg" and saved and "right away" in panel.extra_btn.text()
+
+    assert Controller._run_always(fake, [a, b])  # now: straight away, with the same options
+    assert submitted == [("image.jpg", {"quality": 90}, True)]
+    Controller._offer_always(fake, Batch("JPG", [], action={**action, "auto": True}), ok)
+    assert panel.extra_btn.text().startswith("Something else for these HEIC files")
+    assert not Controller._run_always(fake, [a, tmp_path / "c.png"])  # mixed kinds: the picker as usual
+
+
+def test_history_is_kept_and_shown(qapp, tmp_path, monkeypatch):
+    import time
+
+    from app import history
+    from app.ui.history import HistoryWindow
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    src, out = tmp_path / "beach.heic", tmp_path / "beach.jpg"
+    src.write_bytes(b"x")
+    out.write_bytes(b"y")
+    history.add("JPG", [str(src)], [str(out)])
+    history.add("PDF", [str(tmp_path / "gone.docx")], [str(tmp_path / "gone.pdf")], failed=1)
+    items = history.load()
+    assert [e["label"] for e in items] == ["PDF", "JPG"]  # newest first
+    assert history.describe(items[1]) == "beach.heic → beach.jpg"
+    assert history.when(time.time()).startswith("Today ")
+    w = HistoryWindow()
+    again = []
+    w.convert_again.connect(again.append)
+    from PySide6.QtWidgets import QLabel
+
+    texts = " ".join(lbl.text() for lbl in w.findChildren(QLabel))
+    assert "beach.heic → beach.jpg" in texts and "moved or deleted since" in texts
+    history.clear()
+    w.refresh()
+    assert history.load() == [] and not w.clear_btn.isEnabled()

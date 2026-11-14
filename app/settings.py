@@ -1,4 +1,4 @@
-"""User settings stored as JSON in %APPDATA%\\FileFormatter\\settings.json."""
+"""User settings stored as JSON in %APPDATA%\\Deskvert\\settings.json."""
 
 from __future__ import annotations
 
@@ -51,6 +51,7 @@ class Settings:
     favourites: list = field(default_factory=list)  # action keys pinned to the inner ring
     recent_actions: list = field(default_factory=list)  # most recent first
     presets: list = field(default_factory=list)  # {id, name, kind, key, options, summary}
+    always: dict = field(default_factory=dict)  # ".heic": {key, target, label, options}: done without the picker
 
     @property
     def picker_scale(self) -> float:

@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.16.0
+
+- **Full-screen apps, more precisely:** only windows without a title bar (games, full-screen video) count as full
+  screen, so a maximized app keeps working with Deskvert even when the taskbar hides itself.
+- **Every release tests itself:** the built app runs its own conversions before a release is published.
+- **Always do this:** after converting, the result card offers "Always do this for HEIC files". From then on,
+  tapping Ctrl + Shift on HEIC files converts them straight away with the same choices, no picker; the card then
+  offers something else for them. Settings → General lists these and removes them.
+- **History:** the tray menu's **History…** lists your recent conversions, newest first, each with Open, Show in
+  folder and **Convert again** (the picker opens for the same originals). It's kept on this PC only and can be
+  cleared at any time.
+- **SCC captions:** TV-style closed caption files (.scc) become SRT, WebVTT, ASS, SAMI, TTML, LRC or MicroDVD
+  subtitles, with their timing (pop-on, roll-up and paint-on captions, special and accented characters).
+- **WOFF2 fonts:** TTF, OTF and WOFF fonts become WOFF2, the web's smallest font format, and WOFF2 fonts become
+  installable TTF / OTF again. Every glyph is compared with the original.
+- **AutoCAD DWG drawings:** with the free ODA File Converter installed, DWG drawings become PDF, SVG, PNG or DXF.
+  Without it, Deskvert says where to get it.
+- **Kindle books:** AZW3 and AZW books that aren't DRM-locked become PDF, EPUB or plain text, with their
+  pictures, without Kindle software. Books locked with Amazon's DRM get a plain message instead.
+
+### Fixes
+- **Pictures to PDF after updating** (issue #35): a library folder left behind by an older version made pictures
+  to PDF fail. Setup now clears out the old program files before installing, and Deskvert always uses its own PDF
+  writer for pictures.
+- **Saving web pages** (issue #33): when Edge quits without saving a page, Deskvert tries again with a fresh
+  profile and Edge's other mode, then with Chrome if it's installed, and notes what the browser said in the log.
+
 ## 1.15.2
 
 - **Sound from videos whose sound ends early:** taking the sound from a video no longer fails with "the new file

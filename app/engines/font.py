@@ -1,4 +1,4 @@
-"""Fonts: TTF / OTF <-> WOFF, and TTF / OTF -> EOT.
+"""Fonts: TTF / OTF <-> WOFF and WOFF2, and TTF / OTF -> EOT.
 
 - woff: the font's tables, each compressed (WOFF 1.0), for web pages.
 - sfnt: a WOFF or EOT back to an installable desktop font (.ttf, or .otf for
@@ -7,7 +7,7 @@
 
 The font's tables are copied byte for byte; only the container changes. The
 new file is unpacked again and every table compared with the original.
-WOFF2 needs Brotli compression, which Deskvert doesn't include.
+WOFF2 (Brotli, through fontTools) repacks the outlines, so there every glyph's points are compared instead.
 """
 
 from __future__ import annotations
@@ -42,8 +42,6 @@ def _sfnt_tables(data: bytes) -> tuple[bytes, dict[bytes, bytes]]:
 
 def _woff_tables(data: bytes) -> tuple[bytes, dict[bytes, bytes]]:
     if data[:4] != b"wOFF":
-        if data[:4] == b"wOF2":
-            raise ConversionError("WOFF2 fonts need Brotli compression, which Deskvert doesn't include.")
         raise ConversionError("This isn't a WOFF font.")
     flavor, _ln, n = struct.unpack(">4sIH", data[4:14])
     tables = {}
@@ -74,10 +72,62 @@ def load(src: Path) -> tuple[bytes, dict[bytes, bytes]]:
     if ext == ".woff":
         return _woff_tables(data)
     if ext == ".woff2":
-        raise ConversionError("WOFF2 fonts need Brotli compression, which Deskvert doesn't include.")
+        return _sfnt_tables(woff2_to_sfnt(data))
     if ext == ".eot":
         return _sfnt_tables(_eot_font_data(data))
     return _sfnt_tables(data)
+
+
+def woff2_to_sfnt(data: bytes) -> bytes:
+    """A WOFF2 font unpacked to a plain TrueType / OpenType file (fontTools, Brotli)."""
+    import io
+
+    from fontTools.ttLib import woff2
+
+    if data[:4] != b"wOF2":
+        raise ConversionError("This isn't a WOFF2 font.")
+    out = io.BytesIO()
+    try:
+        woff2.decompress(io.BytesIO(data), out)
+    except Exception as e:  # noqa: BLE001
+        raise ConversionError(f"This WOFF2 font is damaged ({e}).") from e
+    return out.getvalue()
+
+
+def build_woff2(flavor: bytes, tables: dict[bytes, bytes]) -> bytes:
+    """WOFF2: the font's tables, Brotli-compressed (outlines rearranged the way WOFF2 packs them best)."""
+    import io
+
+    from fontTools.ttLib import woff2
+
+    out = io.BytesIO()
+    woff2.compress(io.BytesIO(build_sfnt(flavor, tables)), out)
+    return out.getvalue()
+
+
+def _same_outlines(a: bytes, b: bytes) -> bool:
+    """Two TrueType fonts draw every glyph with the same points (WOFF2 repacks the glyf table, so the bytes differ)."""
+    import io
+
+    from fontTools.ttLib import TTFont
+
+    fa, fb = TTFont(io.BytesIO(a), lazy=True), TTFont(io.BytesIO(b), lazy=True)
+    if fa.getGlyphOrder() != fb.getGlyphOrder():
+        return False
+    ga, gb = fa["glyf"], fb["glyf"]
+    for name in fa.getGlyphOrder():
+        x, y = ga[name], gb[name]
+        if x.isComposite() != y.isComposite():
+            return False
+        if x.isComposite():
+            if [(c.glyphName, c.x, c.y) for c in x.components] != [(c.glyphName, c.x, c.y) for c in y.components]:
+                return False
+            continue
+        cx, ex, flx = x.getCoordinates(ga)
+        cy, ey, fly = y.getCoordinates(gb)
+        if list(cx) != list(cy) or list(ex) != list(ey) or [f & 1 for f in flx] != [f & 1 for f in fly]:
+            return False
+    return True
 
 
 # ---------------------------------------------------------------- writing
@@ -179,6 +229,23 @@ def build_eot(flavor: bytes, tables: dict[bytes, bytes]) -> bytes:
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     flavor, tables = load(sources[0])
+    if fmt == "woff2":
+        data = build_woff2(flavor, tables)
+        back_flavor, back = _sfnt_tables(woff2_to_sfnt(data))
+        Path(long_path(out)).write_bytes(data)
+        if Path(long_path(out)).read_bytes() != data or back_flavor != flavor or set(back) != set(tables):
+            raise VerificationError("the font's tables don't match")
+        repacked = {b"glyf", b"loca", b"head", b"hmtx", b"DSIG"}  # WOFF2 rebuilds these (DSIG: signatures drop)
+        for tag, t in tables.items():
+            if tag not in repacked and back[tag] != t:
+                raise VerificationError(f"the {tag.decode('latin-1')} table changed")
+        if b"glyf" in tables and not _same_outlines(build_sfnt(flavor, tables), build_sfnt(back_flavor, back)):
+            raise VerificationError("a glyph's outline changed")
+        kind = "PostScript (CFF)" if flavor == b"OTTO" else "TrueType"
+        family = _name(tables, 4) or sources[0].stem
+        size = len(Path(long_path(sources[0])).read_bytes())
+        return [f"Checked: {family}, every glyph and table the same ({kind} outlines).",
+                f"{len(data) * 100 // max(1, size)}% of the original size."]
     if fmt == "woff":
         data = build_woff(flavor, tables)
         back_flavor, back = _woff_tables(data)
@@ -210,7 +277,7 @@ def desktop_ext(src: Path) -> str:
     try:
         with open(long_path(src), "rb") as f:
             head = f.read(8)
-        if head[:4] == b"wOFF":
+        if head[:4] in (b"wOFF", b"wOF2"):
             return ".otf" if head[4:8] == b"OTTO" else ".ttf"
         if src.suffix.lower() == ".eot":
             data = Path(long_path(src)).read_bytes()

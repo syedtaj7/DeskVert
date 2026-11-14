@@ -546,3 +546,233 @@ def test_shapefile_in_an_unknown_projection_is_refused(tmp_path):
     shp = _shapefile(tmp_path, [(1, [[(700000.0, 6600000.0)]])], [{"NAME": "Paris", "POP": 2}], prj=lambert)
     res = convert([shp], "GeoJSON", ok=False)
     assert "Lambert_93" in res["error"]
+
+
+# ---------------------------------------------------------------- SCC closed captions (TV captions) into subtitles
+
+def _scc_word(b1: int, b2: int) -> str:
+    odd = lambda b: b | (0x80 if bin(b).count("1") % 2 == 0 else 0)  # noqa: E731 - each byte has odd parity
+    return f"{odd(b1):02x}{odd(b2):02x}"
+
+
+def _scc_text(s: str) -> list[str]:
+    s = s + ("\0" if len(s) % 2 else "")
+    return [_scc_word(ord(s[i]), ord(s[i + 1]) if s[i + 1] != "\0" else 0) for i in range(0, len(s), 2)]
+
+
+def _scc(path: Path, body: list[tuple[str, list[str]]]) -> Path:
+    lines = ["Scenarist_SCC V1.0", ""]
+    for tc, words in body:
+        lines += [f"{tc}\t{' '.join(words)}", ""]
+    path.write_text("\n".join(lines), encoding="ascii")
+    return path
+
+
+def test_scc_pop_on_captions_to_srt(tmp_path):
+    RCL, ENM, EOC, EDM, PAC15 = (0x14, 0x20), (0x14, 0x2E), (0x14, 0x2F), (0x14, 0x2C), (0x14, 0x70)
+    twice = lambda c: [_scc_word(*c), _scc_word(*c)]  # noqa: E731 - commands are sent twice
+    src = _scc(tmp_path / "show.scc", [
+        ("00:00:01;00", twice(RCL) + twice(ENM) + twice(PAC15) + _scc_text("Hello there.") + twice(EOC)),
+        ("00:00:04;00", twice(RCL) + twice(ENM) + twice(PAC15) + [_scc_word(0x11, 0x37)] + _scc_text(" Music ")
+         + [_scc_word(0x11, 0x37)] + twice(EOC)),
+        ("00:00:06;00", _scc_text("Cafe") + [_scc_word(0x12, 0x21)] + twice(EDM)),  # é replaces e, then the screen clears
+    ])
+    from app.engines.subtitle import parse
+
+    out = convert([src], "SRT")["path"]
+    cues = parse(out.read_text(encoding="utf-8"), "srt")
+    assert [c[2] for c in cues] == ["Hello there.", "♪ Music ♪"]
+    assert abs(cues[0][0] - 1450) < 120 and abs(cues[0][1] - cues[1][0]) <= 1  # shown on End Of Caption, ~1.45 s
+    assert abs(cues[1][1] - 6200) < 200  # until the screen is erased
+
+
+def test_scc_roll_up_lines(tmp_path):
+    RU2, CR = (0x14, 0x25), (0x14, 0x2D)
+    twice = lambda c: [_scc_word(*c), _scc_word(*c)]  # noqa: E731
+    src = _scc(tmp_path / "news.scc", [
+        ("00:00:10:00", twice(RU2) + _scc_text("FIRST LINE") + twice(CR)),
+        ("00:00:12:00", _scc_text("SECOND LINE") + twice(CR)),
+    ])
+    out = convert([src], "WebVTT")["path"]
+    text = out.read_text(encoding="utf-8")
+    assert "FIRST LINE" in text and "SECOND LINE" in text
+
+
+def test_not_an_scc_file(tmp_path):
+    bad = tmp_path / "x.scc"
+    bad.write_text("hello", encoding="ascii")
+    assert "Scenarist" in convert([bad], "SRT", ok=False)["error"]
+
+
+# ---------------------------------------------------------------- WOFF2 web fonts
+
+@pytest.fixture
+def arial(tmp_path):
+    import os
+    import shutil
+
+    src = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
+    if not src.exists():
+        pytest.skip("Arial isn't on this PC")
+    dst = tmp_path / "Arial.ttf"
+    shutil.copyfile(src, dst)
+    return dst
+
+
+def test_woff2_round_trip(arial, tmp_path):
+    res = convert([arial], "WOFF2")
+    woff2 = res["path"]
+    assert woff2.read_bytes()[:4] == b"wOF2" and woff2.stat().st_size < arial.stat().st_size * 0.7
+    assert "every glyph" in res["notes"][0]
+    back = convert([woff2], "TTF / OTF")["path"]
+    from fontTools.ttLib import TTFont
+
+    a, b = TTFont(str(arial)), TTFont(str(back))
+    assert a.getGlyphOrder() == b.getGlyphOrder() and a.getBestCmap() == b.getBestCmap()
+
+
+def test_woff_to_woff2(arial):
+    woff = convert([arial], "WOFF")["path"]
+    assert convert([woff], "WOFF2")["path"].read_bytes()[:4] == b"wOF2"
+
+
+# ---------------------------------------------------------------- DWG drawings (through the ODA File Converter)
+
+PLAN_DXF = "\n".join(["0", "SECTION", "2", "ENTITIES", "0", "LINE", "8", "0", "10", "0", "20", "0", "11", "50", "21",
+                      "0", "0", "CIRCLE", "8", "0", "10", "25", "20", "10", "40", "8", "0", "ENDSEC", "0", "EOF"]) + "\n"
+
+
+@pytest.fixture
+def fake_oda(tmp_path, monkeypatch):
+    """A stand-in for ODAFileConverter.exe with the same command line: in folder, out folder, version, type..."""
+    import sys
+
+    tool = tmp_path / "oda"
+    tool.mkdir()
+    (tool / "plan.dxf").write_text(PLAN_DXF, encoding="utf-8")
+    (tool / "fake_oda.py").write_text(
+        "import sys, pathlib, shutil\n"
+        "src, dst = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n"
+        "assert sys.argv[3:7] == ['ACAD2018', 'DXF', '0', '1'], sys.argv\n"
+        "for f in src.glob('*.dwg'):\n"
+        "    if f.read_bytes().startswith(b'AC10'):\n"
+        "        shutil.copyfile(pathlib.Path(__file__).with_name('plan.dxf'), dst / (f.stem + '.dxf'))\n",
+        encoding="utf-8")
+    cmd = tool / "ODAFileConverter.cmd"
+    cmd.write_text(f'@echo off\r\n"{sys.executable}" "%~dp0fake_oda.py" %*\r\n', encoding="ascii")
+    monkeypatch.setenv("DESKVERT_ODA", str(cmd))
+    return cmd
+
+
+def test_dwg_to_pdf_and_dxf(tmp_path, fake_oda):
+    dwg = tmp_path / "Plan.dwg"
+    dwg.write_bytes(b"AC1032" + b"\0" * 64)
+    res = convert([dwg], "PDF")
+    assert res["path"].suffix == ".pdf" and any("ODA File Converter" in n for n in res["notes"])
+    dxf = convert([dwg], "DXF")["path"]
+    assert dxf.name == "Plan.dxf" and "CIRCLE" in dxf.read_text(encoding="utf-8")
+
+
+def test_dwg_the_converter_cant_read(tmp_path, fake_oda):
+    bad = tmp_path / "Broken.dwg"
+    bad.write_bytes(b"not a drawing")
+    assert "couldn't read this DWG" in convert([bad], "PDF", ok=False)["error"]
+
+
+def test_dwg_without_the_converter_says_what_to_install(tmp_path, monkeypatch):
+    from app.catalog import explain_unsupported
+
+    monkeypatch.setenv("DESKVERT_ODA", "")
+    monkeypatch.setenv("ProgramFiles", str(tmp_path))
+    monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    dwg = tmp_path / "Plan.dwg"
+    dwg.write_bytes(b"AC1032")
+    offers, _ = offers_for([dwg], Settings())
+    assert not [o for o in offers if o.target.engine == "cad"]
+    assert "ODA File Converter" in explain_unsupported([dwg])[1]
+
+
+# ---------------------------------------------------------------- Kindle books (AZW3 / KF8)
+
+def _palmdoc(text: bytes) -> bytes:
+    """PalmDOC as Kindle tools write it: plain bytes, odd bytes escaped in short literal runs."""
+    out = bytearray()
+    for b in text:
+        out += bytes([b]) if (b == 0 or 0x09 <= b <= 0x7F) else bytes([1, b])
+    return bytes(out)
+
+
+def _azw3(path: Path, html: str, picture: bytes | None = None, drm: bool = False) -> Path:
+    import struct
+
+    data = html.encode("utf-8")
+    chunks = [data[i:i + 4096] for i in range(0, len(data), 4096)]
+    text_recs = [_palmdoc(c) + b"\x00" + b"\x99\x82" for c in chunks]  # + multibyte byte + a 2-byte trailing entry
+    title = b"A Small Book"
+    mobi = bytearray(0xE8)
+    mobi[0:4] = b"MOBI"
+    struct.pack_into(">III", mobi, 4, 0xE8, 2, 65001)
+    struct.pack_into(">I", mobi, 20, 8)  # KF8
+    rec0 = bytearray(struct.pack(">HHIHHHH", 2, 0, len(data), len(text_recs), 4096, 2 if drm else 0, 0)) + mobi
+    name_off = len(rec0)
+    rec0 += title + b"\0\0"
+    struct.pack_into(">II", rec0, 84, name_off, len(title))
+    struct.pack_into(">I", rec0, 108, 1 + len(text_recs) if picture else 0xFFFFFFFF)
+    struct.pack_into(">H", rec0, 242, 0b11)  # trailing entries: multibyte + one more
+    records = [bytes(rec0)] + text_recs + ([picture] if picture else [])
+    head = bytearray(78)
+    head[0:12] = b"A_Small_Book"
+    head[60:68] = b"BOOKMOBI"
+    struct.pack_into(">H", head, 76, len(records))
+    offset = 78 + 8 * len(records) + 2
+    table = b""
+    for i, r in enumerate(records):
+        table += struct.pack(">II", offset, i)
+        offset += len(r)
+    path.write_bytes(bytes(head) + table + b"\0\0" + b"".join(records))
+    return path
+
+
+def test_palmdoc_back_references():
+    from app.engines.kindle import palmdoc_decompress
+
+    assert palmdoc_decompress(b"abc\x80\x18") == b"abcabc"  # copy 3 bytes from 3 back
+    assert palmdoc_decompress(b"a\xe2") == b"a b"  # a space and a letter in one byte
+
+
+def test_kindle_book_to_epub_pdf_and_text(tmp_path):
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 40), "teal").save(buf, "PNG")
+    chapters = "".join(f"<h1>Chapter {n}</h1><p>{'The quick brown fox jumps over the lazy dog. ' * 60}</p>"
+                       "<mbp:pagebreak/>" for n in (1, 2, 3))
+    html = ('<html><head><title>x</title></head><body>' + chapters +
+            '<p><img src="kindle:embed:0001?mime=image/png"/></p><p>Café ending ✓</p></body></html>')
+    book = _azw3(tmp_path / "A Small Book.azw3", html, buf.getvalue())
+    epub = convert([book], "EPUB")["path"]
+    with zipfile.ZipFile(epub) as z:
+        names = z.namelist()
+        text = "".join(z.read(n).decode("utf-8", "ignore") for n in names if n.endswith(".xhtml"))
+    assert "Chapter 3" in text and "Café ending ✓" in text and any(n.endswith(".png") for n in names)
+    assert convert([book], "PDF")["path"].stat().st_size > 1000
+    txt = convert([book], "TXT")["path"].read_text(encoding="utf-8")
+    assert txt.count("lazy dog") == 180 and "Chapter 2" in txt
+
+
+def test_locked_kindle_book_says_so(tmp_path):
+    book = _azw3(tmp_path / "Bought.azw3", "<p>secret</p>", drm=True)
+    assert "DRM" in convert([book], "PDF", ok=False)["error"]
+
+
+def test_pictures_to_pdf_ignore_a_leftover_pikepdf(tmp_path, monkeypatch):
+    """Issue #35: an older install left an empty pikepdf folder behind; img2pdf found it and crashed."""
+    import types
+
+    import img2pdf
+
+    monkeypatch.setattr(img2pdf, "pikepdf", types.ModuleType("pikepdf"), raising=False)  # no .new(), like the leftover
+    monkeypatch.setattr(img2pdf, "have_pikepdf", True, raising=False)
+    src = tmp_path / "photo.jpg"
+    Image.new("RGB", (300, 200), "teal").save(src)
+    res = convert([src], "PDF")
+    assert res["path"].read_bytes()[:5] == b"%PDF-"

@@ -667,7 +667,9 @@ def _convert_pdf(sources: list[Path], out: Path, opts: dict, notes: Notes) -> No
     if page in ("A4", "Letter"):
         size = (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297)) if page == "A4" else (img2pdf.in_to_pt(8.5), img2pdf.in_to_pt(11))
         layout = img2pdf.get_layout_fun(size, fit=img2pdf.FitMode.into, auto_orient=True)
-    pdf = img2pdf.convert(pages, layout_fun=layout or img2pdf.default_layout_fun, rotation=img2pdf.Rotation.ifvalid)
+    # img2pdf's own PDF writer, always: a leftover pikepdf folder from an older install must never be picked up
+    pdf = img2pdf.convert(pages, layout_fun=layout or img2pdf.default_layout_fun, rotation=img2pdf.Rotation.ifvalid,
+                          engine=img2pdf.Engine.internal)
     with open(long_path(out), "wb") as fh:
         fh.write(pdf)
     _verify_pdf(out, expect)

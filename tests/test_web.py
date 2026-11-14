@@ -460,3 +460,34 @@ def test_article_as_pdf_leaves_out_the_clutter(tmp_path, article_site):
     assert "herons wait for fish" in text and "muddy" in text and pictures >= 1
     for clutter in ("cookies", "premium plan", "cheap flights", "Copyright Walks", "News"):
         assert clutter not in text, clutter
+
+
+def test_a_browser_that_quits_at_once_is_tried_another_way(tmp_path, monkeypatch):
+    """Issue #33/#35: Edge quit straight away without saving. The next tries use a fresh temp profile, Edge's
+    other headless mode, then Chrome; what each said is logged."""
+    import subprocess
+
+    from app.engines import webpage
+
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append((Path(cmd[0]).name, cmd[1], next(a for a in cmd if a.startswith("--user-data-dir="))))
+        if Path(cmd[0]).name == "chrome.exe":  # only Chrome works on this PC
+            out = next(a.split("=", 1)[1] for a in cmd if a.startswith("--print-to-pdf="))
+            Path(out).write_bytes(b"%PDF-1.4 test")
+        return subprocess.CompletedProcess(cmd, 0, b"", b"")
+
+    monkeypatch.setattr(webpage, "find_browsers", lambda: [r"C:\Edge\msedge.exe", r"C:\Chrome\chrome.exe"])
+    monkeypatch.setattr(webpage.subprocess, "run", fake_run)
+    out = tmp_path / "page.pdf"
+    webpage._run([f"--print-to-pdf={out}", "about:blank"], out)
+    assert out.read_bytes().startswith(b"%PDF")
+    assert [(n, m) for n, m, _p in calls] == [("msedge.exe", "--headless=new"), ("msedge.exe", "--headless"),
+                                             ("chrome.exe", "--headless=new")]
+    assert "deskvert-browser-" in calls[1][2]  # the second try: a fresh profile in Windows' temp folder
+
+    monkeypatch.setattr(webpage, "find_browsers", lambda: [r"C:\Edge\msedge.exe"])
+    out.unlink()
+    with pytest.raises(webpage.ConversionError, match="couldn't save that page"):
+        webpage._run([f"--print-to-pdf={out}", "about:blank"], out)

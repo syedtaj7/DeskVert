@@ -120,6 +120,45 @@ class WatchList(QWidget):
         self.changed.emit([dict(r) for r in self.rules])
 
 
+class AlwaysList(QWidget):
+    """The "always do this" choices: a kind of file, what it becomes, and Remove. "changed" carries the new dict."""
+
+    changed = Signal(dict)
+
+    def __init__(self, rules: dict):
+        super().__init__()
+        self.setStyleSheet("background: transparent;")
+        self.rules = {k: dict(v) for k, v in (rules or {}).items()}
+        self.lay = QVBoxLayout(self)
+        self.lay.setContentsMargins(0, 6, 0, 0)
+        self.lay.setSpacing(6)
+        self._build()
+
+    def _build(self) -> None:
+        while self.lay.count():
+            item = self.lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        if not self.rules:
+            self.lay.addWidget(label("None yet. After a conversion, choose “Always do this for … files” on the "
+                                     "result card.", 12, dim=True))
+        for ext in sorted(self.rules):
+            row = QWidget()
+            h = QHBoxLayout(row)
+            h.setContentsMargins(0, 0, 0, 0)
+            h.addWidget(label(f"{ext.lstrip('.').upper()} files  →  {self.rules[ext].get('label', '?')}", 12,
+                              wrap=False), 1)
+            rm = PillButton("Remove", "ghost", min_width=80)
+            rm.clicked.connect(lambda _=False, e=ext: self._remove(e))
+            h.addWidget(rm)
+            self.lay.addWidget(row)
+
+    def _remove(self, ext: str) -> None:
+        self.rules.pop(ext, None)
+        self._build()
+        self.changed.emit({k: dict(v) for k, v in self.rules.items()})
+
+
 def quality_slider(value: int, on_change) -> QWidget:
     holder = QWidget()
     row = QHBoxLayout(holder)
@@ -188,6 +227,16 @@ class SettingsWindow(ChromeWindow):
         wl.addWidget(label("Files you put in these folders are converted by themselves, into a “Converted” folder "
                            "inside. Only new files; nothing is moved or deleted.", 12, dim=True))
         wl.addWidget(watch)
+        always = AlwaysList(getattr(s, "always", {}) or {})
+        always.changed.connect(lambda v: self.changed.emit("always", v))
+        always_box = QWidget()
+        always_box.setStyleSheet("background: transparent;")
+        al = QVBoxLayout(always_box)
+        al.setContentsMargins(0, 0, 0, 0)
+        al.setSpacing(2)
+        al.addWidget(label("These kinds of files are converted right away when you tap the shortcut, without the "
+                           "picker. The result card then offers something else for them.", 12, dim=True))
+        al.addWidget(always)
         calm = Toggle(s.reduce_motion)
         calm.toggled.connect(lambda v: self.changed.emit("reduce_motion", v))
         auto_upd = Toggle(s.auto_update_check)
@@ -210,6 +259,7 @@ class SettingsWindow(ChromeWindow):
                 setting_row("WEBP downloads to JPG", "When a WEBP or AVIF picture arrives in Downloads, a JPG copy "
                             "is made next to it. The original stays.", webp),
                 setting_row("Watch folders", watch_box, watch_add),
+                setting_row("Always do this", always_box, None),
                 setting_row("Reduce motion", "Still pictures instead of animations, and windows that simply "
                             "appear. Windows' own “Animation effects” setting is followed too.", calm),
                 setting_row("Tell me about updates", "Every few hours, asks GitHub for the newest version number "

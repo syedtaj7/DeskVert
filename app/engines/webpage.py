@@ -12,6 +12,7 @@ browser becomes, and what Deskvert saves when you tap Ctrl+Shift on a browser wi
 from __future__ import annotations
 
 import configparser
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -19,6 +20,7 @@ from pathlib import Path
 from ..errors import ConversionError, VerificationError
 from ..paths import long_path
 
+log = logging.getLogger(__name__)
 CREATE_NO_WINDOW = 0x08000000
 PAGE_WIDTH = 1280
 MAX_HEIGHT = 12000
@@ -42,17 +44,18 @@ def write_url(path: Path, url: str) -> None:
     Path(long_path(path)).write_text(f"[InternetShortcut]\r\nURL={url}\r\n", encoding="utf-8")
 
 
-def find_browser() -> str | None:
-    """Edge first (it's on every Windows PC), then Chrome."""
+def find_browsers() -> list[str]:
+    """Every Edge and Chrome on this PC, Edge first (it's on every Windows PC)."""
     import winreg
 
+    found: list[str] = []
     for exe in ("msedge.exe", "chrome.exe"):
         for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
             try:
                 with winreg.OpenKey(root, rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{exe}") as k:
                     path = winreg.QueryValue(k, None)
                 if path and os.path.isfile(path.strip('"')):
-                    return path.strip('"')
+                    found.append(path.strip('"'))
             except OSError:
                 pass
     for base in (os.environ.get("ProgramFiles(x86)", ""), os.environ.get("ProgramFiles", ""),
@@ -60,27 +63,65 @@ def find_browser() -> str | None:
         for rel in (r"Microsoft\Edge\Application\msedge.exe", r"Google\Chrome\Application\chrome.exe"):
             p = os.path.join(base, rel)
             if base and os.path.isfile(p):
-                return p
-    return None
+                found.append(p)
+    edge = [p for p in found if p.lower().endswith("msedge.exe")]
+    return list(dict.fromkeys(edge + [p for p in found if p not in edge]))
+
+
+def find_browser() -> str | None:
+    found = find_browsers()
+    return found[0] if found else None
+
+
+def run_browser(args: list[str], worked, workdir: Path, timeout: int = 90) -> subprocess.CompletedProcess:
+    """Run Edge (or Chrome) without a window on a private, empty profile; ``worked(result)`` says whether it did
+    the job. A browser that quits at once without doing it (an update waiting to finish, a profile it won't use)
+    is tried again with a fresh profile in Windows' temp folder and its other headless mode, then the next
+    browser. What each one said goes to the log."""
+    import shutil
+    import tempfile
+
+    browsers = find_browsers()
+    if not browsers:
+        raise ConversionError("This needs Microsoft Edge or Google Chrome, and neither is installed.")
+    tries = []
+    for exe in browsers:
+        tries += [(exe, "--headless=new", workdir / "browser-profile"), (exe, "--headless", None)]
+    for exe, mode, profile in tries:
+        temp = None
+        if profile is None:
+            temp = profile = Path(tempfile.mkdtemp(prefix="deskvert-browser-"))
+        profile.mkdir(parents=True, exist_ok=True)
+        cmd = [exe, mode, "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions",
+               "--disable-sync", "--mute-audio", "--hide-scrollbars", f"--user-data-dir={profile}",
+               "--run-all-compositor-stages-before-draw", "--virtual-time-budget=10000", *args]
+        try:
+            r = subprocess.run(cmd, timeout=timeout, capture_output=True, creationflags=CREATE_NO_WINDOW,
+                               check=False)
+        except subprocess.TimeoutExpired as e:
+            raise ConversionError(f"The page took too long to load (over {timeout} seconds).") from e
+        finally:
+            if temp is not None:
+                shutil.rmtree(temp, ignore_errors=True)
+        if worked(r):
+            return r
+        said = (r.stderr or b"").decode(errors="replace").strip().splitlines()[-3:]
+        log.warning("browser did nothing: %s %s exited %s; %s", os.path.basename(exe), mode, r.returncode,
+                    " | ".join(said) or "it said nothing")
+    raise ConversionError("The browser couldn't open that page. Check the address and your internet connection.")
 
 
 def _run(args: list[str], out: Path, timeout: int = 90) -> None:
-    exe = find_browser()
-    if exe is None:
-        raise ConversionError("Saving a page needs Microsoft Edge or Google Chrome, and neither is installed.")
-    profile = out.parent / "browser-profile"  # a private, empty profile: your own browser data is never used
-    profile.mkdir(exist_ok=True)
-    cmd = [exe, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-           "--disable-extensions", "--disable-sync", "--mute-audio", "--hide-scrollbars",
-           f"--user-data-dir={profile}", "--run-all-compositor-stages-before-draw",
-           "--virtual-time-budget=10000", *args]
+    def made(_r) -> bool:
+        return out.exists() and out.stat().st_size > 0
+
     try:
-        subprocess.run(cmd, timeout=timeout, capture_output=True, creationflags=CREATE_NO_WINDOW, check=False)
-    except subprocess.TimeoutExpired as e:
-        raise ConversionError("The page took too long to load (over 90 seconds).") from e
-    if not out.exists() or out.stat().st_size == 0:
-        raise ConversionError("The browser couldn't save that page. Check the address and your internet "
-                              "connection.")
+        run_browser(args, made, out.parent, timeout)
+    except ConversionError as e:
+        if "couldn't open that page" in str(e):
+            raise ConversionError("The browser couldn't save that page. Check the address and your internet "
+                                  "connection.") from e
+        raise
 
 
 def to_pdf(url: str, out: Path, notes: list[str]) -> None:

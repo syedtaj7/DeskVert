@@ -6,7 +6,7 @@ position, scale and rotation, including dimension blocks). Hatch fills, images
 and 3D solids aren't drawn; the notes count anything left out.
 
 The SVG is the drawing; the PDF (vector) and PNG are made from it by MuPDF.
-DWG files are AutoCAD's closed format: save them as DXF in a CAD program first.
+DWG files (AutoCAD's closed format) are read through the free ODA File Converter when it's installed.
 """
 
 from __future__ import annotations
@@ -323,8 +323,23 @@ def to_svg(src: Path) -> tuple[str, int, dict[str, int]]:
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     import pymupdf
 
-    svg, count, skipped = to_svg(sources[0])
-    notes = [f"Checked: {count:,} drawing items."]
+    src = sources[0]
+    via = []
+    if src.suffix.lower() == ".dwg":  # AutoCAD's own format: read through the free ODA File Converter
+        from .oda import dwg_to_dxf
+
+        src = dwg_to_dxf(src, out.parent)
+        via = ["Read through the free ODA File Converter."]
+        if fmt == "dxf":
+            import shutil
+
+            shutil.copyfile(src, long_path(out))
+            _entities, _blocks, _skipped = parse(Path(long_path(out)).read_text(encoding="utf-8", errors="replace"))
+            if not _entities:
+                raise VerificationError("the DXF has nothing drawn in it")
+            return [f"Checked: {len(_entities):,} drawing items in the DXF (AutoCAD 2018 DXF)."] + via
+    svg, count, skipped = to_svg(src)
+    notes = [f"Checked: {count:,} drawing items."] + via
     if skipped:
         notes.append("Not drawn: " + ", ".join(f"{n} {t.lower()}" for t, n in sorted(skipped.items())) + ".")
     if fmt == "svg":

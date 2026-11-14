@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import os
-import shutil
 from pathlib import Path
 
 APP_NAME = "Deskvert"
 APP_ID = "Deskvert"
-# Earlier names: settings are carried over once from the newest one found (Deskvert was called Tapshift
-# until 1.14; early development builds were FileFormatter).
-_OLD_IDS = ("Tapshift", "FileFormatter")
 
 
 def _dir(base_env: str, *parts: str) -> Path:
@@ -18,12 +14,6 @@ def _dir(base_env: str, *parts: str) -> Path:
     p = Path(base, APP_ID, *parts)
     if not p.exists():
         p.mkdir(parents=True, exist_ok=True)
-        if base_env == "APPDATA" and not parts:
-            for old_id in _OLD_IDS:
-                old = Path(base, old_id, "settings.json")
-                if old.exists():
-                    shutil.copy2(old, p / "settings.json")  # carry settings over once
-                    break
     return p
 
 

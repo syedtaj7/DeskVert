@@ -33,11 +33,11 @@ def data_kind(p: Path) -> str | None:
         return "env"
     return DATA_EXTS.get(p.suffix.lower())
 SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".smi": "sami", ".sami": "sami",
-                 ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd"}
-EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
-FONT_EXTS = {".ttf", ".otf", ".woff", ".eot"}
+                 ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd", ".scc": "scc"}
+EBOOK_EXTS = {".epub", ".mobi", ".azw", ".azw3", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
+FONT_EXTS = {".ttf", ".otf", ".woff", ".woff2", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
-DRAWING_EXTS = {".dxf"}
+DRAWING_EXTS = {".dxf", ".dwg"}
 MAIL_EXTS = {".eml", ".msg", ".mht", ".mhtml"}
 MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx", ".shp"}
 VECTOR_EXTS = {".ai"}
@@ -223,12 +223,14 @@ DATA_VCF = Target("data.vcf", "vCard", ".vcf")
 DATA_VCSV = Target("data.vcsv", "CSV", ".csv")
 DATA_VXLSX = Target("data.vxlsx", "XLSX", ".xlsx")
 FONT_WOFF = Target("font.woff", "WOFF", ".woff")
+FONT_WOFF2 = Target("font.woff2", "WOFF2", ".woff2")
 FONT_SFNT = Target("font.sfnt", "TTF / OTF", "*")
 FONT_EOT = Target("font.eot", "EOT", ".eot")
 MESH_TARGETS = [Target("mesh.stl", "STL", ".stl"), Target("mesh.obj", "OBJ", ".obj"), Target("mesh.glb", "GLB", ".glb"),
                 Target("mesh.3mf", "3MF", ".3mf"), Target("mesh.ply", "PLY", ".ply"),
                 Target("mesh.png", "Picture", ".png", suffix=" (preview)")]
 CAD_TARGETS = [Target("cad.pdf", "PDF", ".pdf"), Target("cad.svg", "SVG", ".svg"), Target("cad.png", "PNG", ".png")]
+CAD_DXF = Target("cad.dxf", "DXF", ".dxf")
 MAIL_TARGETS = [Target("mail.pdf", "PDF", ".pdf"), Target("mail.html", "HTML", ".html"), Target("mail.txt", "TXT", ".txt"),
                 Target("mail.md", "Markdown", ".md")]
 MAIL_ZIP = Target("mail.zip", "Attachments", ".zip", suffix=" (attachments)")
@@ -421,11 +423,14 @@ def subtitle_offers(files: list[Path]) -> list[Offer]:
         srcs = [p for p in files if kinds[p] != t.fmt]
         if srcs:
             offers.append(_offer(t, SUB_CAPTIONS.get(t.fmt, ""), ["Saved as UTF-8; timings are kept."], [], srcs))
+    shiftable = [p for p in files if kinds[p] != "scc"]  # SCC is read, not written
+    if not shiftable:
+        return offers
     offers.append(_offer(SUB_SHIFT, "out of sync?", [
         "Moves every subtitle earlier or later by the same amount; the format stays the same."], [
         Option("seconds", "Seconds (+ later, − earlier)", "text", "", placeholder="e.g. +2.5 or -1", required=True,
                validate="shift"),
-    ], files))
+    ], shiftable))
     return offers
 
 
@@ -445,10 +450,16 @@ def ebook_offers(files: list[Path]) -> list[Offer]:
 
 def font_offers(files: list[Path]) -> list[Offer]:
     desk = [p for p in files if p.suffix.lower() in (".ttf", ".otf")]
-    web = [p for p in files if p.suffix.lower() in (".woff", ".eot")]
+    web = [p for p in files if p.suffix.lower() in (".woff", ".woff2", ".eot")]
     offers = []
+    to_woff2 = [p for p in files if p.suffix.lower() != ".woff2"]
+    to_woff = [p for p in files if p.suffix.lower() != ".woff"]
+    if to_woff2:
+        offers.append(_offer(FONT_WOFF2, "smallest for web pages", [
+            "The web's smallest font format; every glyph is checked against the original."], [], to_woff2))
+    if to_woff:
+        offers.append(_offer(FONT_WOFF, "for web pages", ["Every table copied exactly, compressed."], [], to_woff))
     if desk:
-        offers.append(_offer(FONT_WOFF, "for web pages", ["Every table copied exactly, compressed."], [], desk))
         offers.append(_offer(FONT_EOT, "old Internet Explorer", ["Every table copied exactly."], [], desk))
     if web:
         offers.append(_offer(FONT_SFNT, "install on a PC", ["An installable desktop font, every table exact."], [],
@@ -468,9 +479,22 @@ def model_offers(files: list[Path]) -> list[Offer]:
 
 
 def drawing_offers(files: list[Path]) -> list[Offer]:
-    return [_offer(t, {"pdf": "vector", "svg": "for the web", "png": "picture"}[t.fmt],
-                   ["Drawn without AutoCAD: lines, arcs, text and blocks. Hatch fills aren't drawn."], [], files)
-            for t in CAD_TARGETS]
+    from .engines.oda import find_oda
+
+    dwg = [p for p in files if p.suffix.lower() == ".dwg"]
+    if dwg and find_oda() is None:  # DWG needs the free ODA File Converter: without it, only the DXF files
+        files = [p for p in files if p.suffix.lower() != ".dwg"]
+        dwg = []
+    if not files:
+        return []
+    via = " DWG drawings are read through the free ODA File Converter." if dwg else ""
+    offers = [_offer(t, {"pdf": "vector", "svg": "for the web", "png": "picture"}[t.fmt],
+                     ["Drawn without AutoCAD: lines, arcs, text and blocks. Hatch fills aren't drawn." + via], [], files)
+              for t in CAD_TARGETS]
+    if dwg:
+        offers.append(_offer(CAD_DXF, "open CAD format", ["The drawing as an AutoCAD 2018 DXF, which most CAD and "
+                                                          "design programs open." + via], [], dwg))
+    return offers
 
 
 def mail_offers(files: list[Path]) -> list[Offer]:
@@ -817,7 +841,6 @@ def markdown_offers(files: list[Path], word_installed: bool) -> list[Offer]:
 
 
 WEB_CLIP_MARK = b'<meta name="generator" content="Deskvert web clip">'
-OLD_CLIP_MARK = b'<meta name="generator" content="Tapshift web clip">'  # clips saved before the rename
 
 
 def is_web_clip(p: Path) -> bool:
@@ -827,7 +850,7 @@ def is_web_clip(p: Path) -> bool:
     try:
         with open(p, "rb") as f:
             head = f.read(2048)
-        return WEB_CLIP_MARK in head or OLD_CLIP_MARK in head
+        return WEB_CLIP_MARK in head
     except OSError:
         return False
 

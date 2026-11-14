@@ -1,4 +1,4 @@
-"""Subtitles: SRT, WebVTT, ASS/SSA, SAMI, LRC, TTML and MicroDVD, into each other.
+"""Subtitles: SRT, WebVTT, ASS/SSA, SAMI, LRC, TTML and MicroDVD, into each other (and SCC captions into them).
 
 Every format is read into the same list of cues (start, end, text) and written
 out again; the new file is read back and compared cue by cue. Italic, bold and
@@ -24,7 +24,7 @@ KEEP_TAGS = re.compile(r"</?(?:i|b|u)>", re.I)
 ANY_TAG = re.compile(r"<[^>]+>")
 FPS = 23.976
 EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".smi": "sami", ".sami": "sami", ".lrc": "lrc",
-        ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd"}
+        ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd", ".scc": "scc"}
 OUT_EXT = {"srt": ".srt", "vtt": ".vtt", "ass": ".ass", "sami": ".smi", "lrc": ".lrc", "ttml": ".ttml",
            "microdvd": ".sub"}
 
@@ -238,7 +238,13 @@ def read_microdvd(text: str) -> list[Cue]:
     return cues
 
 
-READERS = {"srt": read_srt_vtt, "vtt": read_srt_vtt, "ass": read_ass, "sami": read_sami, "lrc": read_lrc,
+def read_scc(text: str) -> list[Cue]:
+    from .scc import read_scc as scc
+
+    return scc(text)
+
+
+READERS = {"scc": read_scc, "srt": read_srt_vtt, "vtt": read_srt_vtt, "ass": read_ass, "sami": read_sami, "lrc": read_lrc,
            "ttml": read_ttml, "microdvd": read_microdvd}
 
 

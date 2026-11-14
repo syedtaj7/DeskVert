@@ -54,7 +54,10 @@ PAIRS = [
     (".eml", "PDF", "eml-to-pdf", "EML", "PDF"), (".kml", "GPX", "kml-to-gpx", "KML", "GPX"),
     (".gpx", "KML", "gpx-to-kml", "GPX", "KML"), (".shp", "KML", "shapefile-to-kml", "Shapefile", "KML"),
     (".shp", "GeoJSON", "shapefile-to-geojson", "Shapefile", "GeoJSON"), (".srt", "WebVTT", "srt-to-vtt", "SRT", "VTT"),
-    (".ttf", "WOFF", "ttf-to-woff", "TTF", "WOFF"),
+    (".ttf", "WOFF", "ttf-to-woff", "TTF", "WOFF"), (".ttf", "WOFF2", "ttf-to-woff2", "TTF", "WOFF2"),
+    (".woff2", "TTF / OTF", "woff2-to-ttf", "WOFF2", "TTF"), (".scc", "SRT", "scc-to-srt", "SCC", "SRT"),
+    (".azw3", "EPUB", "azw3-to-epub", "AZW3", "EPUB"), (".azw3", "PDF", "azw3-to-pdf", "AZW3", "PDF"),
+    (".mov", "GIF", "mov-to-gif", "MOV", "GIF"),
 ]
 
 ABOUT = {  # one plain line about each format named on a page
@@ -75,6 +78,8 @@ ABOUT = {  # one plain line about each format named on a page
     "KML": "Google Earth's map format", "GPX": "GPS tracks and waypoints", "GeoJSON": "map data for the web",
     "Shapefile": "the classic GIS map format (.shp with its .dbf and .prj)", "SRT": "the common subtitle format",
     "VTT": "the subtitle format web video players use", "TTF": "a desktop font", "WOFF": "a font made for websites",
+    "WOFF2": "the smallest font format for websites", "SCC": "TV-style closed captions (Scenarist)",
+    "AZW3": "the Kindle book format (books without DRM)",
     "text": "plain text you can paste anywhere", "a smaller PDF": "the same PDF in a smaller file",
 }
 

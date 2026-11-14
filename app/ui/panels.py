@@ -598,6 +598,20 @@ class ProgressPanel(_Card):
         self.btn_row.setLayout(btns)
         lay.addWidget(self.btn_row)
 
+        # one more thing to do with this result, as a quiet link ("Always do this for HEIC files")
+        self.extra_btn = QPushButton("")
+        self.extra_btn.setObjectName("link")
+        self.extra_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.extra_btn.setStyleSheet(
+            f"QPushButton#link {{ background: transparent; border: none; padding: 0 0 0 46px; text-align: left;"
+            f" color: {theme.rgba(theme.ACCENT)}; font-size: 12px; font-weight: 600; }}"
+            f"QPushButton#link:hover {{ text-decoration: underline; }}"
+            f"QPushButton#link:disabled {{ color: {theme.rgba(theme.DIM)}; text-decoration: none; }}")
+        self.extra_btn.clicked.connect(self._extra)
+        self.extra_btn.hide()
+        self._extra_cb = None
+        lay.addWidget(self.extra_btn)
+
         self._action_cb = None
         self._output = ""
         self._outputs: list[str] = []
@@ -626,6 +640,22 @@ class ProgressPanel(_Card):
         # the wrapped height has to be known before the card is measured, or the last line gets cut off
         self.sub.setFixedHeight(self.sub.heightForWidth(self.text_w) if body else 0)
 
+    def extra(self, text: str, callback=None) -> None:
+        """A link under the buttons (or, without a callback, a short note in its place). Empty text hides it."""
+        self._extra_cb = callback
+        self.extra_btn.setText(text)
+        self.extra_btn.setEnabled(callback is not None)
+        self.extra_btn.setVisible(bool(text))
+        if self.isVisible():
+            self._place_and_show()
+
+    def _extra(self) -> None:
+        cb, self._extra_cb = self._extra_cb, None
+        if cb is not None:
+            self._hide_after = max(self._hide_after, 9000)
+            self._countdown(self._hide_after)  # time to read what changed
+            cb()
+
     def _buttons(self, *shown):
         for b in (self.undo_btn, self.cancel_btn, self.report_btn, self.details_btn, self.copy_btn, self.open_btn,
                   self.folder_btn, self.action_btn):
@@ -634,6 +664,7 @@ class ProgressPanel(_Card):
 
     # ---------------------------------------------------------------- states
     def start(self, label: str, total: int):
+        self.extra("")
         self._busy = True
         self._hide_timer.stop()
         self._ring.stop()
@@ -667,6 +698,7 @@ class ProgressPanel(_Card):
                sources: list[str] | None = None, name: str = "", details: bool = False):
         self._busy = False
         self._action_cb = None
+        self.extra("")
         self.icon.set_kind(kind)
         self._output = output
         self._outputs = list(outputs or [])
