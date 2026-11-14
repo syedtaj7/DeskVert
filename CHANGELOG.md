@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.16.0
 
 - **Full-screen apps, more precisely:** only windows without a title bar (games, full-screen video) count as full
   screen, so a maximized app keeps working with Deskvert even when the taskbar hides itself.
