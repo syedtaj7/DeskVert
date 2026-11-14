@@ -9,10 +9,15 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
+import logging
+
 from .. import __version__, updater
 from ..winutil import uninstaller
 from . import theme
 from .fx import PillButton
+
+log = logging.getLogger(__name__)
+WHATS_NEW = "https://deskvert-website.vercel.app/changelog"
 
 
 class _Bridge(QObject):
@@ -122,15 +127,18 @@ class UpdatePanel(QFrame):
                        secondary=("Check again", self.start_check))
             return
         what = rel.notes or ["Improvements and fixes."]
-        if uninstaller() is not None and rel.setup is not None:
+        installed = uninstaller() is not None
+        log.info("update %s available: installed copy=%s, installer in the release=%s", rel.version, installed,
+                 rel.setup is not None)
+        news = ("What's new", lambda: self._open(WHATS_NEW))
+        if rel.setup is not None:  # downloaded and installed right here, checked against GitHub's checksum
+            how = ("" if installed else " This copy runs without being installed, so the update installs Deskvert "
+                   "for you (no admin rights needed); the copy you're running now stays as it is.")
+            self._show(f"Deskvert {rel.version} is available", f"You have {__version__}.{how} What's new:", what,
+                       primary=(f"Download and install ({_mb(rel.setup.size)})", self._download), secondary=news)
+        else:  # a release without an installer (shouldn't happen): its page is the only place to get it
             self._show(f"Deskvert {rel.version} is available", f"You have {__version__}. What's new:", what,
-                       primary=(f"Download ({_mb(rel.setup.size)})", self._download),
-                       secondary=("Release page", lambda: self._open(rel.page)))
-        else:  # the portable zip (or no installer in this release): get it from the release page
-            self._show(f"Deskvert {rel.version} is available",
-                       f"You have {__version__}. This copy wasn't installed with Setup, so download the new "
-                       "version from the release page. What's new:", what,
-                       primary=("Open download page", lambda: self._open(rel.page)))
+                       primary=("Open the release page", lambda: self._open(rel.page)), secondary=news)
 
     def _download(self):
         rel = self.release

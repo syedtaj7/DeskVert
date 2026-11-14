@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.15.1
+
+- **Updates always install from inside Deskvert:** Check for updates now downloads and installs the new version
+  right in the app (checked against GitHub's checksum) instead of ever sending you to the download page. A copy
+  that runs without being installed gets installed by the update. An installed copy is also recognised from
+  Windows' own record of it, not only from the file next to Deskvert.exe.
+
 ## 1.15.0
 
 ### New conversions
