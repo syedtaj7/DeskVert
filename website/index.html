@@ -33,7 +33,7 @@
     "name": "Deskvert",
     "operatingSystem": "Windows 10, Windows 11",
     "applicationCategory": "UtilitiesApplication",
-    "description": "A file converter that lives in the Windows tray. Select files, tap Ctrl + Shift and pick a format. 197 kinds of files in 171 ways, offline.",
+    "description": "A file converter that lives in the Windows tray. Select files, tap Ctrl + Shift and pick a format. 201 kinds of files in 169 ways, offline.",
     "url": "https://deskvert-website.vercel.app/",
     "downloadUrl": "https://github.com/syedtaj7/DeskVert/releases/latest",
     "softwareVersion": "1.13.0",
@@ -50,7 +50,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <meta name="google-site-verification" content="rGd7zGs_g5XIwDr_pWML2h6sK4TzUJxrcqPMAdk2r40">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="fx.css?v=4">
+  <link rel="stylesheet" href="fx.css?v=5">
   <script>
     // the saved theme choice, before anything paints (no flash)
     document.documentElement.classList.remove("no-js");
@@ -132,7 +132,7 @@
     <section class="try" id="try" aria-labelledby="try-title">
       <div class="try-copy">
         <h2 id="try-title" class="reveal">Try it right here.</h2>
-        <p class="sub reveal">Drop a picture. It's converted by your browser, on your computer; nothing is uploaded. The app does the same for 197 kinds of files.</p>
+        <p class="sub reveal">Drop a picture. It's converted by your browser, on your computer; nothing is uploaded. The app does the same for 201 kinds of files.</p>
         <div class="try-controls reveal">
           <div class="seg" role="radiogroup" aria-label="Convert to" id="try-format">
             <button type="button" role="radio" aria-checked="true" data-fmt="image/jpeg">JPG</button>
@@ -241,8 +241,18 @@
     <!-- formats: the one marquee on the page -->
     <section class="formats" id="formats" aria-labelledby="formats-title">
       <div class="counts">
-        <h2 id="formats-title" class="reveal"><span class="count" data-to="197">197</span> kinds of files.<br><span class="count" data-to="171">171</span> ways out.</h2>
+        <h2 id="formats-title" class="reveal"><span class="count" data-to="201">201</span> kinds of files.<br><span class="count" data-to="169">169</span> ways out.</h2>
         <p class="sub reveal">Pictures, PDFs, Office documents, e-mails, sound, video stills, e-books, data, maps, 3D models, fonts and more. Each result is opened again and checked before it's saved.</p>
+        <div class="finder reveal">
+          <label for="finder">What can it do with your file?</label>
+          <div class="finder-box">
+            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+            <span class="dot" aria-hidden="true">.</span>
+            <input id="finder" type="search" placeholder="heic, pdf, mp4, msg…" autocomplete="off" spellcheck="false" aria-describedby="finder-out">
+          </div>
+          <div class="finder-out" id="finder-out" aria-live="polite"></div>
+          <a class="link" href="/convert">Every conversion, one page each <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+        </div>
       </div>
       <div class="marquee" aria-hidden="true">
         <div class="track" id="track-a"></div>
@@ -362,7 +372,8 @@
     <div class="brand"><img src="assets/logo.png" alt="" width="24" height="24" loading="lazy"><span>Desk<b>vert</b></span></div>
     <nav aria-label="Project links">
       <a href="https://github.com/syedtaj7/DeskVert">GitHub</a>
-      <a href="https://github.com/syedtaj7/DeskVert/blob/main/CHANGELOG.md">What's new</a>
+      <a href="/convert">All conversions</a>
+      <a href="/changelog">What's new</a>
       <a href="https://github.com/sponsors/syedtaj7">Support</a>
       <a href="https://github.com/syedtaj7/DeskVert/blob/main/PRIVACY.md">Privacy</a>
       <a href="https://github.com/syedtaj7/DeskVert/blob/main/SECURITY.md">Security</a>
@@ -372,6 +383,6 @@
   </footer>
 
   <script src="app.js" defer></script>
-  <script src="fx.js?v=4" defer></script>
+  <script src="fx.js?v=5" defer></script>
 </body>
 </html>
