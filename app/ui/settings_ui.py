@@ -8,7 +8,7 @@ from PySide6.QtCore import QPointF, QSize, Qt, Signal
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QSlider, QVBoxLayout, QWidget
 
-from .. import GITHUB_REPO, __version__, github_url
+from .. import GITHUB_REPO, SPONSOR_URL, __version__, github_url
 from ..settings import Settings
 from . import theme
 from .chrome import ChromeWindow, label
@@ -327,10 +327,13 @@ class SettingsWindow(ChromeWindow):
         logs.clicked.connect(self.open_logs.emit)
         rep = PillButton("Report a problem", "ghost", min_width=150)
         rep.clicked.connect(lambda: self.report_problem.emit())
+        sup = PillButton("Support Deskvert", "ghost", min_width=150)
+        sup.setToolTip("Deskvert is free with no ads. If it saves you time, you can support it on GitHub Sponsors.")
+        sup.clicked.connect(lambda: webbrowser.open(SPONSOR_URL))
         row1, row2 = QHBoxLayout(), QHBoxLayout()
         for w in (upd, gh, rep):
             row1.addWidget(w)
-        for w in (lic, logs):
+        for w in (sup, lic, logs):
             row2.addWidget(w)
         from ..winutil import uninstaller
 

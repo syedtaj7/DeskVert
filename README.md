@@ -244,6 +244,12 @@ Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.p
 | `app/ui/` | The animated interface |
 | `docs/readme/` | This page's animations (`python docs/readme/make_art.py` regenerates them) |
 
+## 💚 Support Deskvert
+
+Deskvert is free, with no ads, accounts or tracking, and it will stay that way. If it saves you time, you can
+help keep it going on **[GitHub Sponsors](https://github.com/sponsors/syedtaj7)**. Starring the repository and
+telling a friend help too.
+
 ## 📜 License
 
 Deskvert is free software under the [GNU Affero General Public License v3.0](LICENSE). Use it, share it, change it; if you distribute a modified version, share its source under the same license. It comes with no warranty. Bundled open-source components keep their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
