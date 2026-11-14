@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Picture to SVG:** a picture's new **SVG** option traces logos, icons and drawings into shapes that stay sharp
+  at any size, in colour or black and white. The drawing is drawn again and compared with the picture before
+  it's kept.
 - **Video to GIF:** a video's new **GIF** option turns 3, 5 or 10 seconds (from the moment you pick) into a
   small looping GIF for chats and documents, 10 pictures a second. Only that part of the video is decoded, so it
   takes a few seconds even on a slow laptop.

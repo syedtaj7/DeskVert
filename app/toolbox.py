@@ -258,6 +258,7 @@ PDF_BLANK = Target("pdf.blank", "Remove blank", ".pdf", suffix=" (no blank pages
 IMG_CROP = Target("imgedit.crop", "Crop", "*", suffix=" (cropped)", ask=True)
 IMG_PASSPORT = Target("imgedit.passport", "Passport sheet", ".jpg", suffix=" (passport sheet)", ask=True)
 IMG_WMARK = Target("imgedit.wmark", "Watermark", "*", suffix=" (watermarked)", ask=True)
+IMG_SVG = Target("imgedit.svg", "SVG", ".svg", suffix=" (traced)")
 SQLITE_XLSX = Target("sqlitedb.xlsx", "XLSX", ".xlsx")
 SQLITE_CSV = Target("sqlitedb.csv", "CSV per table", "", folder="tables")
 CONFIG_JSON = Target("config.json", "JSON", ".json")
@@ -354,6 +355,12 @@ def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
         _offer(IMG_CROP, "square, 4:5, 16:9...", ["Cut to that shape from the middle; saved in the same format."], [
             Option("ratio", "Shape", "choice", "1:1 square", choices=("1:1 square", "4:5 portrait", "3:2 photo",
                                                                       "16:9 wide", "9:16 story", "A4 page")),
+        ], srcs),
+        _offer(IMG_SVG, "traced, any size", [
+            "Traces the picture into shapes, so it stays sharp at any size: best for logos, icons and drawings."], [
+            Option("detail", "Picture", "choice", "Logo or icon", choices=("Logo or icon", "Drawing",
+                                                                           "Photo (big file)")),
+            Option("style", "Colours", "choice", "Colour", choices=("Colour", "Black and white")),
         ], srcs),
         _offer(IMG_WMARK, "your text on it", ["White text with a thin dark edge, readable on any picture."], [
             Option("text", "Text", "text", "", placeholder="e.g. © Asha Rao 2026", required=True),

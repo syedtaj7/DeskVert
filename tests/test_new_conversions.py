@@ -441,3 +441,36 @@ def test_pdf_to_word(tmp_path):
 def test_scanned_pdf_to_word_says_read_text_first(tmp_path):
     res = convert([_report_pdf(tmp_path / "scan.pdf", scanned=True)], "DOCX", ok=False)
     assert "Read text" in res["error"]
+
+
+# ---------------------------------------------------------------- pictures traced into SVG
+
+def _logo(path: Path) -> Path:
+    from PIL import ImageDraw
+
+    im = Image.new("RGBA", (400, 200), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.ellipse((20, 20, 180, 180), fill=(22, 128, 86, 255))
+    d.rectangle((70, 70, 130, 130), fill=(255, 255, 255, 255))
+    d.rectangle((220, 60, 380, 140), fill=(30, 30, 30, 255))
+    im.save(path)
+    return path
+
+
+@pytest.mark.parametrize("style", ["Colour", "Black and white"])
+def test_picture_to_svg(tmp_path, style):
+    res = convert([_logo(tmp_path / "logo.png")], "SVG", {"style": style})
+    out = res["path"]
+    assert out.name == "logo (traced).svg"
+    svg = out.read_text(encoding="utf-8")
+    assert svg.lstrip().startswith(("<?xml", "<svg")) and svg.count("<path") >= 2
+    if style == "Colour":
+        assert "rgb(22,128,86)" in svg.replace(" ", "") or "#168056" in svg.lower()
+    assert "Checked:" in res["notes"][0]
+
+
+def test_smooth_shading_is_not_traced(tmp_path):
+    src = tmp_path / "glow.png"
+    Image.radial_gradient("L").resize((300, 300)).convert("RGB").save(src)
+    res = convert([src], "SVG", ok=False)
+    assert "logos, icons and drawings" in res["error"]

@@ -26,6 +26,7 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | pywin32 | Windows and Office integration | PSF License | https://github.com/mhammond/pywin32 |
 | openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
 | PyYAML / libyaml | Reading and writing YAML | MIT | https://github.com/yaml/pyyaml |
+| vtracer | Tracing pictures into SVG drawings | MIT | https://github.com/visioncortex/vtracer |
 | pywinrt (winrt-runtime, winrt-Windows.*) | Windows text recognition (OCR) | MIT | https://github.com/pywinrt/pywinrt |
 | PyInstaller bootloader | Starting Deskvert.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
 

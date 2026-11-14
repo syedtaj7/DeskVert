@@ -20,7 +20,7 @@ hidden = [
     "app.engines.geo", "app.engines.font", "app.engines.mesh", "app.engines.cad", "app.engines.mail",
     "app.engines.vector", "lxml", "lxml.html", "lxml.etree", "email", "quopri", "app.engines.media",
     "winrt.windows.media.transcoding", "winrt.windows.media.mediaproperties", "winrt.windows.storage",
-    "winrt.windows.storage.fileproperties", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl",
+    "winrt.windows.storage.fileproperties", "app.updater", "app.ui.update_ui", "app.ui.orbit", "pillow_heif", "rawpy", "img2pdf", "pymupdf", "numpy", "openpyxl", "vtracer",
     # Windows' built-in text recognition (pywinrt projections)
     "winrt.runtime", "winrt.system", "winrt.windows.foundation", "winrt.windows.foundation.collections",
     "winrt.windows.globalization", "winrt.windows.graphics.imaging", "winrt.windows.media.ocr",
