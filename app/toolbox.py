@@ -817,7 +817,6 @@ def markdown_offers(files: list[Path], word_installed: bool) -> list[Offer]:
 
 
 WEB_CLIP_MARK = b'<meta name="generator" content="Deskvert web clip">'
-OLD_CLIP_MARK = b'<meta name="generator" content="Tapshift web clip">'  # clips saved before the rename
 
 
 def is_web_clip(p: Path) -> bool:
@@ -827,7 +826,7 @@ def is_web_clip(p: Path) -> bool:
     try:
         with open(p, "rb") as f:
             head = f.read(2048)
-        return WEB_CLIP_MARK in head or OLD_CLIP_MARK in head
+        return WEB_CLIP_MARK in head
     except OSError:
         return False
 

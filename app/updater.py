@@ -116,9 +116,7 @@ def fetch_latest(timeout: float = 12) -> Release:
     if not version:
         raise UpdateError("No release was found on GitHub.")
     assets = [a for a in (_asset(x) for x in data.get("assets") or []) if a]
-    # Deskvert-Setup-<ver>.exe; releases also carry the old Tapshift-Setup name for copies from before the rename
-    setup = next((a for a in assets if a.name.lower().startswith(("deskvert-setup", "tapshift-setup"))
-                  and a.name.lower().endswith(".exe")),
+    setup = next((a for a in assets if a.name.lower().startswith("deskvert-setup") and a.name.lower().endswith(".exe")),
                  None)
     portable = next((a for a in assets if a.name.lower().endswith("-portable.zip")), None)
     return Release(version, data.get("html_url") or f"https://github.com/{GITHUB_REPO}/releases/latest",

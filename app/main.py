@@ -135,12 +135,6 @@ class Controller(QObject):
         self.progress_timer.timeout.connect(self._poll_progress)
 
         self.hotkey_pressed.connect(self.on_hotkey)
-        try:  # Tapshift is now Deskvert: take over its start-up, right-click and Send to entries
-            moved = winutil.move_from_old_name()
-            if any(moved.values()):
-                log.info("moved over from the old name: %s", moved)
-        except Exception:  # noqa: BLE001
-            log.exception("moving over from the old name failed")
         if winutil.autostart_enabled():
             try:
                 winutil.set_autostart(True)  # keep the start-up entry pointing at this copy (e.g. after installing)

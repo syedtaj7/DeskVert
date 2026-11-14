@@ -13,7 +13,7 @@ NAMES = ["report.docx", "protected.docx", "notes.txt", "budget.xlsx", "deck.pptx
 
 
 def cache_dir() -> Path:
-    return Path(os.environ.get("LOCALAPPDATA", Path.home()), "FileFormatter", f"test-docs-{VERSION}")
+    return Path(os.environ.get("LOCALAPPDATA", Path.home()), "Deskvert", f"test-docs-{VERSION}")
 
 
 def _pdfs(folder: Path) -> None:

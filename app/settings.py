@@ -1,4 +1,4 @@
-"""User settings stored as JSON in %APPDATA%\\FileFormatter\\settings.json."""
+"""User settings stored as JSON in %APPDATA%\\Deskvert\\settings.json."""
 
 from __future__ import annotations
 

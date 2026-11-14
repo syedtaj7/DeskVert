@@ -322,8 +322,7 @@
   // ---------------------------------------------------------------- download: the newest release, straight from GitHub
   (async () => {
     const show = (rel) => {
-      const setup = rel.assets.find((a) => /^Deskvert-Setup-.*\.exe$/.test(a.name))
-        || rel.assets.find((a) => /^Tapshift-Setup-.*\.exe$/.test(a.name)); // releases from before the rename
+      const setup = rel.assets.find((a) => /^Deskvert-Setup-.*\.exe$/.test(a.name));
       const zip = rel.assets.find((a) => /portable\.zip$/.test(a.name));
       if (setup) $$(".js-download").forEach((a) => (a.href = setup.browser_download_url));
       if (zip) $("#dl-portable").href = zip.browser_download_url;
