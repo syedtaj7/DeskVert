@@ -8,6 +8,9 @@
 - **Always do this:** after converting, the result card offers "Always do this for HEIC files". From then on,
   tapping Ctrl + Shift on HEIC files converts them straight away with the same choices, no picker; the card then
   offers something else for them. Settings → General lists these and removes them.
+- **History:** the tray menu's **History…** lists your recent conversions, newest first, each with Open, Show in
+  folder and **Convert again** (the picker opens for the same originals). It's kept on this PC only and can be
+  cleared at any time.
 
 ## 1.15.2
 

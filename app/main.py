@@ -316,6 +316,7 @@ class Controller(QObject):
         self.recent_menu = m.addMenu("Recent conversions")
         self.recent_menu.setStyleSheet(theme.MENU_QSS)
         self._refresh_recent()
+        m.addAction("History…", self.show_history)
         self.cancel_action = m.addAction("Cancel conversions", self.jobs.cancel)
         self.cancel_action.setEnabled(False)
         m.addSeparator()
@@ -416,6 +417,25 @@ class Controller(QObject):
             how = "Tap" if is_modifier_tap(self.settings.hotkey) else "Press"
             self.panel.message("success", "Deskvert is ready",
                                f"{how} {self.key_label} with a file selected in File Explorer.", 5000)
+
+    def show_history(self) -> None:
+        """Every recent conversion, with Open, Show in folder and Convert again."""
+        from .ui.history import HistoryWindow
+
+        old = self.windows.get("history")
+        if _alive(old):
+            old.refresh()
+        w = self._window("history", HistoryWindow)
+        if w is not None:
+            if w is not old:
+                w.convert_again.connect(self._convert_again)
+            w.present()
+
+    def _convert_again(self, files: list) -> None:
+        paths = [Path(f) for f in files if os.path.exists(f)]
+        if paths:
+            self._skip_always = True  # you asked for the picker
+            self.open_picker(paths, "explorer")
 
     def show_report(self, about: str = "") -> None:
         """Report a problem: you see everything first; GitHub opens in your browser to post it."""
@@ -1143,6 +1163,11 @@ class Controller(QObject):
         for r in ok:
             self.recent.insert(0, r["output"])
         self.recent = self.recent[:10]
+        if ok:
+            from . import history
+
+            history.add(batch.label, [s for r in ok for s in (r.get("sources") or [])], [r["output"] for r in ok],
+                        len(failed))
         self._refresh_recent()
         if ok:
             self._last_output = ok[0]["output"]

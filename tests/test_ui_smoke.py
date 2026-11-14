@@ -164,3 +164,31 @@ def test_always_do_this(qapp, tmp_path):
     Controller._offer_always(fake, Batch("JPG", [], action={**action, "auto": True}), ok)
     assert panel.extra_btn.text().startswith("Something else for these HEIC files")
     assert not Controller._run_always(fake, [a, tmp_path / "c.png"])  # mixed kinds: the picker as usual
+
+
+def test_history_is_kept_and_shown(qapp, tmp_path, monkeypatch):
+    import time
+
+    from app import history
+    from app.ui.history import HistoryWindow
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    src, out = tmp_path / "beach.heic", tmp_path / "beach.jpg"
+    src.write_bytes(b"x")
+    out.write_bytes(b"y")
+    history.add("JPG", [str(src)], [str(out)])
+    history.add("PDF", [str(tmp_path / "gone.docx")], [str(tmp_path / "gone.pdf")], failed=1)
+    items = history.load()
+    assert [e["label"] for e in items] == ["PDF", "JPG"]  # newest first
+    assert history.describe(items[1]) == "beach.heic → beach.jpg"
+    assert history.when(time.time()).startswith("Today ")
+    w = HistoryWindow()
+    again = []
+    w.convert_again.connect(again.append)
+    from PySide6.QtWidgets import QLabel
+
+    texts = " ".join(lbl.text() for lbl in w.findChildren(QLabel))
+    assert "beach.heic → beach.jpg" in texts and "moved or deleted since" in texts
+    history.clear()
+    w.refresh()
+    assert history.load() == [] and not w.clear_btn.isEnabled()
