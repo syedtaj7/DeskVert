@@ -233,6 +233,36 @@
     });
   }
 
+  // ---------------------------------------------------------------- the format finder: type a file type, see what it becomes
+  const finder = $("#finder"), found = $("#finder-out");
+  if (finder && found) {
+    let table = null, loading = null;
+    const load = () => loading || (loading = fetch("formats.json").then((r) => r.json()).then((d) => (table = d))
+      .catch(() => (loading = null)));
+    const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const show = () => {
+      const q = finder.value.trim().toLowerCase().replace(/^\*?\./, "");
+      if (!q) { found.innerHTML = ""; return; }
+      if (!table) { load().then(show); return; }
+      const hit = table[q] || table[Object.keys(table).find((k) => k.startsWith(q))];
+      const key = table[q] ? q : Object.keys(table).find((k) => k.startsWith(q));
+      if (!hit) {
+        found.innerHTML = `<p class="none">Not yet. <a href="https://github.com/syedtaj7/DeskVert/issues/new/choose">Ask for .${esc(q)}</a> and it may be next.</p>`;
+        return;
+      }
+      const chip = (label, i, tool) => {
+        const page = hit.pages && hit.pages[label];
+        const cls = "chip-out" + (tool ? " tool" : "");
+        return page ? `<a class="${cls}" style="--i:${i}" href="/convert/${page}">${esc(label)}</a>`
+          : `<span class="${cls}" style="--i:${i}">${esc(label)}</span>`;
+      };
+      found.innerHTML = `<div class="row"><span class="what">.${esc(key)} →</span>${hit.to.map((l, i) => chip(l, i)).join("")}</div>`
+        + (hit.tools.length ? `<div class="row"><span class="what">Tools</span>${hit.tools.map((l, i) => chip(l, i + hit.to.length, true)).join("")}</div>` : "");
+    };
+    finder.addEventListener("focus", load, { once: true });
+    finder.addEventListener("input", show);
+  }
+
   // ---------------------------------------------------------------- headings come in word by word
   const words = new IntersectionObserver((entries) => entries.forEach((e) => {
     if (e.isIntersecting) { e.target.classList.add("in"); words.unobserve(e.target); }

@@ -390,3 +390,159 @@ def test_libreoffice_does_office_files_when_office_is_missing(tmp_path, monkeypa
     res = run_job(job)
     assert res["ok"], res.get("error")
     assert any("LibreOffice" in n for n in res["notes"]) and Path(res["output"]).suffix == ".pdf"
+
+
+# ---------------------------------------------------------------- PDF to Word (made by Deskvert, no Office needed)
+
+def _report_pdf(path: Path, scanned: bool = False) -> Path:
+    import pymupdf
+
+    d = pymupdf.open()
+    p = d.new_page()
+    if scanned:  # only a picture of a page: no text to rebuild
+        buf = io.BytesIO()
+        Image.new("RGB", (300, 400), "white").save(buf, "PNG")
+        p.insert_image(p.rect, stream=buf.getvalue())
+    else:
+        p.insert_text((72, 60), "Sales by region", fontsize=20)
+        p.insert_text((72, 92), "A paragraph above the table with ordinary words in it.", fontsize=11)
+        p.insert_text((72, 110), "\u2022 First point about growth", fontsize=11)
+        rows = [("Region", "Sales"), ("North", "1.20"), ("South", "3.45")]
+        for r, row in enumerate(rows):
+            for c, val in enumerate(row):
+                rect = pymupdf.Rect(72 + c * 120, 130 + r * 22, 192 + c * 120, 152 + r * 22)
+                p.draw_rect(rect, color=(0, 0, 0), width=0.8)
+                p.insert_text((rect.x0 + 5, rect.y1 - 7), val, fontsize=10)
+        buf = io.BytesIO()
+        Image.new("RGB", (200, 100), "teal").save(buf, "PNG")
+        p.insert_image(pymupdf.Rect(72, 230, 272, 330), stream=buf.getvalue())
+        d.new_page().insert_text((72, 80), "Second page with a few more words.", fontsize=11)
+    d.save(str(path))
+    return path
+
+
+def test_pdf_to_word(tmp_path):
+    from app.engines.pdfword import docx_text
+
+    src = _report_pdf(tmp_path / "report.pdf")
+    res = convert([src], "DOCX")
+    out = res["path"]
+    assert out.suffix == ".docx" and out.name == "report.docx"
+    text = docx_text(out)
+    for words in ("Sales by region", "ordinary words", "First point about growth", "North", "3.45", "Second page"):
+        assert words in text
+    with zipfile.ZipFile(out) as z:
+        doc = z.read("word/document.xml").decode()
+        assert any(n.startswith("word/media/") for n in z.namelist())  # the picture is inside
+    assert 'w:val="Heading1"' in doc and "<w:tbl>" in doc and 'w:type="page"' in doc and "<w:numPr>" in doc
+    assert "1 picture" in " ".join(res["notes"]) and "1 table" in " ".join(res["notes"])
+
+
+def test_scanned_pdf_to_word_says_read_text_first(tmp_path):
+    res = convert([_report_pdf(tmp_path / "scan.pdf", scanned=True)], "DOCX", ok=False)
+    assert "Read text" in res["error"]
+
+
+# ---------------------------------------------------------------- pictures traced into SVG
+
+def _logo(path: Path) -> Path:
+    from PIL import ImageDraw
+
+    im = Image.new("RGBA", (400, 200), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.ellipse((20, 20, 180, 180), fill=(22, 128, 86, 255))
+    d.rectangle((70, 70, 130, 130), fill=(255, 255, 255, 255))
+    d.rectangle((220, 60, 380, 140), fill=(30, 30, 30, 255))
+    im.save(path)
+    return path
+
+
+@pytest.mark.parametrize("style", ["Colour", "Black and white"])
+def test_picture_to_svg(tmp_path, style):
+    res = convert([_logo(tmp_path / "logo.png")], "SVG", {"style": style})
+    out = res["path"]
+    assert out.name == "logo (traced).svg"
+    svg = out.read_text(encoding="utf-8")
+    assert svg.lstrip().startswith(("<?xml", "<svg")) and svg.count("<path") >= 2
+    if style == "Colour":
+        assert "rgb(22,128,86)" in svg.replace(" ", "") or "#168056" in svg.lower()
+    assert "Checked:" in res["notes"][0]
+
+
+def test_smooth_shading_is_not_traced(tmp_path):
+    src = tmp_path / "glow.png"
+    Image.radial_gradient("L").resize((300, 300)).convert("RGB").save(src)
+    res = convert([src], "SVG", ok=False)
+    assert "logos, icons and drawings" in res["error"]
+
+
+# ---------------------------------------------------------------- Shapefiles (read without extra libraries)
+
+def _shapefile(folder: Path, shapes: list[tuple[int, list]], rows: list[dict], prj: str | None = None) -> Path:
+    """A minimal .shp + .dbf (+ .prj): shapes are (type, parts), parts a list of [(x, y), ...]."""
+    import struct
+
+    recs = b""
+    for i, (kind, parts) in enumerate(shapes, 1):
+        if kind == 1:
+            body = struct.pack("<i2d", 1, *parts[0][0])
+        else:
+            pts = [p for part in parts for p in part]
+            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+            body = struct.pack("<i4d2i", kind, min(xs), min(ys), max(xs), max(ys), len(parts), len(pts))
+            start = 0
+            for part in parts:
+                body += struct.pack("<i", start)
+                start += len(part)
+            body += b"".join(struct.pack("<2d", *p) for p in pts)
+        recs += struct.pack(">2i", i, len(body) // 2) + body
+    kind0 = shapes[0][0]
+    header = struct.pack(">7i", 9994, 0, 0, 0, 0, 0, (100 + len(recs)) // 2) + struct.pack("<2i4d4d", 1000, kind0,
+                                                                                          0, 0, 0, 0, 0, 0, 0, 0)
+    (folder / "places.shp").write_bytes(header + recs)
+    fields = [("NAME", "C", 20, 0), ("POP", "N", 10, 0)]
+    hdr_len = 32 + 32 * len(fields) + 1
+    rec_len = 1 + sum(f[2] for f in fields)
+    dbf = struct.pack("<BBBBIHH20x", 3, 126, 1, 1, len(rows), hdr_len, rec_len)
+    for name, typ, length, dec in fields:
+        dbf += name.encode().ljust(11, b"\0") + typ.encode() + b"\0" * 4 + bytes([length, dec]) + b"\0" * 14
+    dbf += b"\r"
+    for r in rows:
+        dbf += b" " + r["NAME"].encode("utf-8").ljust(20) + str(r["POP"]).encode().rjust(10)
+    (folder / "places.dbf").write_bytes(dbf + b"\x1a")
+    (folder / "places.cpg").write_text("UTF-8")
+    if prj:
+        (folder / "places.prj").write_text(prj)
+    return folder / "places.shp"
+
+
+def test_shapefile_to_geojson_with_details(tmp_path):
+    square = [(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]  # clockwise: an outer edge
+    hole = [(4, 4), (6, 4), (6, 6), (4, 6), (4, 4)]  # counter-clockwise: a hole
+    shp = _shapefile(tmp_path, [(5, [square, hole])], [{"NAME": "Parc Café", "POP": 1200}],
+                     prj='GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]]]')
+    res = convert([shp], "GeoJSON")
+    data = json.loads(res["path"].read_text(encoding="utf-8"))
+    f = data["features"][0]
+    assert f["properties"] == {"NAME": "Parc Café", "POP": 1200}
+    assert f["geometry"]["type"] == "Polygon" and len(f["geometry"]["coordinates"]) == 2  # the edge and its hole
+
+
+def test_shapefile_points_from_utm_and_web_mercator(tmp_path):
+    from app.engines.shapefile import _utm, _web_mercator
+
+    lon, lat = _utm(33, False)(500000.0, 4649776.22)  # zone 33N central meridian, 42° north
+    assert abs(lon - 15.0) < 1e-6 and abs(lat - 42.0) < 1e-5
+    lon, lat = _web_mercator(20037508.342789244, 0.0)
+    assert abs(lon - 180.0) < 1e-9 and abs(lat) < 1e-9
+    utm = 'PROJCS["WGS_1984_UTM_Zone_33N",GEOGCS["GCS_WGS_1984"],PROJECTION["Transverse_Mercator"]]'
+    shp = _shapefile(tmp_path, [(1, [[(500000.0, 4649776.22)]])], [{"NAME": "Pin", "POP": 1}], prj=utm)
+    res = convert([shp], "KML")
+    assert "15.0" in res["path"].read_text(encoding="utf-8") and any("UTM zone 33N" in n for n in res["notes"])
+
+
+def test_shapefile_in_an_unknown_projection_is_refused(tmp_path):
+    lambert = 'PROJCS["RGF93_Lambert_93",GEOGCS["GCS_RGF_1993"],PROJECTION["Lambert_Conformal_Conic"]]'
+    shp = _shapefile(tmp_path, [(1, [[(700000.0, 6600000.0)]])], [{"NAME": "Paris", "POP": 2}], prj=lambert)
+    res = convert([shp], "GeoJSON", ok=False)
+    assert "Lambert_93" in res["error"]

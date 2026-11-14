@@ -1,0 +1,71 @@
+/* Deskvert website: the generated pages (conversions, What's new). Uses the tokens in styles.css. */
+
+.sub-page main { position: relative; z-index: 1; }
+.page-hero {
+  padding-top: clamp(48px, 8vw, 110px); padding-bottom: 12px; max-width: 980px;
+  background: radial-gradient(60% 80% at 0% 0%, var(--accent-soft), transparent 70%);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.page-hero h1 { font-size: clamp(2.3rem, 5.4vw, 4.4rem); letter-spacing: -.035em; line-height: 1.04; max-width: 18ch; }
+.page-hero .lead { margin-top: 18px; max-width: 46ch; }
+.page-hero .eyebrow { font-family: var(--mono); letter-spacing: .06em; }
+.page-body { max-width: 980px; padding-top: 24px; }
+.page-body h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); margin: 48px 0 16px; }
+.page-body .intro { font-size: 1.12rem; max-width: 64ch; color: var(--text); }
+.page-body .intro b { color: var(--accent); }
+
+.steps-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.steps-list li {
+  display: flex; gap: 14px; align-items: flex-start; padding: 18px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.steps-list .n {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink); font-weight: 800;
+}
+.steps-list h3 { margin-top: 4px; }
+.steps-list p { color: var(--dim); font-size: .95rem; margin-top: 4px; }
+
+.notes { padding-left: 1.2em; color: var(--dim); max-width: 70ch; }
+.notes li { margin: 6px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; padding: 7px 14px; border-radius: 99px; font-weight: 700; font-size: .9rem;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none;
+}
+a.chip { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); }
+a.chip:hover { background: var(--accent); color: var(--accent-ink); }
+.chip.tool { font-weight: 600; color: var(--dim); }
+.tools-title { margin: 22px 0 12px; color: var(--dim); font-size: 1rem; }
+
+.faq-list details { border-bottom: 1px solid var(--line); padding: 14px 0; }
+.faq-list summary { cursor: pointer; font-weight: 700; }
+.faq-list p { color: var(--dim); margin-top: 8px; max-width: 70ch; }
+.related { columns: 2; padding-left: 1.2em; }
+.related li { margin: 6px 0; break-inside: avoid; }
+.back { margin-top: 48px; color: var(--dim); }
+
+.groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.group { padding: 18px 20px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.group h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.group ul { list-style: none; padding: 0; margin: 0; }
+.group li { margin: 5px 0; }
+.group a { text-decoration: none; }
+.group a:hover { text-decoration: underline; }
+
+.changelog .release { padding: 28px 0; border-bottom: 1px solid var(--line); }
+.changelog .release h2 { margin: 0 0 8px; font-family: var(--mono); font-size: 1.4rem; color: var(--accent); }
+.changelog h3 { margin: 18px 0 6px; }
+.changelog ul { padding-left: 1.2em; max-width: 76ch; }
+.changelog li { margin: 6px 0; }
+.changelog p { max-width: 76ch; color: var(--dim); margin: 6px 0; }
+.changelog code { font-family: var(--mono); font-size: .9em; background: var(--surface); padding: 1px 6px; border-radius: 6px; }
+
+@media (max-width: 860px) {
+  .steps-list, .groups { grid-template-columns: 1fr; }
+  .related { columns: 1; }
+}
+@media (max-width: 560px) {
+  .nav .btn-small span { display: none; }
+  .nav .btn-small { padding: 10px 12px; }
+}

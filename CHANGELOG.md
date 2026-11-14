@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **Smaller download:** the installer is about 3.5 MB smaller and the portable zip about 9 MB smaller, with the
+  new features included. Parts Deskvert never used are left out of the build.
+- **Shapefile maps:** .shp files (with the .dbf, .prj and .cpg beside them) become KML, GeoJSON, GPX, KMZ, CSV
+  or Excel, with each place's details. Maps in degrees, Web Mercator or UTM are turned into longitude /
+  latitude; other projections are refused with a plain message instead of being guessed.
+- **Picture to SVG:** a picture's new **SVG** option traces logos, icons and drawings into shapes that stay sharp
+  at any size, in colour or black and white. The drawing is drawn again and compared with the picture before
+  it's kept.
+- **Video to GIF:** a video's new **GIF** option turns 3, 5 or 10 seconds (from the moment you pick) into a
+  small looping GIF for chats and documents, 10 pictures a second. Only that part of the video is decoded, so it
+  takes a few seconds even on a slow laptop.
+- **PDF to Word:** a PDF's new **DOCX** option makes an editable Word document with its headings, bold and
+  italic, lists, pictures and tables, a page at a time. Made by Deskvert itself, so it works without Microsoft
+  Office, and every word is checked against the PDF. Scanned PDFs need Read text first.
+- **Links in the browser:** point at a link and tap Ctrl + Shift to use what it points to: a link to a PDF,
+  picture or other file fetches that file, and a link to a page gives that page's options. Selecting just a link
+  works the same way (it used to save the link's words).
+- **No more copies:** tapping Ctrl + Shift again on the same page or selection reuses what was saved a moment ago
+  instead of adding "(1)", "(2)"… to Downloads\Deskvert.
 - **Support Deskvert:** a button on the About page opens Deskvert's GitHub Sponsors page.
 
 ## 1.14.0

@@ -75,6 +75,7 @@ class Controller(QObject):
     drop_ready = Signal(object, str)  # files saved from a drop (or an error message), from a worker thread
     page_found = Signal(str, str)  # (address, title) of the page in the browser where Ctrl+Shift was tapped
     selection_found = Signal(object)  # the browser's selected text, saved as a web clip (a Path)
+    fetching = Signal(str)  # a link's file is being fetched (its address), from a worker thread
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -94,6 +95,7 @@ class Controller(QObject):
         self.drop_ready.connect(self._drop_ready)
         self.page_found.connect(self._page_found)
         self.selection_found.connect(self._selection_found)
+        self.fetching.connect(self._fetching)
         self._own_clip_until = 0.0  # Deskvert's own copy of a selection (and putting the clipboard back)
         self._drop_notes: list[str] = []
         self._drop_site = ""
@@ -804,6 +806,12 @@ class Controller(QObject):
 
         title = browserurl.page_title(hwnd)
         self._own_clip_until = time.monotonic() + 3.0
+        try:
+            import win32api
+
+            px, py = win32api.GetCursorPos()  # where the pointer was at the tap (a link under it counts)
+        except Exception:  # noqa: BLE001
+            px = py = None
 
         def work():
             import pythoncom
@@ -813,6 +821,10 @@ class Controller(QObject):
             try:
                 clip = browsercopy.copy_selection(hwnd)
                 if clip is not None:
+                    link = dropread.only_link(clip.html, clip.source)
+                    if link:  # only a link was selected: what it points to, not its words
+                        self._use_link(link, dropread.link_text(clip.html))
+                        return
                     self.selection_found.emit(dropread.save_clip(clip))
                     return
             except Exception:  # noqa: BLE001
@@ -821,6 +833,12 @@ class Controller(QObject):
                 self._own_clip_until = time.monotonic() + 0.5  # the last clipboard changes are ours too
             pythoncom.CoInitialize()
             try:
+                if px is not None:
+                    link, text = browserurl.link_at(px, py)
+                    if link:
+                        log.info("browser: tapped on a link")
+                        self._use_link(link, text)
+                        return
                 url = browserurl.page_url(hwnd)
             except Exception:  # noqa: BLE001
                 log.exception("reading the browser's address failed")
@@ -830,6 +848,29 @@ class Controller(QObject):
             self.page_found.emit(url, title)
 
         threading.Thread(target=work, daemon=True).start()
+
+    def _use_link(self, url: str, text: str) -> None:
+        """A link in the browser (pointed at, or selected on its own): a file is fetched, a cloud share
+        link fetches its file, a page becomes a shortcut. Runs on the worker thread; the picker opens after."""
+        from . import dropread
+
+        dropped = dropread.Dropped(url=url, link=url, title=text)
+        if dropread.cloud_link(url) or dropread.is_file_link(url):
+            self.fetching.emit(url)
+        try:
+            files, how = dropread._link(url, text, dropped, None, None)
+            self._drop_notes, self._drop_site = list(dropped.notes), dropped.from_video_site
+            self.drop_ready.emit(files, how)
+        except dropread.DropError as e:
+            self.drop_ready.emit([], str(e))
+        except Exception as e:  # noqa: BLE001
+            log.exception("using a browser link failed")
+            self.drop_ready.emit([], f"Couldn't use that link ({e}).")
+
+    def _fetching(self, url: str) -> None:
+        host = url.split("/")[2] if url.lower().startswith(("http://", "https://")) else ""
+        self.panel.message("info", "Fetching the linked file",
+                           f"From {host}. It's saved in Downloads\\Deskvert, then the picker opens.", 30000)
 
     def _selection_found(self, path) -> None:
         log.info("browser selection -> %s", path.name)

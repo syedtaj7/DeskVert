@@ -189,6 +189,78 @@ def page_url(hwnd: int, budget: float = 3.0) -> str:
     return ""
 
 
+ROLE_LINK = 30
+_PARENT = 7  # IAccessible::get_accParent
+
+
+def _acc_text(ptr: int, index: int, child: VARIANT) -> str:
+    out = ctypes.c_void_p()
+    if _method(ptr, index, VARIANT, ctypes.POINTER(ctypes.c_void_p))(ptr, child, ctypes.byref(out)) != 0 or not out:
+        return ""
+    try:
+        return ctypes.wstring_at(out.value)
+    finally:
+        ctypes.windll.oleaut32.SysFreeString(out)
+
+
+def _acc_role(ptr: int, child: VARIANT) -> int:
+    out = VARIANT()
+    if _method(ptr, _ROLE, VARIANT, ctypes.POINTER(VARIANT))(ptr, child, ctypes.byref(out)) != 0:
+        return 0
+    return (out.val or 0) & 0xFFFFFFFF if out.vt == VT_I4 else 0
+
+
+def _parent(ptr: int) -> int:
+    """The parent part (an IAccessible pointer the caller releases), or 0."""
+    disp = ctypes.c_void_p()
+    if _method(ptr, _PARENT, ctypes.POINTER(ctypes.c_void_p))(ptr, ctypes.byref(disp)) != 0 or not disp.value:
+        return 0
+    acc = ctypes.c_void_p()
+    qi = _method(disp.value, 0, ctypes.POINTER(GUID), ctypes.POINTER(ctypes.c_void_p))
+    ok = qi(disp.value, ctypes.byref(IID_IACCESSIBLE), ctypes.byref(acc)) == 0
+    _release(disp.value)
+    return acc.value if ok and acc.value else 0
+
+
+def link_at(x: int, y: int, levels: int = 8) -> tuple[str, str]:
+    """(address, text) of the link under the screen point (x, y), or ("", "") when it isn't on a link.
+    A link's text, picture or icon may be what's under the pointer, so it looks a few parents up.
+    Call from a thread with COM initialised."""
+    ptr = ctypes.c_void_p()
+    child = VARIANT()
+    fn = ctypes.windll.oleacc.AccessibleObjectFromPoint
+    fn.argtypes = [wintypes.POINT, ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(VARIANT)]
+    if fn(wintypes.POINT(x, y), ctypes.byref(ptr), ctypes.byref(child)) != 0 or not ptr.value:
+        return "", ""
+    cur = ptr.value
+    try:
+        if child.vt == VT_I4 and child.val:  # a simple part of its parent: ask about it first
+            if _acc_role(cur, child) == ROLE_LINK:
+                url = _acc_text(cur, _VALUE, child)
+                if _is_web_address(url):
+                    return url.strip(), " ".join(_acc_text(cur, _NAME, child).split())[:100]
+        for _ in range(levels):
+            me = _self_variant()
+            if _acc_role(cur, me) == ROLE_LINK:
+                url = _acc_text(cur, _VALUE, me)
+                if _is_web_address(url):
+                    return url.strip(), " ".join(_acc_text(cur, _NAME, me).split())[:100]
+            up = _parent(cur)
+            if not up:
+                break
+            _release(cur)
+            cur = up
+    except Exception:  # noqa: BLE001 - an odd page: treat it as "not on a link"
+        log.debug("link under the pointer: couldn't read", exc_info=True)
+    finally:
+        _release(cur)
+    return "", ""
+
+
+def _is_web_address(value: str) -> bool:
+    return bool(re.match(r"^https?://\S+$", (value or "").strip(), re.I))
+
+
 def _normal(value: str) -> str:
     v = value.strip()
     if not re.match(r"^[a-z][a-z0-9+.-]*:", v, re.I):

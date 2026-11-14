@@ -39,7 +39,7 @@ FONT_EXTS = {".ttf", ".otf", ".woff", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
 DRAWING_EXTS = {".dxf"}
 MAIL_EXTS = {".eml", ".msg", ".mht", ".mhtml"}
-MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx"}
+MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx", ".shp"}
 VECTOR_EXTS = {".ai"}
 # Sound only, through Windows' own converter (videos: their sound; the picture is never re-encoded).
 from .engines.media import AUDIO_EXTS, VIDEO_EXTS  # noqa: E402  (plain sets, nothing heavy)
@@ -238,6 +238,7 @@ GEO_TARGETS = [Target("geo.kml", "KML", ".kml"), Target("geo.geojson", "GeoJSON"
 AUDIO_TRIM = Target("media.trim", "Trim", "*", suffix=" (trimmed)", ask=True)
 VIDEO_FRAME = Target("videoframe.frame", "Picture", ".jpg", suffix=" (frame)")
 VIDEO_SHEET = Target("videoframe.sheet", "Frames sheet", ".jpg", suffix=" (frames)")
+VIDEO_GIF = Target("videoframe.gif", "GIF", ".gif")
 AUDIO_TARGETS = [Target("media.mp3", "MP3", ".mp3"), Target("media.m4a", "M4A", ".m4a"),
                  Target("media.wav", "WAV", ".wav"), Target("media.flac", "FLAC", ".flac"),
                  Target("media.wma", "WMA", ".wma")]
@@ -257,6 +258,7 @@ PDF_BLANK = Target("pdf.blank", "Remove blank", ".pdf", suffix=" (no blank pages
 IMG_CROP = Target("imgedit.crop", "Crop", "*", suffix=" (cropped)", ask=True)
 IMG_PASSPORT = Target("imgedit.passport", "Passport sheet", ".jpg", suffix=" (passport sheet)", ask=True)
 IMG_WMARK = Target("imgedit.wmark", "Watermark", "*", suffix=" (watermarked)", ask=True)
+IMG_SVG = Target("imgedit.svg", "SVG", ".svg", suffix=" (traced)")
 SQLITE_XLSX = Target("sqlitedb.xlsx", "XLSX", ".xlsx")
 SQLITE_CSV = Target("sqlitedb.csv", "CSV per table", "", folder="tables")
 CONFIG_JSON = Target("config.json", "JSON", ".json")
@@ -353,6 +355,12 @@ def image_edits(images: list[Path], fmts: dict[Path, str]) -> list[Offer]:
         _offer(IMG_CROP, "square, 4:5, 16:9...", ["Cut to that shape from the middle; saved in the same format."], [
             Option("ratio", "Shape", "choice", "1:1 square", choices=("1:1 square", "4:5 portrait", "3:2 photo",
                                                                       "16:9 wide", "9:16 story", "A4 page")),
+        ], srcs),
+        _offer(IMG_SVG, "traced, any size", [
+            "Traces the picture into shapes, so it stays sharp at any size: best for logos, icons and drawings."], [
+            Option("detail", "Picture", "choice", "Logo or icon", choices=("Logo or icon", "Drawing",
+                                                                           "Photo (big file)")),
+            Option("style", "Colours", "choice", "Colour", choices=("Colour", "Black and white")),
         ], srcs),
         _offer(IMG_WMARK, "your text on it", ["White text with a thin dark edge, readable on any picture."], [
             Option("text", "Text", "text", "", placeholder="e.g. © Asha Rao 2026", required=True),
@@ -506,6 +514,14 @@ def audio_offers(files: list[Path], video: bool) -> list[Offer]:
                if video else "Made by Windows' own converter; nothing to download.")
         offers.append(_offer(t, cap, [why], lossy if t.fmt in ("mp3", "m4a", "wma") else [], srcs))
     if video:  # a still from the video: only the frames needed are decoded, nothing is re-encoded
+        offers.insert(0, _offer(VIDEO_GIF, "a short clip", [
+            "A few seconds as a looping GIF for chats and documents, 10 pictures a second, no sound. Only that part "
+            "of the video is decoded."], [
+            Option("start", "Start at", "text", "0:00", placeholder="e.g. 0:30", required=True, validate="time"),
+            Option("length", "Length", "choice", "5 seconds", choices=("3 seconds", "5 seconds", "10 seconds")),
+            Option("size", "Size", "choice", "Medium (480 px wide)",
+                   choices=("Small (320 px wide)", "Medium (480 px wide)", "Large (640 px wide)")),
+        ], files))
         offers.insert(0, _offer(VIDEO_SHEET, "9 moments", [
             "Nine moments across the video in one picture, each with its time; quick, nothing is re-encoded."],
             [], files))

@@ -264,6 +264,24 @@ def run(folder: Path) -> int:
              name="2 images->Rename (copies)")
         if pdf:
             case([pdf], "Remove blank", name="pdf->Remove blank (none, must say so)", expect_fail=True)
+        # 1.15: PDF to Word (made by Deskvert), video to GIF, a logo traced into SVG (vtracer + Qt SVG)
+        import pymupdf
+        from PIL import Image, ImageDraw
+
+        report_pdf = folder / "samples" / "Report.pdf"
+        with pymupdf.open() as d:
+            page = d.new_page()
+            page.insert_text((72, 72), "Quarterly report", fontsize=20)
+            page.insert_text((72, 104), "Sales grew in every region this quarter, led by the north.", fontsize=11)
+            d.save(str(report_pdf))
+        case([report_pdf], "DOCX", name="pdf->DOCX (Word)")
+        case([_avi(folder / "samples" / "Clip2.avi")], "GIF", {"start": "0:00", "length": "3 seconds"},
+             name="avi->GIF")
+        logo = Image.new("RGBA", (240, 120), (0, 0, 0, 0))
+        ImageDraw.Draw(logo).ellipse((10, 10, 110, 110), fill=(22, 128, 86, 255))
+        ImageDraw.Draw(logo).rectangle((130, 30, 230, 90), fill=(30, 30, 30, 255))
+        logo.save(folder / "samples" / "Logo.png")
+        case([folder / "samples" / "Logo.png"], "SVG", name="png->SVG (traced)")
         arial = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
         if arial.exists():  # a copy: the new font goes next to it, never into Windows' own Fonts folder
             import shutil

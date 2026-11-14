@@ -20,12 +20,12 @@ program at `_internal\licenses` (Settings > About > Licenses opens it).
 | rawpy | Camera RAW photos | MIT | https://github.com/letmaik/rawpy |
 | LibRaw (bundled in rawpy) | Camera RAW decoding | LGPL-2.1 or CDDL-1.0 | https://github.com/LibRaw/LibRaw |
 | img2pdf | Lossless images to PDF | LGPL-3.0 | https://gitlab.mister-muffin.de/josch/img2pdf |
-| pikepdf / qpdf | PDF writing for img2pdf | MPL-2.0 / Apache-2.0 | https://github.com/pikepdf/pikepdf · https://github.com/qpdf/qpdf |
 | NumPy (with OpenBLAS) | Image comparisons | BSD-3-Clause | https://github.com/numpy/numpy |
 | lxml / libxml2 | Well-formed pages in EPUB e-books | BSD-3-Clause / MIT | https://github.com/lxml/lxml |
 | pywin32 | Windows and Office integration | PSF License | https://github.com/mhammond/pywin32 |
 | openpyxl / et_xmlfile | Excel workbooks from CSV and JSON | MIT | https://foss.heptapod.net/openpyxl/openpyxl |
 | PyYAML / libyaml | Reading and writing YAML | MIT | https://github.com/yaml/pyyaml |
+| vtracer | Tracing pictures into SVG drawings | MIT | https://github.com/visioncortex/vtracer |
 | pywinrt (winrt-runtime, winrt-Windows.*) | Windows text recognition (OCR) | MIT | https://github.com/pywinrt/pywinrt |
 | PyInstaller bootloader | Starting Deskvert.exe | GPL-2.0 with bootloader exception | https://github.com/pyinstaller/pyinstaller |
 

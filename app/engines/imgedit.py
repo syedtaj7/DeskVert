@@ -501,7 +501,74 @@ def _watermark(src: Path, out: Path, opts: dict) -> list[str]:
             f"{EDITABLE[fmt][1:].upper()}, same size."]
 
 
+# ---------------------------------------------------------------- picture to SVG (traced into shapes)
+
+TRACE_MAX = 1400  # longest side traced, in pixels: bigger pictures are made smaller first (quick, sensible files)
+TRACE_DETAIL = {  # vtracer settings per kind of picture
+    "Logo or icon": dict(filter_speckle=8, color_precision=5, layer_difference=32, corner_threshold=60),
+    "Drawing": dict(filter_speckle=4, color_precision=6, layer_difference=16, corner_threshold=60),
+    "Photo (big file)": dict(filter_speckle=2, color_precision=8, layer_difference=10, corner_threshold=90),
+}
+
+
+def _trace(src: Path, out: Path, opts: dict) -> list[str]:
+    """The picture traced into filled shapes (vtracer): sharp at any size, for logos, icons and drawings."""
+    import io
+
+    import numpy as np
+    import vtracer
+
+    im = _upright(_open(src)).convert("RGBA")
+    notes: list[str] = []
+    if max(im.size) > TRACE_MAX:
+        k = TRACE_MAX / max(im.size)
+        im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
+        notes.append(f"Traced at {im.width}×{im.height} px (made smaller first; an SVG has no fixed size).")
+    detail = str(opts.get("detail", "Logo or icon"))
+    bw = str(opts.get("style", "Colour")) == "Black and white"
+    if bw:  # black ink on white paper: see-through parts are paper, not ink
+        paper = Image.new("RGBA", im.size, "white")
+        paper.alpha_composite(im)
+        im = paper.convert("L").point(lambda v: 255 if v > 127 else 0).convert("RGBA")
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    svg = vtracer.convert_raw_image_to_svg(buf.getvalue(), img_format="png",
+                                           colormode="binary" if bw else "color", hierarchical="stacked",
+                                           mode="spline", **TRACE_DETAIL.get(detail, TRACE_DETAIL["Logo or icon"]))
+    if "<path" not in svg:
+        raise ConversionError("Nothing could be traced in this picture (it may be blank).")
+    Path(long_path(out)).write_text(svg, encoding="utf-8")
+
+    # check: drawn again, the SVG must look like the picture (both on white, compared small)
+    from types import SimpleNamespace
+
+    from .image import _open_svg
+
+    drawn = _open_svg(out, SimpleNamespace(add=lambda *_a: None)).frames[0]
+    size = (min(256, im.width), max(1, round(min(256, im.width) * im.height / im.width)))
+
+    def flat(pic):
+        white = Image.new("RGBA", pic.size, "white")
+        white.alpha_composite(pic.convert("RGBA"))
+        out_pic = white.convert("L" if bw else "RGB").resize(size, Image.BILINEAR)
+        return np.asarray(out_pic, dtype=np.int16)
+
+    diff = float(np.abs(flat(drawn) - flat(im)).mean())
+    if diff > 30:  # e.g. smooth shading with no edges: it comes out as one flat shape
+        raise ConversionError("The traced drawing doesn't look enough like this picture (smooth shading can't be "
+                              "traced into shapes). Tracing works best on logos, icons and drawings.")
+    shapes = svg.count("<path")
+    kb = Path(long_path(out)).stat().st_size / 1024
+    notes.insert(0, f"Checked: {shapes:,} shape{'s' if shapes != 1 else ''}, drawn again and compared with the "
+                    f"picture; {kb:,.0f} KB.")
+    if detail.startswith("Photo"):
+        notes.append("Photos make big SVG files with many shapes; logos and drawings work best.")
+    return notes
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
+    if fmt == "svg":
+        return _trace(sources[0], out, opts)
     if fmt == "crop":
         return _crop(sources[0], out, opts)
     if fmt == "passport":

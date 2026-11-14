@@ -177,6 +177,35 @@ body::after {
   @keyframes fill { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
 }
 
+/* ---------------------------------------------------------------- format finder (in the formats section) */
+.finder { margin-top: 30px; max-width: 640px; display: grid; gap: 12px; }
+.finder label { font-weight: 700; font-size: 1.05rem; }
+.finder-box {
+  display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 16px; border-radius: 99px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); transition: border-color .2s, box-shadow .3s;
+}
+.finder-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft), var(--shadow); }
+.finder-box i { font-size: 1.2rem; color: var(--dim); margin-right: 6px; }
+.finder-box .dot { font-family: var(--mono); font-weight: 700; color: var(--accent); font-size: 1.15rem; }
+.finder-box input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit;
+  font-family: var(--mono); font-size: 1.1rem; padding: 10px 4px;
+}
+.finder-out { min-height: 1.5em; }
+.finder-out .row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; animation: pop .45s var(--ease) both; }
+.finder-out .row + .row { margin-top: 10px; }
+.finder-out .what { font-weight: 700; margin-right: 4px; }
+.finder-out .chip-out {
+  padding: 5px 12px; border-radius: 99px; font-size: .85rem; font-weight: 700; text-decoration: none;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid transparent;
+  animation: pop .4s var(--ease) both; animation-delay: calc(var(--i) * 18ms);
+}
+a.chip-out { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+a.chip-out:hover { background: var(--accent); color: var(--accent-ink); }
+.finder-out .chip-out.tool { background: var(--surface); color: var(--dim); }
+.finder-out .none { color: var(--dim); }
+.finder .link { justify-self: start; }
+
 /* ---------------------------------------------------------------- support Deskvert (in the download section) */
 .support {
   display: flex; align-items: center; gap: 16px; text-align: left; margin-top: 34px; padding: 16px 18px 16px 22px;
