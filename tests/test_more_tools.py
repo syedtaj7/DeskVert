@@ -270,3 +270,25 @@ def test_sound_from_a_video_with_shorter_sound(tmp_path, monkeypatch, name, soun
     else:
         with pytest.raises(VerificationError):
             media.convert([src], out, "mp3", {})
+
+
+@pytest.mark.parametrize("kind", ["white noise", "silence"])
+@pytest.mark.parametrize("fmt", ["mp3", "m4a"])
+def test_any_sound_converts_even_static_or_silence(tmp_path, kind, fmt):
+    """Deskvert doesn't judge what the sound is: static, noise or silence is converted like music."""
+    import random
+
+    src = tmp_path / f"{kind}.wav"
+    rnd = random.Random(7)
+    with wave.open(str(src), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(22050)
+        n = 22050 * 3
+        if kind == "silence":
+            w.writeframes(b"\0\0" * n)
+        else:
+            w.writeframes(b"".join(struct.pack("<h", rnd.randint(-20000, 20000)) for _ in range(n)))
+    res = run([src], fmt.upper())
+    assert res["path"].suffix == f".{fmt}" and res["path"].stat().st_size > 1000
+    assert "0:03" in res["notes"][0]
