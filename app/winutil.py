@@ -365,13 +365,41 @@ def move_from_old_name() -> dict:
     return found
 
 
+INSTALLER_ID = "{6D3B7E2A-4C1F-4B8E-9A57-2F1C0D9E7A31}_is1"  # installer/deskvert.iss AppId, as Windows records it
+
+
+def _registered_uninstaller(app_dir: Path) -> Path | None:
+    """The uninstaller Windows has on record for Deskvert, when it was installed into ``app_dir``."""
+    import winreg
+
+    key = rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\{INSTALLER_ID}"
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(hive, key) as k:
+                where = str(winreg.QueryValueEx(k, "InstallLocation")[0])
+                command = str(winreg.QueryValueEx(k, "UninstallString")[0])
+        except OSError:
+            continue
+        if where and os.path.normcase(os.path.normpath(where)) == os.path.normcase(os.path.normpath(str(app_dir))):
+            exe = Path(command.strip().strip('"'))
+            if exe.exists():
+                return exe
+    return None
+
+
 def uninstaller() -> Path | None:
     """The installer's uninstaller, when Deskvert was installed with Setup
-    (the portable zip and the source version have none)."""
+    (the portable zip and the source version have none): the file next to Deskvert.exe, or the one Windows has
+    on record for this folder."""
     if not getattr(sys, "frozen", False):
         return None
     exe = Path(sys.executable).with_name("unins000.exe")
-    return exe if exe.exists() else None
+    if exe.exists():
+        return exe
+    try:
+        return _registered_uninstaller(Path(sys.executable).parent)
+    except Exception:  # noqa: BLE001 - no record to read: not an installed copy
+        return None
 
 
 def start_uninstall() -> bool:

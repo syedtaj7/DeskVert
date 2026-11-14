@@ -1187,7 +1187,8 @@ def main() -> int:
             rel = updater.fetch_latest()
             res = {"ok": True, "latest": rel.version, "current": __version__, "newer": updater.is_newer(rel.version),
                    "setup": rel.setup.name if rel.setup else None,
-                   "checksum": bool(rel.setup and rel.setup.sha256)}
+                   "checksum": bool(rel.setup and rel.setup.sha256),
+                   "installed": winutil.uninstaller() is not None}
         except Exception as e:  # noqa: BLE001
             res = {"ok": False, "error": str(e)}
         log.info("update check: %s", res)

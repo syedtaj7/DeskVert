@@ -147,3 +147,34 @@ def test_web_clips_from_before_the_rename_are_still_clips(tmp_path):
     old.write_bytes(b'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="generator" content="Tapshift web clip">'
                     b'</head><body><p>hello</p></body></html>')
     assert toolbox.is_web_clip(old)
+
+
+def test_an_installed_copy_is_found_from_windows_record(tmp_path, monkeypatch):
+    """No unins000.exe next to Deskvert.exe, but Windows' uninstall record says it was installed here."""
+    import sys
+    import winreg
+
+    from app import winutil
+
+    app_dir = tmp_path / "Programs" / "Deskvert"
+    app_dir.mkdir(parents=True)
+    (app_dir / "Deskvert.exe").write_bytes(b"MZ")
+    elsewhere = tmp_path / "uninstall" / "unins000.exe"
+    elsewhere.parent.mkdir()
+    elsewhere.write_bytes(b"MZ")
+    record = {"InstallLocation": str(app_dir) + "\\", "UninstallString": f'"{elsewhere}"'}
+
+    class Key:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(app_dir / "Deskvert.exe"))
+    monkeypatch.setattr(winreg, "OpenKey", lambda hive, key: Key() if winutil.INSTALLER_ID in key else None)
+    monkeypatch.setattr(winreg, "QueryValueEx", lambda k, name: (record[name], 1))
+    assert winutil.uninstaller() == elsewhere
+    record["InstallLocation"] = str(tmp_path / "somewhere else")  # another copy's record: not this one
+    assert winutil.uninstaller() is None

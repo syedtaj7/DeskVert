@@ -105,3 +105,23 @@ def test_picker_settings_and_results_build(qapp):
     text = as_text("To JPG", results)
     assert "1 converted, 1 failed, 1 cancelled" in text and "FAILED  b.png: The file is damaged." in text
     rw.close()
+
+
+@pytest.mark.parametrize("installed", [True, False])
+def test_an_update_is_downloaded_in_the_app_whether_installed_or_not(qapp, monkeypatch, installed):
+    """Never only "open the download page": an installer in the release is downloaded and run right here."""
+    from app import updater
+    from app.ui import update_ui
+
+    monkeypatch.setattr(update_ui, "uninstaller", lambda: Path("unins000.exe") if installed else None)
+    opened = []
+    monkeypatch.setattr(update_ui.UpdatePanel, "_open", staticmethod(opened.append))
+    panel = update_ui.UpdatePanel()
+    setup = updater.Asset("Deskvert-Setup-99.0.0.exe", "https://example.org/setup.exe", 55_000_000, "ab" * 32)
+    panel._on_checked(updater.Release("99.0.0", "https://example.org/release", ["New things."], setup, None))
+    assert panel.primary.text().startswith("Download and install") and panel._primary == panel._download
+    assert ("installs Deskvert for you" in panel.text.text()) is (not installed)
+    panel._secondary()
+    assert opened == [update_ui.WHATS_NEW]  # the other button is What's new, not a download page
+    panel._on_checked(updater.Release("99.0.0", "https://example.org/release", [], None, None))
+    assert panel.primary.text() == "Open the release page"  # only when a release has no installer
