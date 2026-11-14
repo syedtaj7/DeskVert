@@ -6,5 +6,9 @@ __version__ = "1.14.0"
 GITHUB_REPO = "syedtaj7/DeskVert"
 
 
+# Where people can support Deskvert (GitHub Sponsors)
+SPONSOR_URL = "https://github.com/sponsors/syedtaj7"
+
+
 def github_url(path: str = "") -> str:
     return f"https://github.com/{GITHUB_REPO}{path}"

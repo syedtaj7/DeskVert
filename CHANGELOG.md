@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Support Deskvert:** a button on the About page opens Deskvert's GitHub Sponsors page.
+
 ## 1.14.0
 
 ### Tapshift is now Deskvert
