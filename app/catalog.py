@@ -233,7 +233,7 @@ EXCEL_TARGETS = [_doc("doc.pdf", "PDF", ".pdf"), _doc("doc.xlsx", "XLSX", ".xlsx
 PPT_TARGETS = [_doc("doc.pdf", "PDF", ".pdf"), _doc("doc.pptx", "PPTX", ".pptx"),
                _doc("doc.png", "PNG", "", folder="slides PNG"), _doc("doc.jpg", "JPG", "", folder="slides JPG"),
                _doc("doc.odp", "ODP", ".odp"), _doc("doc.ppt", "PPT", ".ppt")]
-PDF_TARGETS = [_doc("pdf.png", "PNG", "", folder="pages PNG"),
+PDF_TARGETS = [_doc("pdf.docx", "DOCX", ".docx"), _doc("pdf.png", "PNG", "", folder="pages PNG"),
                _doc("pdf.jpg", "JPG", "", folder="pages JPG"), _doc("pdf.txt", "TXT", ".txt"),
                _doc("pdf.split", "Every page", "", folder="pages")]
 PDF_MERGE = Target("pdf.merge", "1 PDF", ".pdf", combine=True)
@@ -285,7 +285,8 @@ def _doc_offer(t: Target, kind: str, srcs: set[str], n: int) -> Offer:
         caption = {"docx": "editable", "png": "1 image per page", "jpg": "1 image per page",
                    "txt": "text only"}.get(f, caption)
         if f == "docx":
-            w.append("Word rebuilds the PDF as an editable document: all the text is kept, but the layout can shift.")
+            w.append("An editable Word document: text, headings, bold, lists, pictures and tables are kept; the "
+                     "exact page layout can shift. Scanned PDFs need Read text first.")
         if f == "txt":
             w.append("Only the text is kept. Scanned PDFs (pictures of pages) have no text to extract.")
         if f in ("png", "jpg"):

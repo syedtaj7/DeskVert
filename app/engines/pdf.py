@@ -1127,6 +1127,15 @@ def sign(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
 TOOLS["sign"] = sign
 
 
+def _to_word(src: Path, out: Path, opts: dict, notes: list[str]) -> None:
+    from .pdfword import to_word
+
+    to_word(src, out, opts, notes)
+
+
+TOOLS["docx"] = _to_word
+
+
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     notes: list[str] = []

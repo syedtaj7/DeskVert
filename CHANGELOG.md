@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **PDF to Word:** a PDF's new **DOCX** option makes an editable Word document with its headings, bold and
+  italic, lists, pictures and tables, a page at a time. Made by Deskvert itself, so it works without Microsoft
+  Office, and every word is checked against the PDF. Scanned PDFs need Read text first.
 - **Links in the browser:** point at a link and tap Ctrl + Shift to use what it points to: a link to a PDF,
   picture or other file fetches that file, and a link to a page gives that page's options. Selecting just a link
   works the same way (it used to save the link's words).
