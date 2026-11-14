@@ -33,9 +33,9 @@ def data_kind(p: Path) -> str | None:
         return "env"
     return DATA_EXTS.get(p.suffix.lower())
 SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".smi": "sami", ".sami": "sami",
-                 ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd"}
+                 ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd", ".scc": "scc"}
 EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
-FONT_EXTS = {".ttf", ".otf", ".woff", ".eot"}
+FONT_EXTS = {".ttf", ".otf", ".woff", ".woff2", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
 DRAWING_EXTS = {".dxf"}
 MAIL_EXTS = {".eml", ".msg", ".mht", ".mhtml"}
@@ -223,6 +223,7 @@ DATA_VCF = Target("data.vcf", "vCard", ".vcf")
 DATA_VCSV = Target("data.vcsv", "CSV", ".csv")
 DATA_VXLSX = Target("data.vxlsx", "XLSX", ".xlsx")
 FONT_WOFF = Target("font.woff", "WOFF", ".woff")
+FONT_WOFF2 = Target("font.woff2", "WOFF2", ".woff2")
 FONT_SFNT = Target("font.sfnt", "TTF / OTF", "*")
 FONT_EOT = Target("font.eot", "EOT", ".eot")
 MESH_TARGETS = [Target("mesh.stl", "STL", ".stl"), Target("mesh.obj", "OBJ", ".obj"), Target("mesh.glb", "GLB", ".glb"),
@@ -421,11 +422,14 @@ def subtitle_offers(files: list[Path]) -> list[Offer]:
         srcs = [p for p in files if kinds[p] != t.fmt]
         if srcs:
             offers.append(_offer(t, SUB_CAPTIONS.get(t.fmt, ""), ["Saved as UTF-8; timings are kept."], [], srcs))
+    shiftable = [p for p in files if kinds[p] != "scc"]  # SCC is read, not written
+    if not shiftable:
+        return offers
     offers.append(_offer(SUB_SHIFT, "out of sync?", [
         "Moves every subtitle earlier or later by the same amount; the format stays the same."], [
         Option("seconds", "Seconds (+ later, − earlier)", "text", "", placeholder="e.g. +2.5 or -1", required=True,
                validate="shift"),
-    ], files))
+    ], shiftable))
     return offers
 
 
@@ -445,10 +449,16 @@ def ebook_offers(files: list[Path]) -> list[Offer]:
 
 def font_offers(files: list[Path]) -> list[Offer]:
     desk = [p for p in files if p.suffix.lower() in (".ttf", ".otf")]
-    web = [p for p in files if p.suffix.lower() in (".woff", ".eot")]
+    web = [p for p in files if p.suffix.lower() in (".woff", ".woff2", ".eot")]
     offers = []
+    to_woff2 = [p for p in files if p.suffix.lower() != ".woff2"]
+    to_woff = [p for p in files if p.suffix.lower() != ".woff"]
+    if to_woff2:
+        offers.append(_offer(FONT_WOFF2, "smallest for web pages", [
+            "The web's smallest font format; every glyph is checked against the original."], [], to_woff2))
+    if to_woff:
+        offers.append(_offer(FONT_WOFF, "for web pages", ["Every table copied exactly, compressed."], [], to_woff))
     if desk:
-        offers.append(_offer(FONT_WOFF, "for web pages", ["Every table copied exactly, compressed."], [], desk))
         offers.append(_offer(FONT_EOT, "old Internet Explorer", ["Every table copied exactly."], [], desk))
     if web:
         offers.append(_offer(FONT_SFNT, "install on a PC", ["An installable desktop font, every table exact."], [],

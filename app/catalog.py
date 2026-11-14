@@ -469,9 +469,7 @@ def offers_for(paths: list[Path], s: Settings) -> tuple[list[Offer], list[Path]]
 
 _COMING = {
     "Kindle book": {".azw", ".azw3", ".kfx"},
-    "WOFF2 font": {".woff2"},
     "AutoCAD DWG drawing": {".dwg"},
-    "subtitle file": {".scc"},
 }
 _NEVER = {
     "program": {".exe", ".msi", ".dll", ".bat", ".cmd", ".ps1", ".sys", ".com", ".scr"},

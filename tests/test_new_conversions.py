@@ -546,3 +546,91 @@ def test_shapefile_in_an_unknown_projection_is_refused(tmp_path):
     shp = _shapefile(tmp_path, [(1, [[(700000.0, 6600000.0)]])], [{"NAME": "Paris", "POP": 2}], prj=lambert)
     res = convert([shp], "GeoJSON", ok=False)
     assert "Lambert_93" in res["error"]
+
+
+# ---------------------------------------------------------------- SCC closed captions (TV captions) into subtitles
+
+def _scc_word(b1: int, b2: int) -> str:
+    odd = lambda b: b | (0x80 if bin(b).count("1") % 2 == 0 else 0)  # noqa: E731 - each byte has odd parity
+    return f"{odd(b1):02x}{odd(b2):02x}"
+
+
+def _scc_text(s: str) -> list[str]:
+    s = s + ("\0" if len(s) % 2 else "")
+    return [_scc_word(ord(s[i]), ord(s[i + 1]) if s[i + 1] != "\0" else 0) for i in range(0, len(s), 2)]
+
+
+def _scc(path: Path, body: list[tuple[str, list[str]]]) -> Path:
+    lines = ["Scenarist_SCC V1.0", ""]
+    for tc, words in body:
+        lines += [f"{tc}\t{' '.join(words)}", ""]
+    path.write_text("\n".join(lines), encoding="ascii")
+    return path
+
+
+def test_scc_pop_on_captions_to_srt(tmp_path):
+    RCL, ENM, EOC, EDM, PAC15 = (0x14, 0x20), (0x14, 0x2E), (0x14, 0x2F), (0x14, 0x2C), (0x14, 0x70)
+    twice = lambda c: [_scc_word(*c), _scc_word(*c)]  # noqa: E731 - commands are sent twice
+    src = _scc(tmp_path / "show.scc", [
+        ("00:00:01;00", twice(RCL) + twice(ENM) + twice(PAC15) + _scc_text("Hello there.") + twice(EOC)),
+        ("00:00:04;00", twice(RCL) + twice(ENM) + twice(PAC15) + [_scc_word(0x11, 0x37)] + _scc_text(" Music ")
+         + [_scc_word(0x11, 0x37)] + twice(EOC)),
+        ("00:00:06;00", _scc_text("Cafe") + [_scc_word(0x12, 0x21)] + twice(EDM)),  # é replaces e, then the screen clears
+    ])
+    from app.engines.subtitle import parse
+
+    out = convert([src], "SRT")["path"]
+    cues = parse(out.read_text(encoding="utf-8"), "srt")
+    assert [c[2] for c in cues] == ["Hello there.", "♪ Music ♪"]
+    assert abs(cues[0][0] - 1450) < 120 and abs(cues[0][1] - cues[1][0]) <= 1  # shown on End Of Caption, ~1.45 s
+    assert abs(cues[1][1] - 6200) < 200  # until the screen is erased
+
+
+def test_scc_roll_up_lines(tmp_path):
+    RU2, CR = (0x14, 0x25), (0x14, 0x2D)
+    twice = lambda c: [_scc_word(*c), _scc_word(*c)]  # noqa: E731
+    src = _scc(tmp_path / "news.scc", [
+        ("00:00:10:00", twice(RU2) + _scc_text("FIRST LINE") + twice(CR)),
+        ("00:00:12:00", _scc_text("SECOND LINE") + twice(CR)),
+    ])
+    out = convert([src], "WebVTT")["path"]
+    text = out.read_text(encoding="utf-8")
+    assert "FIRST LINE" in text and "SECOND LINE" in text
+
+
+def test_not_an_scc_file(tmp_path):
+    bad = tmp_path / "x.scc"
+    bad.write_text("hello", encoding="ascii")
+    assert "Scenarist" in convert([bad], "SRT", ok=False)["error"]
+
+
+# ---------------------------------------------------------------- WOFF2 web fonts
+
+@pytest.fixture
+def arial(tmp_path):
+    import os
+    import shutil
+
+    src = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts" / "arial.ttf"
+    if not src.exists():
+        pytest.skip("Arial isn't on this PC")
+    dst = tmp_path / "Arial.ttf"
+    shutil.copyfile(src, dst)
+    return dst
+
+
+def test_woff2_round_trip(arial, tmp_path):
+    res = convert([arial], "WOFF2")
+    woff2 = res["path"]
+    assert woff2.read_bytes()[:4] == b"wOF2" and woff2.stat().st_size < arial.stat().st_size * 0.7
+    assert "every glyph" in res["notes"][0]
+    back = convert([woff2], "TTF / OTF")["path"]
+    from fontTools.ttLib import TTFont
+
+    a, b = TTFont(str(arial)), TTFont(str(back))
+    assert a.getGlyphOrder() == b.getGlyphOrder() and a.getBestCmap() == b.getBestCmap()
+
+
+def test_woff_to_woff2(arial):
+    woff = convert([arial], "WOFF")["path"]
+    assert convert([woff], "WOFF2")["path"].read_bytes()[:4] == b"wOF2"

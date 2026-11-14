@@ -11,6 +11,10 @@
 - **History:** the tray menu's **History…** lists your recent conversions, newest first, each with Open, Show in
   folder and **Convert again** (the picker opens for the same originals). It's kept on this PC only and can be
   cleared at any time.
+- **SCC captions:** TV-style closed caption files (.scc) become SRT, WebVTT, ASS, SAMI, TTML, LRC or MicroDVD
+  subtitles, with their timing (pop-on, roll-up and paint-on captions, special and accented characters).
+- **WOFF2 fonts:** TTF, OTF and WOFF fonts become WOFF2, the web's smallest font format, and WOFF2 fonts become
+  installable TTF / OTF again. Every glyph is compared with the original.
 
 ## 1.15.2
 
