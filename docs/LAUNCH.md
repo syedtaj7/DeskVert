@@ -9,7 +9,7 @@ What's ready, and what needs you (an account, a payment, or a public post).
 - In the app: **Report a problem** (names and folders hidden), Reduce motion, undo, low processor use.
 - On GitHub: issue forms (`.github/ISSUE_TEMPLATE`), [SECURITY.md](../SECURITY.md), [PRIVACY.md](../PRIVACY.md),
   install notes with system requirements and checksums in the README.
-- winget: manifests for the latest release in `packaging/winget/` (validated with `winget validate`).
+- winget: manifests for the latest release in `packaging/winget/` (validated with `winget validate`); 1.16.0 submitted as microsoft/winget-pkgs#480353.
   For a new release: `python tools/winget_manifest.py <version>`.
 
 ## Needs you
