@@ -50,7 +50,8 @@ jobs:
       - name: Self-test the built app
         shell: pwsh
         run: |
-          $out = Join-Path $env:RUNNER_TEMP "selftest"
+          # the usual Windows temp folder: Windows' sound converter can't open files in the runner's own temp folder
+          $out = Join-Path $env:TEMP "deskvert-selftest"
           $p = Start-Process -FilePath "dist/Deskvert/Deskvert.exe" -ArgumentList "--selftest", "`"$out`"" -Wait -PassThru
           $report = Join-Path $out "selftest.json"
           if (-not (Test-Path $report)) { throw "The built app didn't write a self-test report (exit code $($p.ExitCode))" }
