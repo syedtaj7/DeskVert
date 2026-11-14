@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Smaller download:** the installer is about 3.5 MB smaller and the portable zip about 9 MB smaller, with the
+  new features included. Parts Deskvert never used are left out of the build.
 - **Shapefile maps:** .shp files (with the .dbf, .prj and .cpg beside them) become KML, GeoJSON, GPX, KMZ, CSV
   or Excel, with each place's details. Maps in degrees, Web Mercator or UTM are turned into longitude /
   latitude; other projections are refused with a plain message instead of being guessed.

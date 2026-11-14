@@ -40,7 +40,10 @@ a = Analysis(
     hiddenimports=hidden,
     excludes=["tkinter", "pytest", "onnxruntime", "pymupdf4llm", "pymupdf_layout", "pymupdf.layout", "networkx",
               "google.protobuf", "flatbuffers", "PySide6.QtWebEngineCore", "PySide6.QtQuick", "PySide6.QtQml",
-              "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf"],
+              "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtNetwork", "PySide6.QtPdf",
+              # img2pdf only uses pikepdf when it's there and writes PDFs itself otherwise (tested without it);
+              # pywin32's MFC UI and lxml's objectify / schematron aren't used either
+              "pikepdf", "win32ui", "pythonwin", "dde", "lxml.objectify", "lxml.isoschematron"],
     noarchive=False,
 )
 # Not needed: Qt's software OpenGL fallback (Deskvert only draws 2D) and Qt's UI translations (English UI).
@@ -51,6 +54,13 @@ a.datas = [d for d in a.datas if not (d[0].replace("\\", "/").find("/translation
 _HEAVY = ("pymupdf/layout", "onnxruntime", "networkx", "google/protobuf", "flatbuffers", "pymupdf4llm")
 a.datas = [d for d in a.datas if not any(h in d[0].replace("\\", "/").lower() for h in _HEAVY)]
 a.binaries = [b for b in a.binaries if not any(h in b[0].replace("\\", "/").lower() for h in _HEAVY)]
+# A smaller download: MuPDF's C++ headers and link libraries (only for compiling), pikepdf's qpdf, the Qt
+# touch-over-network plugin (the only user of Qt6Network) and two Qt display plugins Windows never uses here
+# (qwindows draws the app; qoffscreen draws pictures in the background).
+_SLIM = ("pymupdf/mupdf-devel", "pikepdf", "qtuiotouchplugin", "qt6network", "platforms/qdirect2d",
+         "platforms/qminimal", "pythonwin", "win32ui")
+a.datas = [d for d in a.datas if not any(h in d[0].replace("\\", "/").lower() for h in _SLIM)]
+a.binaries = [b for b in a.binaries if not any(h in b[0].replace("\\", "/").lower() for h in _SLIM)]
 
 pyz = PYZ(a.pure)
 
