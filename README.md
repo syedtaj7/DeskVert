@@ -14,6 +14,12 @@
 
 <br><br>
 
+<a href="https://deskvert-website.vercel.app/assets/media/deskvert-demo.mp4"><img src="website/assets/media/deskvert-demo.jpg" width="100%" alt="Deskvert's picker open over a HEIC photo in Explorer, WEBP chosen. Click to watch the 20-second demo."></a>
+
+**[▶ Watch the 20-second demo](https://deskvert-website.vercel.app/assets/media/deskvert-demo.mp4)**
+
+<br>
+
 <img src="docs/readme/ticker.svg" width="100%" alt="Examples of what Deskvert does">
 
 **No app to open. No upload. No account.**<br>

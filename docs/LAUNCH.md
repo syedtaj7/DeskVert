@@ -21,12 +21,11 @@ unsigned apps. The release workflow is ready for SignPath Foundation's free sign
 [SIGNING.md](SIGNING.md) (apply, publish the code signing policy, set up the SignPath project, add four values to
 GitHub). Until then releases stay unsigned and work as before.
 
-### 2. Turn on private vulnerability reporting
+### 2. Private vulnerability reporting: done (2026-11-14)
 
-GitHub → the repository → **Settings → Code security → Private vulnerability reporting → Enable**. SECURITY.md
-points people there.
+Turned on; SECURITY.md points people there.
 
-### 3. A few real-world checks
+### 3. A few real-world checks: done (2026-11-14)
 
 - On a PC **without Microsoft Office but with LibreOffice**: convert a DOCX, XLSX and PPTX to PDF.
 - **Firefox**: hold Ctrl + Shift and drag a picture, a link and selected text.
@@ -39,12 +38,13 @@ Submit `packaging/winget/manifests/...` as a pull request to
 [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) (or with `wingetcreate submit`). After it's
 merged: `winget install Syedtaj7.Deskvert`. Each new release needs a new manifest PR.
 
-### 5. Repository page
+### 5. Repository page and website: done (2026-11-14)
 
-Description, topics (converter, pdf, heic, windows...), a social preview image (Settings → General), and
-optionally a small website with GitHub Pages.
+Description, topics and social preview image are set. The website is https://deskvert-website.vercel.app,
+verified in Google Search Console with its sitemap submitted.
 
 ### 6. Announce
 
 Where people look for small Windows tools: r/software, r/Windows11, r/opensource, AlternativeTo, Product Hunt,
-Hacker News "Show HN". A short screen recording of select → Ctrl + Shift → pick helps most.
+Hacker News "Show HN". Drafts are in [LAUNCH-POSTS.md](LAUNCH-POSTS.md); post them once releases are signed.
+The 20-second video for posts is `website/assets/media/deskvert-demo.mp4` (made by `tools/make_promo.py`).
