@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.15.1
 
 - **Updates always install from inside Deskvert:** Check for updates now downloads and installs the new version
   right in the app (checked against GitHub's checksum) instead of ever sending you to the download page. A copy
