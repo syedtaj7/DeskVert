@@ -126,6 +126,34 @@ def test_page_link_becomes_a_shortcut_with_page_actions(tmp_path):
     assert labels[:5] == ["Page as PDF", "Article as PDF", "All pictures", "Page as picture", "QR code"]
 
 
+def test_the_same_page_tapped_again_reuses_its_shortcut(tmp_path):
+    first = dropread._page_shortcut("https://news.example.org/a", "Story", tmp_path)
+    again = dropread._page_shortcut("https://news.example.org/a", "Story", tmp_path)
+    other = dropread._page_shortcut("https://news.example.org/b", "Story", tmp_path)
+    assert again == first and other.name == "Story (1).url"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["Story (1).url", "Story.url"]
+
+
+def test_the_same_selection_tapped_again_reuses_its_clip(tmp_path):
+    d = dropread.Dropped(html="<p>Hello there</p>", source="https://example.org/p", clip=True)
+    first = dropread.save_clip(d, tmp_path)
+    assert dropread.save_clip(d, tmp_path) == first
+    changed = dropread.Dropped(html="<p>Something else</p>", source="https://example.org/p", clip=True)
+    assert dropread.save_clip(changed, tmp_path) != first
+
+
+def test_a_selection_that_is_only_a_link_is_used_as_the_link():
+    src = "https://blog.example.org/post"
+    assert dropread.only_link('<a href="/files/report.pdf">Report</a>', src) == "https://blog.example.org/files/report.pdf"
+    assert dropread.only_link(' <a href="https://x.org/page?a=1&amp;b=2">The page</a>. ', src) == "https://x.org/page?a=1&b=2"
+    # more than the link, two links, a picture, or no web address: still a clip
+    assert dropread.only_link('Read <a href="/a">this</a> first', src) == ""
+    assert dropread.only_link('<a href="/a">one</a> <a href="/b">two</a>', src) == ""
+    assert dropread.only_link('<a href="/a">one</a><img src="x.png">', src) == ""
+    assert dropread.only_link('<a href="javascript:void(0)">menu</a>', src) == ""
+    assert dropread.only_link("<p>no link</p>", src) == ""
+
+
 def test_browser_link_blob_and_file_links(server, tmp_path):
     base, _small, _big = server
     shortcut = f"[InternetShortcut]\r\nURL={base}/doc.pdf\r\n".encode()

@@ -307,6 +307,19 @@ def link_text(fragment: str) -> str:
     return " ".join(re.sub(r"<[^>]+>", " ", html.unescape(m.group(1))).split())[:100] if m else ""
 
 
+def only_link(fragment: str, source: str = "") -> str:
+    """The address when a selection is just one link (its own text and nothing else), otherwise ''.
+    Selecting a link and tapping Ctrl + Shift then works on what it points to, not on its words."""
+    links = re.findall(r"<a\b[^>]*?\bhref\s*=\s*([\"'])(.*?)\1", fragment or "", re.I | re.S)
+    if len(links) != 1:
+        return ""
+    rest = re.sub(r"<a\b.*?</a>", " ", fragment, count=1, flags=re.I | re.S)
+    if visible_text(rest).strip(" .,;:!?-–—|()[]\"'«»") or "<img" in rest.lower():
+        return ""  # more than the link was selected: keep it as a clip
+    url = urllib.parse.urljoin(source, html.unescape(links[0][1]).strip()) if source else html.unescape(links[0][1]).strip()
+    return url if re.match(r"^https?://", url, re.I) else ""
+
+
 PAGE_EXTS = {"", ".html", ".htm", ".php", ".asp", ".aspx", ".jsp", ".cfm", ".shtml", ".xhtml"}
 
 
@@ -598,6 +611,11 @@ def _page_shortcut(url: str, title: str, folder: Path | None) -> Path:
         if not target.exists():
             write_url(target, url)
             return target
+        try:
+            if _url_in(target.read_bytes()) == url:
+                return target  # this page was tapped before: the same shortcut, not another copy of it
+        except OSError:
+            continue
     raise DropError("Couldn't find a free file name in Downloads\\Deskvert.")
 
 
@@ -615,7 +633,22 @@ def _clip_file(dropped: Dropped, folder: Path | None) -> Path:
             '<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:860px;margin:32px auto;line-height:1.5}'
             "table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head><body>\n"
             f"{dropped.html}\n{source}\n</body></html>\n")
-    return save(f"{title} {time.strftime('%Y-%m-%d %H.%M')}.html", page.encode("utf-8"), folder)
+    data = page.encode("utf-8")
+    name = f"{title} {time.strftime('%Y-%m-%d %H.%M')}.html"
+    from .safe_write import candidate_names
+
+    folder = folder or downloads_dir()
+    stem, ext = os.path.splitext(clean_name(name, data))
+    for candidate in candidate_names(stem, ext):  # the same selection tapped again: the clip saved a moment ago
+        target = folder / candidate
+        if not target.exists():
+            break
+        try:
+            if target.read_bytes() == data:
+                return target
+        except OSError:
+            break
+    return save(name, data, folder)
 
 
 def save_clip(dropped: Dropped, folder: Path | None = None) -> Path:

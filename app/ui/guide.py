@@ -225,6 +225,9 @@ def build_guide_sections(sections: Sections) -> list[str]:
                           "PDF, as one long picture, or as a QR code. It uses the Edge or Chrome already on your "
                           "PC, with a fresh, empty profile (no cookies), so pages behind a sign-in show the "
                           "sign-in page."),
+        ("Point at a link", f"With the pointer on a link, tap {keys_html('Ctrl', 'Shift')}: Deskvert uses what the "
+                            "link points to. A link to a PDF, picture or other file fetches that file; a link to a "
+                            "page gives that page's options. Selecting just a link works the same way."),
         ("Just the article", "Also on the browser tap: <b>Article as PDF</b> keeps the headline, text and pictures "
                              "and leaves out menus, ads, cookie banners and comments."),
         ("All pictures on a page", "<b>All pictures</b> saves every picture on the page at the biggest size it "

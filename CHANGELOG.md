@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Links in the browser:** point at a link and tap Ctrl + Shift to use what it points to: a link to a PDF,
+  picture or other file fetches that file, and a link to a page gives that page's options. Selecting just a link
+  works the same way (it used to save the link's words).
+- **No more copies:** tapping Ctrl + Shift again on the same page or selection reuses what was saved a moment ago
+  instead of adding "(1)", "(2)"… to Downloads\Deskvert.
 - **Support Deskvert:** a button on the About page opens Deskvert's GitHub Sponsors page.
 
 ## 1.14.0
