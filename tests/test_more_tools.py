@@ -82,6 +82,27 @@ def test_video_frames_sheet(tmp_path):
         assert im.width > 3 * 160 and im.height > 3 * 120
 
 
+def test_video_to_gif(tmp_path):
+    video = make_avi(tmp_path / "Lake.avi", n=40)  # 4 seconds at 10 pictures a second
+    gif = run([video], "GIF", {"start": "0:01", "length": "3 seconds", "size": "Small (320 px wide)"})["path"]
+    assert gif.name == "Lake.gif"
+    with Image.open(gif) as im:
+        assert im.size == (160, 120)  # never bigger than the video itself
+        assert im.info.get("loop") == 0
+        total = 0
+        for i in range(im.n_frames):
+            im.seek(i)
+            total += im.info["duration"]
+        assert 2500 <= total <= 3100  # three seconds
+        im.seek(0)
+        first = im.convert("RGB").getpixel((80, 10))[0]
+        im.seek(im.n_frames - 1)
+        last = im.convert("RGB").getpixel((80, 10))[0]
+    assert 70 <= first <= 95 and last > first + 150  # from 1 s (red 80) on, getting redder: right moments
+    res = run([video], "GIF", {"start": "0:09"}, ok=False)
+    assert not res["ok"] and "earlier start" in res["error"]
+
+
 def test_trim_keeps_only_the_part_you_pick(tmp_path):
     src = tmp_path / "Talk.wav"
     with wave.open(str(src), "wb") as w:

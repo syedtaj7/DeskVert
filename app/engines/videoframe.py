@@ -5,6 +5,7 @@ you picked); nothing is re-encoded, so it's quick even on a slow laptop.
 
 - frame: one moment as a JPG (the first frame, a tenth in, the middle, three quarters in).
 - sheet: nine moments in a 3 x 3 grid with their times, like a contact sheet.
+- gif: a few seconds as a small looping GIF (10 pictures a second), for chats and documents.
 
 The picture is opened again and must have the video's size (or the sheet's).
 """
@@ -161,24 +162,55 @@ class Reader:
         if not last:
             raise ConversionError("No picture could be read at that moment of the video.")
         try:
-            buf = c_void_p()
-            _call(last, 41, byref(buf), types=(POINTER(c_void_p),))
-            try:
-                ptr, maxlen, curlen = c_void_p(), c_uint32(), c_uint32()
-                _call(buf, 3, byref(ptr), byref(maxlen), byref(curlen), types=(c_void_p, c_void_p, c_void_p))
-                try:
-                    raw = ctypes.string_at(ptr, curlen.value)
-                finally:
-                    _call(buf, 4)
-            finally:
-                _release(buf)
+            return self._picture(last)
         finally:
             _release(last)
+
+    def _picture(self, sample):
+        """A decoded sample as a PIL image (the sample itself is released by the caller)."""
+        from PIL import Image
+
+        buf = c_void_p()
+        _call(sample, 41, byref(buf), types=(POINTER(c_void_p),))
+        try:
+            ptr, maxlen, curlen = c_void_p(), c_uint32(), c_uint32()
+            _call(buf, 3, byref(ptr), byref(maxlen), byref(curlen), types=(c_void_p, c_void_p, c_void_p))
+            try:
+                raw = ctypes.string_at(ptr, curlen.value)
+            finally:
+                _call(buf, 4)
+        finally:
+            _release(buf)
         stride = abs(self.stride) or self.width * 4
         if len(raw) < stride * self.height:
             raise ConversionError("Windows returned an incomplete picture for this video.")
         img = Image.frombuffer("RGB", (self.width, self.height), raw, "raw", "BGRX", stride, -1 if self.stride < 0 else 1)
         return img.copy()
+
+    def frames(self, start: float, seconds: float, fps: float):
+        """(time, picture) every 1/fps seconds from `start` for `seconds`, read in order: one jump to the key
+        frame before `start`, then forward. Only this stretch of the video is decoded."""
+        pv = PROPVARIANT()
+        pv.vt, pv.val = VT_I8, int(max(0.0, start) * 1e7)
+        _call(self.reader, 8, byref(GUID_NULL), byref(pv), types=(c_void_p, c_void_p))
+        step, want, end = 1.0 / fps, max(0.0, start), start + seconds
+        for _ in range(int((seconds + 30) * 120)):  # never an endless walk, even for odd files
+            index, flags, stamp, sample = c_uint32(), c_uint32(), c_int64(), c_void_p()
+            _call(self.reader, 9, c_uint32(FIRST_VIDEO), c_uint32(0), byref(index), byref(flags), byref(stamp),
+                  byref(sample), types=(c_uint32, c_uint32, c_void_p, c_void_p, c_void_p, c_void_p))
+            if sample:
+                t = stamp.value / 1e7
+                try:
+                    if t >= end:
+                        break
+                    if t + 0.02 >= want:
+                        yield t, self._picture(sample)
+                        while want <= t + 0.02:
+                            want += step
+                finally:
+                    _release(sample)
+            if flags.value & END_OF_STREAM:
+                break
 
     def close(self):
         _release(self.reader)
@@ -221,6 +253,58 @@ def _sheet(reader: Reader):
     return sheet
 
 
+GIF_FPS = 10
+GIF_LENGTHS = {"3 seconds": 3.0, "5 seconds": 5.0, "10 seconds": 10.0}
+GIF_SIZES = {"Small (320 px wide)": 320, "Medium (480 px wide)": 480, "Large (640 px wide)": 640}
+
+
+def _gif(reader: Reader, out: Path, opts: dict) -> list[str]:
+    """A short looping GIF of a stretch of the video: 10 pictures a second, made smaller first."""
+    from PIL import Image
+
+    from .media import parse_time
+
+    try:
+        start = parse_time(str(opts.get("start") or "0:00"))
+    except ValueError as e:
+        raise ConversionError(str(e)) from e
+    length = GIF_LENGTHS.get(str(opts.get("length", "5 seconds")), 5.0)
+    width = min(GIF_SIZES.get(str(opts.get("size", "Medium (480 px wide)")), 480), reader.width)
+    if reader.duration and start >= reader.duration - 0.05:
+        raise ConversionError(f"The video is only {_stamp(reader.duration)} long: pick an earlier start.")
+    if reader.duration:
+        length = min(length, reader.duration - start)
+    height = max(2, round(width * reader.height / reader.width))
+    pictures = []
+    for _t, frame in reader.frames(start, length, GIF_FPS):
+        pictures.append(frame.resize((width, height), Image.LANCZOS))
+        if len(pictures) >= max(1, round(length * GIF_FPS)):
+            break
+    if not pictures:
+        raise ConversionError("No pictures could be read from that part of the video.")
+    # one shared palette from a few moments keeps the colours steady from picture to picture
+    picks = pictures[:: max(1, len(pictures) // 4)][:4]
+    probe = Image.new("RGB", (width, height * len(picks)))
+    for i, pic in enumerate(picks):
+        probe.paste(pic, (0, i * height))
+    palette = probe.quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+    frames = [p.quantize(palette=palette, dither=Image.Dither.FLOYDSTEINBERG) for p in pictures]
+    frames[0].save(long_path(out), "GIF", save_all=True, append_images=frames[1:], duration=int(1000 / GIF_FPS),
+                   loop=0, optimize=False, disposal=1)
+    with Image.open(long_path(out)) as back:  # identical pictures in a row are stored once, shown longer
+        total = 0
+        for i in range(getattr(back, "n_frames", 1)):
+            back.seek(i)
+            total += back.info.get("duration", 0)
+        if back.size != (width, height) or abs(total - len(frames) * 1000 / GIF_FPS) > 1000 / GIF_FPS:
+            raise VerificationError("the GIF came out with the wrong size or length")
+    size_kb = Path(long_path(out)).stat().st_size // 1024
+    secs = len(frames) / GIF_FPS
+    return [f"Checked: {secs:.1f} seconds from {_stamp(start)}, {len(frames)} pictures, {width}×{height} px, "
+            f"{size_kb:,} KB. It loops, with no sound (GIFs have none).",
+            "Only this part of the video was decoded; the video itself wasn't touched."]
+
+
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     from PIL import Image
 
@@ -237,6 +321,8 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
             img = _sheet(reader)
             note = f"Nine moments across {_stamp(reader.duration)}, each with its time."
             want = img.size
+        elif fmt == "gif":
+            return _gif(reader, out, opts)
         else:
             raise ConversionError(f"Unknown video picture: {fmt}")
     finally:

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Video to GIF:** a video's new **GIF** option turns 3, 5 or 10 seconds (from the moment you pick) into a
+  small looping GIF for chats and documents, 10 pictures a second. Only that part of the video is decoded, so it
+  takes a few seconds even on a slow laptop.
 - **PDF to Word:** a PDF's new **DOCX** option makes an editable Word document with its headings, bold and
   italic, lists, pictures and tables, a page at a time. Made by Deskvert itself, so it works without Microsoft
   Office, and every word is checked against the PDF. Scanned PDFs need Read text first.
