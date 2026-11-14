@@ -1,17 +1,17 @@
 # Windows file details for Deskvert.exe (Properties > Details).
 VSVersionInfo(
-  ffi=FixedFileInfo(filevers=(1, 15, 1, 0), prodvers=(1, 15, 1, 0), mask=0x3f, flags=0x0, OS=0x40004,
+  ffi=FixedFileInfo(filevers=(1, 15, 2, 0), prodvers=(1, 15, 2, 0), mask=0x3f, flags=0x0, OS=0x40004,
                     fileType=0x1, subtype=0x0, date=(0, 0)),
   kids=[
     StringFileInfo([StringTable('040904B0', [
       StringStruct('CompanyName', 'Deskvert'),
       StringStruct('FileDescription', 'Deskvert - convert files with a tap of Ctrl + Shift'),
-      StringStruct('FileVersion', '1.15.1'),
+      StringStruct('FileVersion', '1.15.2'),
       StringStruct('InternalName', 'Deskvert'),
       StringStruct('LegalCopyright', 'GNU AGPL-3.0'),
       StringStruct('OriginalFilename', 'Deskvert.exe'),
       StringStruct('ProductName', 'Deskvert'),
-      StringStruct('ProductVersion', '1.15.1')])]),
+      StringStruct('ProductVersion', '1.15.2')])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]
 )

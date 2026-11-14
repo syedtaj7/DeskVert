@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.15.2
 
 - **Sound from videos whose sound ends early:** taking the sound from a video no longer fails with "the new file
   is 20.6 s long, the original 22.4 s" when the video's sound track is shorter than its picture. The result is
