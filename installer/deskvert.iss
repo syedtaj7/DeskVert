@@ -48,6 +48,11 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 [Files]
 Source: "..\dist\Deskvert\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+; Updating: the old program files go first, so nothing a newer version no longer has is left behind
+; (a leftover library folder once broke pictures to PDF; issue #35). Settings and logs live elsewhere.
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Icons]
 Name: "{userprograms}\Deskvert"; Filename: "{app}\Deskvert.exe"
 Name: "{userprograms}\Uninstall Deskvert"; Filename: "{uninstallexe}"; Comment: "Remove Deskvert from this PC"

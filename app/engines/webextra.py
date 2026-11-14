@@ -14,14 +14,13 @@ from __future__ import annotations
 
 import html
 import re
-import subprocess
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from ..errors import ConversionError, VerificationError
 from ..paths import long_path
-from .webpage import CREATE_NO_WINDOW, find_browser, read_url, to_pdf
+from .webpage import read_url, to_pdf
 
 MAX_PICTURES = 150
 MAX_PICTURE_BYTES = 30 * 1024 * 1024
@@ -38,22 +37,10 @@ NOISE = re.compile(r"(^|[\s_-])(ads?|advert\w*|banner|cookie\w*|consent|promo\w*
 
 def dump_dom(url: str, workdir: Path, timeout: int = 90) -> str:
     """The page's HTML after the browser has run it (what you'd see), in a private, empty profile."""
-    exe = find_browser()
-    if exe is None:
-        raise ConversionError("This needs Microsoft Edge or Google Chrome, and neither is installed.")
-    profile = workdir / "browser-profile"
-    profile.mkdir(parents=True, exist_ok=True)
-    cmd = [exe, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-           "--disable-extensions", "--disable-sync", "--mute-audio", f"--user-data-dir={profile}",
-           "--virtual-time-budget=10000", "--dump-dom", url]
-    try:
-        r = subprocess.run(cmd, timeout=timeout, capture_output=True, creationflags=CREATE_NO_WINDOW, check=False)
-    except subprocess.TimeoutExpired as e:
-        raise ConversionError("The page took too long to load (over 90 seconds).") from e
-    page = r.stdout.decode("utf-8", errors="replace")
-    if "<" not in page:
-        raise ConversionError("The browser couldn't open that page. Check the address and your internet connection.")
-    return page
+    from .webpage import run_browser
+
+    r = run_browser(["--dump-dom", url], lambda res: b"<" in (res.stdout or b""), workdir, timeout)
+    return r.stdout.decode("utf-8", errors="replace")
 
 
 def _best_from_srcset(srcset: str, base: str) -> tuple[str, float]:

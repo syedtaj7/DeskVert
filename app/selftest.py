@@ -256,6 +256,12 @@ def run(folder: Path) -> int:
         # 1.12: from the browser (saved page tables, QR codes for links, website icons)
         case([extras["page"]], "Tables", name="html table->Tables (XLSX)")
         case([extras["link"]], "QR code", name="url->QR code")
+        # selected text from a page, saved as a PDF by the PC's own Edge or Chrome (issue #33)
+        from . import dropread
+
+        clip = dropread.save_clip(dropread.Dropped(html="<h1>Clip</h1><p>Some selected words from a page.</p>",
+                                                   source="https://example.org/page", clip=True), folder / "samples")
+        case([clip], "PDF", name="web clip->PDF (Edge or Chrome)")
         case([samples / "Sunset.png"], "Website icons", name="png->Website icons")
         # 1.13: video stills, trimming, signing, renaming (Windows' own decoders, nothing re-encoded)
         case([_avi(folder / "samples" / "Clip.avi")], "Picture", name="avi->Picture (video still)")

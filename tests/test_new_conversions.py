@@ -762,3 +762,17 @@ def test_kindle_book_to_epub_pdf_and_text(tmp_path):
 def test_locked_kindle_book_says_so(tmp_path):
     book = _azw3(tmp_path / "Bought.azw3", "<p>secret</p>", drm=True)
     assert "DRM" in convert([book], "PDF", ok=False)["error"]
+
+
+def test_pictures_to_pdf_ignore_a_leftover_pikepdf(tmp_path, monkeypatch):
+    """Issue #35: an older install left an empty pikepdf folder behind; img2pdf found it and crashed."""
+    import types
+
+    import img2pdf
+
+    monkeypatch.setattr(img2pdf, "pikepdf", types.ModuleType("pikepdf"), raising=False)  # no .new(), like the leftover
+    monkeypatch.setattr(img2pdf, "have_pikepdf", True, raising=False)
+    src = tmp_path / "photo.jpg"
+    Image.new("RGB", (300, 200), "teal").save(src)
+    res = convert([src], "PDF")
+    assert res["path"].read_bytes()[:5] == b"%PDF-"

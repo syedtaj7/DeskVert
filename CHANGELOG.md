@@ -20,6 +20,13 @@
 - **Kindle books:** AZW3 and AZW books that aren't DRM-locked become PDF, EPUB or plain text, with their
   pictures, without Kindle software. Books locked with Amazon's DRM get a plain message instead.
 
+### Fixes
+- **Pictures to PDF after updating** (issue #35): a library folder left behind by an older version made pictures
+  to PDF fail. Setup now clears out the old program files before installing, and Deskvert always uses its own PDF
+  writer for pictures.
+- **Saving web pages** (issue #33): when Edge quits without saving a page, Deskvert tries again with a fresh
+  profile and Edge's other mode, then with Chrome if it's installed, and notes what the browser said in the log.
+
 ## 1.15.2
 
 - **Sound from videos whose sound ends early:** taking the sound from a video no longer fails with "the new file

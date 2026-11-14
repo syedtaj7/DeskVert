@@ -85,11 +85,11 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     import img2pdf
 
     try:
-        Path(long_path(out)).write_bytes(img2pdf.convert(pic))
+        Path(long_path(out)).write_bytes(img2pdf.convert(pic, engine=img2pdf.Engine.internal))
     except Exception:  # noqa: BLE001 - a preview img2pdf can't take as-is: re-save it first
         buf = io.BytesIO()
         Image.open(io.BytesIO(pic)).convert("RGB").save(buf, "JPEG", quality=92)
-        Path(long_path(out)).write_bytes(img2pdf.convert(buf.getvalue()))
+        Path(long_path(out)).write_bytes(img2pdf.convert(buf.getvalue(), engine=img2pdf.Engine.internal))
     with pymupdf.open(long_path(out)) as d:
         if d.page_count != 1:
             raise VerificationError("the PDF should have one page")
