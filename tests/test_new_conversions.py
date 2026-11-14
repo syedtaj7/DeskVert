@@ -691,3 +691,74 @@ def test_dwg_without_the_converter_says_what_to_install(tmp_path, monkeypatch):
     offers, _ = offers_for([dwg], Settings())
     assert not [o for o in offers if o.target.engine == "cad"]
     assert "ODA File Converter" in explain_unsupported([dwg])[1]
+
+
+# ---------------------------------------------------------------- Kindle books (AZW3 / KF8)
+
+def _palmdoc(text: bytes) -> bytes:
+    """PalmDOC as Kindle tools write it: plain bytes, odd bytes escaped in short literal runs."""
+    out = bytearray()
+    for b in text:
+        out += bytes([b]) if (b == 0 or 0x09 <= b <= 0x7F) else bytes([1, b])
+    return bytes(out)
+
+
+def _azw3(path: Path, html: str, picture: bytes | None = None, drm: bool = False) -> Path:
+    import struct
+
+    data = html.encode("utf-8")
+    chunks = [data[i:i + 4096] for i in range(0, len(data), 4096)]
+    text_recs = [_palmdoc(c) + b"\x00" + b"\x99\x82" for c in chunks]  # + multibyte byte + a 2-byte trailing entry
+    title = b"A Small Book"
+    mobi = bytearray(0xE8)
+    mobi[0:4] = b"MOBI"
+    struct.pack_into(">III", mobi, 4, 0xE8, 2, 65001)
+    struct.pack_into(">I", mobi, 20, 8)  # KF8
+    rec0 = bytearray(struct.pack(">HHIHHHH", 2, 0, len(data), len(text_recs), 4096, 2 if drm else 0, 0)) + mobi
+    name_off = len(rec0)
+    rec0 += title + b"\0\0"
+    struct.pack_into(">II", rec0, 84, name_off, len(title))
+    struct.pack_into(">I", rec0, 108, 1 + len(text_recs) if picture else 0xFFFFFFFF)
+    struct.pack_into(">H", rec0, 242, 0b11)  # trailing entries: multibyte + one more
+    records = [bytes(rec0)] + text_recs + ([picture] if picture else [])
+    head = bytearray(78)
+    head[0:12] = b"A_Small_Book"
+    head[60:68] = b"BOOKMOBI"
+    struct.pack_into(">H", head, 76, len(records))
+    offset = 78 + 8 * len(records) + 2
+    table = b""
+    for i, r in enumerate(records):
+        table += struct.pack(">II", offset, i)
+        offset += len(r)
+    path.write_bytes(bytes(head) + table + b"\0\0" + b"".join(records))
+    return path
+
+
+def test_palmdoc_back_references():
+    from app.engines.kindle import palmdoc_decompress
+
+    assert palmdoc_decompress(b"abc\x80\x18") == b"abcabc"  # copy 3 bytes from 3 back
+    assert palmdoc_decompress(b"a\xe2") == b"a b"  # a space and a letter in one byte
+
+
+def test_kindle_book_to_epub_pdf_and_text(tmp_path):
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 40), "teal").save(buf, "PNG")
+    chapters = "".join(f"<h1>Chapter {n}</h1><p>{'The quick brown fox jumps over the lazy dog. ' * 60}</p>"
+                       "<mbp:pagebreak/>" for n in (1, 2, 3))
+    html = ('<html><head><title>x</title></head><body>' + chapters +
+            '<p><img src="kindle:embed:0001?mime=image/png"/></p><p>Café ending ✓</p></body></html>')
+    book = _azw3(tmp_path / "A Small Book.azw3", html, buf.getvalue())
+    epub = convert([book], "EPUB")["path"]
+    with zipfile.ZipFile(epub) as z:
+        names = z.namelist()
+        text = "".join(z.read(n).decode("utf-8", "ignore") for n in names if n.endswith(".xhtml"))
+    assert "Chapter 3" in text and "Café ending ✓" in text and any(n.endswith(".png") for n in names)
+    assert convert([book], "PDF")["path"].stat().st_size > 1000
+    txt = convert([book], "TXT")["path"].read_text(encoding="utf-8")
+    assert txt.count("lazy dog") == 180 and "Chapter 2" in txt
+
+
+def test_locked_kindle_book_says_so(tmp_path):
+    book = _azw3(tmp_path / "Bought.azw3", "<p>secret</p>", drm=True)
+    assert "DRM" in convert([book], "PDF", ok=False)["error"]

@@ -313,6 +313,15 @@ def to_epub(src: Path, out: Path, notes: list[str]) -> None:
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     notes: list[str] = []
     src = sources[0]
+    if src.suffix.lower() in (".azw", ".azw3"):  # Kindle books: read into one well-formed page first
+        from .kindle import to_html
+
+        page, _title = to_html(src)
+        work = out.parent / "kindle"
+        work.mkdir(parents=True, exist_ok=True)
+        src = work / (re.sub(r"[^\w .-]", "_", sources[0].stem)[:60] + ".xhtml")
+        src.write_text(page, encoding="utf-8")
+        notes.append("Read from the Kindle book without Kindle software.")
     if fmt == "pdf":
         (comic_to_pdf if src.suffix.lower() in COMIC_ARCHIVES else to_pdf)(src, out, notes)
     elif fmt == "txt":

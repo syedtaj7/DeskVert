@@ -34,7 +34,7 @@ def data_kind(p: Path) -> str | None:
     return DATA_EXTS.get(p.suffix.lower())
 SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".smi": "sami", ".sami": "sami",
                  ".lrc": "lrc", ".ttml": "ttml", ".dfxp": "ttml", ".sub": "microdvd", ".scc": "scc"}
-EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
+EBOOK_EXTS = {".epub", ".mobi", ".azw", ".azw3", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
 FONT_EXTS = {".ttf", ".otf", ".woff", ".woff2", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
 DRAWING_EXTS = {".dxf", ".dwg"}

@@ -17,6 +17,8 @@
   installable TTF / OTF again. Every glyph is compared with the original.
 - **AutoCAD DWG drawings:** with the free ODA File Converter installed, DWG drawings become PDF, SVG, PNG or DXF.
   Without it, Deskvert says where to get it.
+- **Kindle books:** AZW3 and AZW books that aren't DRM-locked become PDF, EPUB or plain text, with their
+  pictures, without Kindle software. Books locked with Amazon's DRM get a plain message instead.
 
 ## 1.15.2
 

@@ -289,6 +289,7 @@ def run(folder: Path) -> int:
             font = folder / "samples" / "arial.ttf"
             shutil.copyfile(arial, font)
             case([font], "WOFF", name="arial.ttf->WOFF")
+            case([font], "WOFF2", name="arial.ttf->WOFF2 (fontTools, Brotli)")
     # 1.12: drag and convert (the drop target's COM pieces are bundled; a dropped picture is saved and named)
     try:
         import win32com.server.util  # noqa: F401 - loaded only when the drop circle first appears

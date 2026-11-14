@@ -15,7 +15,7 @@ hidden = [
     "app.engines.config", "app.engines.ics", "app.engines.notebook", "app.engines.hash", "app.dropread", "app.browserurl", "app.browsercopy", "app.engines.clip", "app.engines.webextra", "app.engines.videoframe", "app.engines.libre", "app.engines.msgfile", "app.engines.rename", "app.watch",
     "app.report", "app.ui.report", "app.ui.dropzone", "app.engines.qr", "app.engines.webpage",
     "app.engines.webtable", "app.engines.favicon", "win32com.server.util", "win32com.server.policy",
-    "app.ui.onboarding", "app.engines.imgedit", "app.history", "app.ui.history", "app.engines.pdfword", "app.engines.shapefile", "app.engines.scc", "app.engines.oda",
+    "app.ui.onboarding", "app.engines.imgedit", "app.history", "app.ui.history", "app.engines.pdfword", "app.engines.shapefile", "app.engines.scc", "app.engines.oda", "app.engines.kindle",
     "app.engines.subtitle", "app.engines.ebook", "yaml", "tomllib", "xml.etree.ElementTree",
     "app.engines.geo", "app.engines.font", "app.engines.mesh", "app.engines.cad", "app.engines.mail",
     "app.engines.vector", "lxml", "lxml.html", "lxml.etree", "email", "quopri", "app.engines.media",
