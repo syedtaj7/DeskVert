@@ -15,6 +15,8 @@
   subtitles, with their timing (pop-on, roll-up and paint-on captions, special and accented characters).
 - **WOFF2 fonts:** TTF, OTF and WOFF fonts become WOFF2, the web's smallest font format, and WOFF2 fonts become
   installable TTF / OTF again. Every glyph is compared with the original.
+- **AutoCAD DWG drawings:** with the free ODA File Converter installed, DWG drawings become PDF, SVG, PNG or DXF.
+  Without it, Deskvert says where to get it.
 
 ## 1.15.2
 

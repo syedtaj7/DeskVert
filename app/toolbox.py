@@ -37,7 +37,7 @@ SUBTITLE_EXTS = {".srt": "srt", ".vtt": "vtt", ".ass": "ass", ".ssa": "ass", ".s
 EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".cbz", ".xps", ".oxps", ".cbr", ".cb7", ".cbt"}
 FONT_EXTS = {".ttf", ".otf", ".woff", ".woff2", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
-DRAWING_EXTS = {".dxf"}
+DRAWING_EXTS = {".dxf", ".dwg"}
 MAIL_EXTS = {".eml", ".msg", ".mht", ".mhtml"}
 MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx", ".shp"}
 VECTOR_EXTS = {".ai"}
@@ -230,6 +230,7 @@ MESH_TARGETS = [Target("mesh.stl", "STL", ".stl"), Target("mesh.obj", "OBJ", ".o
                 Target("mesh.3mf", "3MF", ".3mf"), Target("mesh.ply", "PLY", ".ply"),
                 Target("mesh.png", "Picture", ".png", suffix=" (preview)")]
 CAD_TARGETS = [Target("cad.pdf", "PDF", ".pdf"), Target("cad.svg", "SVG", ".svg"), Target("cad.png", "PNG", ".png")]
+CAD_DXF = Target("cad.dxf", "DXF", ".dxf")
 MAIL_TARGETS = [Target("mail.pdf", "PDF", ".pdf"), Target("mail.html", "HTML", ".html"), Target("mail.txt", "TXT", ".txt"),
                 Target("mail.md", "Markdown", ".md")]
 MAIL_ZIP = Target("mail.zip", "Attachments", ".zip", suffix=" (attachments)")
@@ -478,9 +479,22 @@ def model_offers(files: list[Path]) -> list[Offer]:
 
 
 def drawing_offers(files: list[Path]) -> list[Offer]:
-    return [_offer(t, {"pdf": "vector", "svg": "for the web", "png": "picture"}[t.fmt],
-                   ["Drawn without AutoCAD: lines, arcs, text and blocks. Hatch fills aren't drawn."], [], files)
-            for t in CAD_TARGETS]
+    from .engines.oda import find_oda
+
+    dwg = [p for p in files if p.suffix.lower() == ".dwg"]
+    if dwg and find_oda() is None:  # DWG needs the free ODA File Converter: without it, only the DXF files
+        files = [p for p in files if p.suffix.lower() != ".dwg"]
+        dwg = []
+    if not files:
+        return []
+    via = " DWG drawings are read through the free ODA File Converter." if dwg else ""
+    offers = [_offer(t, {"pdf": "vector", "svg": "for the web", "png": "picture"}[t.fmt],
+                     ["Drawn without AutoCAD: lines, arcs, text and blocks. Hatch fills aren't drawn." + via], [], files)
+              for t in CAD_TARGETS]
+    if dwg:
+        offers.append(_offer(CAD_DXF, "open CAD format", ["The drawing as an AutoCAD 2018 DXF, which most CAD and "
+                                                          "design programs open." + via], [], dwg))
+    return offers
 
 
 def mail_offers(files: list[Path]) -> list[Offer]:

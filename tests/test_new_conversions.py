@@ -634,3 +634,60 @@ def test_woff2_round_trip(arial, tmp_path):
 def test_woff_to_woff2(arial):
     woff = convert([arial], "WOFF")["path"]
     assert convert([woff], "WOFF2")["path"].read_bytes()[:4] == b"wOF2"
+
+
+# ---------------------------------------------------------------- DWG drawings (through the ODA File Converter)
+
+PLAN_DXF = "\n".join(["0", "SECTION", "2", "ENTITIES", "0", "LINE", "8", "0", "10", "0", "20", "0", "11", "50", "21",
+                      "0", "0", "CIRCLE", "8", "0", "10", "25", "20", "10", "40", "8", "0", "ENDSEC", "0", "EOF"]) + "\n"
+
+
+@pytest.fixture
+def fake_oda(tmp_path, monkeypatch):
+    """A stand-in for ODAFileConverter.exe with the same command line: in folder, out folder, version, type..."""
+    import sys
+
+    tool = tmp_path / "oda"
+    tool.mkdir()
+    (tool / "plan.dxf").write_text(PLAN_DXF, encoding="utf-8")
+    (tool / "fake_oda.py").write_text(
+        "import sys, pathlib, shutil\n"
+        "src, dst = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n"
+        "assert sys.argv[3:7] == ['ACAD2018', 'DXF', '0', '1'], sys.argv\n"
+        "for f in src.glob('*.dwg'):\n"
+        "    if f.read_bytes().startswith(b'AC10'):\n"
+        "        shutil.copyfile(pathlib.Path(__file__).with_name('plan.dxf'), dst / (f.stem + '.dxf'))\n",
+        encoding="utf-8")
+    cmd = tool / "ODAFileConverter.cmd"
+    cmd.write_text(f'@echo off\r\n"{sys.executable}" "%~dp0fake_oda.py" %*\r\n', encoding="ascii")
+    monkeypatch.setenv("DESKVERT_ODA", str(cmd))
+    return cmd
+
+
+def test_dwg_to_pdf_and_dxf(tmp_path, fake_oda):
+    dwg = tmp_path / "Plan.dwg"
+    dwg.write_bytes(b"AC1032" + b"\0" * 64)
+    res = convert([dwg], "PDF")
+    assert res["path"].suffix == ".pdf" and any("ODA File Converter" in n for n in res["notes"])
+    dxf = convert([dwg], "DXF")["path"]
+    assert dxf.name == "Plan.dxf" and "CIRCLE" in dxf.read_text(encoding="utf-8")
+
+
+def test_dwg_the_converter_cant_read(tmp_path, fake_oda):
+    bad = tmp_path / "Broken.dwg"
+    bad.write_bytes(b"not a drawing")
+    assert "couldn't read this DWG" in convert([bad], "PDF", ok=False)["error"]
+
+
+def test_dwg_without_the_converter_says_what_to_install(tmp_path, monkeypatch):
+    from app.catalog import explain_unsupported
+
+    monkeypatch.setenv("DESKVERT_ODA", "")
+    monkeypatch.setenv("ProgramFiles", str(tmp_path))
+    monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    dwg = tmp_path / "Plan.dwg"
+    dwg.write_bytes(b"AC1032")
+    offers, _ = offers_for([dwg], Settings())
+    assert not [o for o in offers if o.target.engine == "cad"]
+    assert "ODA File Converter" in explain_unsupported([dwg])[1]
