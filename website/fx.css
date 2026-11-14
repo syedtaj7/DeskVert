@@ -177,6 +177,60 @@ body::after {
   @keyframes fill { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
 }
 
+/* ---------------------------------------------------------------- how it works: one line of keys, then plain facts */
+.how .sub { max-width: 54ch; }
+.flow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 34px 0 0; font-size: 1.15rem; font-weight: 700;
+}
+.flow-step {
+  display: inline-flex; align-items: center; gap: 9px; padding: 10px 18px; border-radius: 99px;
+  background: var(--surface); border: 1px solid var(--line);
+}
+.flow-step i { color: var(--accent); font-size: 1.25rem; }
+.flow-step kbd { font-size: .95rem; padding: .18em .6em; }
+.flow-plus { color: var(--dim); }
+.flow-step.done { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.flow-step.done i { color: inherit; }
+.flow-arrow { color: var(--dim); font-family: var(--mono); }
+.how .how-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr); align-items: center; }
+.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; }
+.facts li { color: var(--dim); padding-left: 18px; border-left: 2px solid var(--accent); line-height: 1.5; }
+.facts b { display: block; color: var(--text); font-size: 1.08rem; margin-bottom: 2px; }
+.how .demo { position: static; }
+
+/* ---------------------------------------------------------------- checked: the log of what's compared */
+.checked { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(28px, 5vw, 80px); align-items: center; }
+.checked h2 { max-width: 14ch; }
+.ledger {
+  border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+  padding: 8px 0 14px; font-family: var(--mono); font-size: .92rem; overflow: hidden;
+}
+.ledger-head { display: flex; align-items: center; gap: 6px; padding: 10px 18px 12px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.ledger-head span { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.ledger-head b { margin-left: auto; color: var(--dim); font-weight: 600; font-size: .8rem; letter-spacing: .08em; }
+.ledger .line {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 22px; gap: 12px; align-items: center;
+  padding: 9px 18px; opacity: 0; transform: translateX(-10px);
+  transition: opacity .5s var(--ease), transform .6s var(--ease); transition-delay: calc(.25s + var(--i) * .32s);
+}
+.ledger.in .line { opacity: 1; transform: none; }
+.ledger .pair { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ledger .what { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ledger .line i {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: .8rem;
+  background: var(--accent); color: var(--accent-ink); transform: scale(0);
+  transition: transform .5s cubic-bezier(.3, 1.6, .5, 1); transition-delay: calc(.55s + var(--i) * .32s);
+}
+.ledger.in .line i { transform: none; }
+.ledger .line.fail i { background: #d4553f; color: #fff; }
+.ledger .line.fail .what { color: #d4553f; }
+.no-js .ledger .line, .no-js .ledger .line i { opacity: 1; transform: none; }
+
+/* ---------------------------------------------------------------- formats: the counts as one quiet line */
+.tally { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 14px; color: var(--dim); font-size: 1.1rem; }
+.tally .count { font-size: 1.5rem; font-weight: 800; margin-right: 6px; }
+.formats .counts h2 { font-size: clamp(2.3rem, 5.4vw, 4.4rem); }
+
 /* ---------------------------------------------------------------- format finder (in the formats section) */
 .finder { margin-top: 30px; max-width: 640px; display: grid; gap: 12px; }
 .finder label { font-weight: 700; font-size: 1.05rem; }
@@ -220,7 +274,11 @@ a.chip-out:hover { background: var(--accent); color: var(--accent-ink); }
 
 /* ---------------------------------------------------------------- phones and tablets */
 @media (max-width: 860px) {
-  .try { grid-template-columns: 1fr; }
+  .try, .checked, .how .how-grid { grid-template-columns: 1fr; }
+  .ledger { font-size: .8rem; }
+  .ledger .line { grid-template-columns: minmax(0, 1fr) 22px; }
+  .ledger .what { grid-column: 1; grid-row: 2; }
+  .ledger .line i { grid-row: 1 / span 2; grid-column: 2; }
   .support { flex-wrap: wrap; }
   .support .btn { margin-left: 0; }
   .stickers { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0 0; }
@@ -236,6 +294,7 @@ a.chip-out:hover { background: var(--accent); color: var(--accent-ink); }
 /* ---------------------------------------------------------------- less motion: everything simply there */
 @media (prefers-reduced-motion: reduce) {
   .split .w > span { transform: none; }
+  .ledger .line, .ledger .line i { opacity: 1; transform: none; transition: none; }
   .fx .cell video, .fx .slide video, .fx .demo video { clip-path: none; }
   .giant span { --fill: 100%; animation: none; }
   .glow, .progress { display: none; }
