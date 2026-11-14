@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Sound from videos whose sound ends early:** taking the sound from a video no longer fails with "the new file
+  is 20.6 s long, the original 22.4 s" when the video's sound track is shorter than its picture. The result is
+  checked against the sound track's own length (read from MP4 and MOV files), and the card says the sound is
+  shorter than the video.
+- **Quiet in games:** Ctrl + Shift no longer opens the picker or the drop circle over a full-screen game or video,
+  where Ctrl + Shift is often part of playing.
+
 ## 1.15.1
 
 - **Updates always install from inside Deskvert:** Check for updates now downloads and installs the new version

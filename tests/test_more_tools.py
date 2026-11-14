@@ -200,3 +200,73 @@ def test_watch_folder_converts_new_files_once(tmp_path):
     assert got[0][1] == str(folder / "Converted")
     w.scan()
     assert len(got) == 1  # once only
+
+
+# ---------------------------------------------------------------- a video's sound can end before its picture (#29)
+
+def _box(kind: bytes, payload: bytes) -> bytes:
+    return struct.pack(">I", 8 + len(payload)) + kind + payload
+
+
+def _mp4(path: Path, video_s: float, sound_s: float, edit_s: float | None = None, v1: bool = False) -> Path:
+    """Just the boxes that say how long each track is (enough for the length check)."""
+    def mdhd(scale, seconds):
+        if v1:
+            return _box(b"mdhd", b"\x01\0\0\0" + b"\0" * 16 + struct.pack(">IQ", scale, round(seconds * scale)) + b"\0" * 4)
+        return _box(b"mdhd", b"\0" * 4 + b"\0" * 8 + struct.pack(">II", scale, round(seconds * scale)) + b"\0" * 4)
+
+    def hdlr(kind):
+        return _box(b"hdlr", b"\0" * 8 + kind + b"\0" * 12 + b"\0")
+
+    def trak(kind, scale, seconds, edit=None):
+        edts = b""
+        if edit is not None:
+            edts = _box(b"edts", _box(b"elst", b"\0" * 4 + struct.pack(">IIiI", 1, round(edit * 1000), 0, 0x10000)))
+        return _box(b"trak", edts + _box(b"mdia", mdhd(scale, seconds) + hdlr(kind)))
+
+    mvhd = _box(b"mvhd", b"\0" * 4 + b"\0" * 8 + struct.pack(">II", 1000, round(video_s * 1000)) + b"\0" * 80)
+    moov = _box(b"moov", mvhd + trak(b"vide", 30000, video_s) + trak(b"soun", 48000, sound_s, edit_s))
+    path.write_bytes(_box(b"ftyp", b"isom\0\0\0\0isom") + _box(b"mdat", b"\0" * 64) + moov)
+    return path
+
+
+def test_sound_track_length_is_read_from_the_file(tmp_path):
+    from app.engines.media import sound_track_seconds
+
+    assert abs(sound_track_seconds(_mp4(tmp_path / "a.mp4", 22.4, 20.6)) - 20.6) < 0.01
+    assert abs(sound_track_seconds(_mp4(tmp_path / "b.mov", 22.4, 20.6, v1=True)) - 20.6) < 0.01
+    assert abs(sound_track_seconds(_mp4(tmp_path / "c.mp4", 22.4, 20.6, edit_s=20.0)) - 20.0) < 0.01  # edited
+    (tmp_path / "d.mp4").write_bytes(b"not a video")
+    assert sound_track_seconds(tmp_path / "d.mp4") is None
+    assert sound_track_seconds(tmp_path / "e.mkv") is None  # not an MP4-family file
+
+
+@pytest.mark.parametrize("name, sound, made, ok", [
+    ("clip.mp4", 20.6, 20.6, True),    # the issue: sound ends before the picture, all of it is kept
+    ("clip.mp4", 22.4, 20.6, False),   # the file says 22.4 s of sound: 20.6 s came out, so something was lost
+    ("clip.mkv", None, 20.6, True),    # no length in the file: shorter than the picture is fine...
+    ("clip.mkv", None, 23.5, False),   # ...longer never is
+])
+def test_sound_from_a_video_with_shorter_sound(tmp_path, monkeypatch, name, sound, made, ok):
+    from app.engines import media
+    from app.errors import VerificationError
+
+    src = _mp4(tmp_path / name, 22.4, sound) if sound else tmp_path / name
+    if not src.exists():
+        src.write_bytes(b"\0" * 64)
+
+    async def duration(path, video):
+        return 22.4 if Path(path).name == name else made
+
+    async def transcode(s, out, fmt, quality, trim=None):
+        Path(out).write_bytes(b"\0" * 128)
+
+    monkeypatch.setattr(media, "_duration", duration)
+    monkeypatch.setattr(media, "_transcode", transcode)
+    out = tmp_path / "clip.mp3"
+    if ok:
+        notes = media.convert([src], out, "mp3", {})
+        assert any("shorter than its picture" in n for n in notes)
+    else:
+        with pytest.raises(VerificationError):
+            media.convert([src], out, "mp3", {})

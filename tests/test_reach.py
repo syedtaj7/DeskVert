@@ -178,3 +178,22 @@ def test_an_installed_copy_is_found_from_windows_record(tmp_path, monkeypatch):
     assert winutil.uninstaller() == elsewhere
     record["InstallLocation"] = str(tmp_path / "somewhere else")  # another copy's record: not this one
     assert winutil.uninstaller() is None
+
+
+def test_full_screen_apps_are_left_alone(monkeypatch):
+    """A game covering the screen: Ctrl+Shift is part of playing, so Deskvert stays quiet (#29's log)."""
+    import win32api
+    import win32gui
+
+    from app import winutil
+
+    rects = {1: (0, 0, 1920, 1080), 2: (100, 100, 900, 700), 3: (-8, -8, 1928, 1088)}  # game, window, maximized+
+    monkeypatch.setattr(win32gui, "IsWindowVisible", lambda h: True)
+    monkeypatch.setattr(win32gui, "GetClassName", lambda h: "VALORANTUnrealWindow")
+    monkeypatch.setattr(win32gui, "GetWindowRect", lambda h: rects[h])
+    monkeypatch.setattr(win32api, "MonitorFromWindow", lambda h, flags: 1)
+    monkeypatch.setattr(win32api, "GetMonitorInfo", lambda m: {"Monitor": (0, 0, 1920, 1080), "Work": (0, 0, 1920, 1040)})
+    assert winutil.is_fullscreen(1) and not winutil.is_fullscreen(2)
+    assert winutil.is_fullscreen(3)  # covers the whole screen too
+    monkeypatch.setattr(win32gui, "GetClassName", lambda h: "Progman")
+    assert not winutil.is_fullscreen(1)  # the desktop itself is never "a full-screen app"

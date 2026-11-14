@@ -577,12 +577,17 @@ class Controller(QObject):
                 self.repeat_last(files)
             return
         self.popup = None
+        cls = selection._class_name(hwnd)
+        if (cls not in selection.EXPLORER_CLASSES | selection.DESKTOP_CLASSES and winutil.is_fullscreen(hwnd)
+                and not self._is_browser(hwnd)):
+            # a game or a full-screen video: Ctrl+Shift is often part of playing; nothing pops up over it
+            log.info("hotkey: ignored over a full-screen app (%s)", cls)
+            return
         try:
             files, where = selection.selected_files(hwnd, self.settings.use_clipboard_fallback)
         except Exception:
             log.exception("reading selection failed")
             files, where = [], ""
-        cls = selection._class_name(hwnd)
         picked = len(files)
         files, roots, cut = selection.expand_selection(files)
         log.info("hotkey: window=%s files=%d source=%s folders=%d", cls, len(files), where or "-", len(roots))
@@ -611,6 +616,12 @@ class Controller(QObject):
                               f"{self.key_label}.", "info")
             return
         self.open_picker(files, where, roots, cut)
+
+    @staticmethod
+    def _is_browser(hwnd: int) -> bool:
+        from . import browserurl
+
+        return browserurl.is_browser(hwnd)
 
     def _open_picked(self) -> None:
         paths = [Path(p) for p in winutil.take_picks() if os.path.exists(p)]
@@ -667,6 +678,16 @@ class Controller(QObject):
     def show_dropzone(self) -> None:
         """Ctrl+Shift held while dragging: a "Drop to convert" circle under the pointer."""
         if self.paused or not self.settings.drag_convert:
+            return
+        try:
+            import win32gui
+
+            front = win32gui.GetForegroundWindow()
+        except Exception:  # noqa: BLE001
+            front = 0
+        if front and winutil.is_fullscreen(front) and not self._is_browser(front) and \
+                selection._class_name(front) not in selection.EXPLORER_CLASSES | selection.DESKTOP_CLASSES:
+            log.info("drop circle: not shown over a full-screen app (%s)", selection._class_name(front))
             return
         if _alive(self.popup):
             self.popup.close()
