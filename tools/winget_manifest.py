@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 REPO = "syedtaj7/DeskVert"
 ID = "Syedtaj7.Deskvert"
-SCHEMA = "1.9.0"
+SCHEMA = "1.28.0"
 
 
 def release_info(version: str) -> tuple[str, str, str]:
@@ -76,7 +76,7 @@ ShortDescription: Select files, tap Ctrl + Shift, pick a format. A light file co
 Description: |-
   Deskvert converts files right where they are. Select files in File Explorer, tap Ctrl + Shift, and pick a
   format or a tool from the picker that opens at your mouse. Pictures, PDFs, Office documents, e-mails, sound,
-  data, e-books and more: 201 kinds of files in 169 ways. Works straight from the browser too: drag a picture
+  data, e-books and more: 205 kinds of files in 170 ways. Works straight from the browser too: drag a picture
   or a table in, or save a page as a PDF. Every result is checked before it's saved, originals are never
   changed, and nothing is uploaded.
 Moniker: deskvert
