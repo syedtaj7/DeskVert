@@ -50,7 +50,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <meta name="google-site-verification" content="rGd7zGs_g5XIwDr_pWML2h6sK4TzUJxrcqPMAdk2r40">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="fx.css?v=5">
+  <link rel="stylesheet" href="fx.css?v=6">
   <script>
     // the saved theme choice, before anything paints (no flash)
     document.documentElement.classList.remove("no-js");
@@ -69,12 +69,12 @@
       <span>Desk<b>vert</b></span>
     </a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#try">Try it</a>
       <a href="#how">How it works</a>
-      <a href="#browser">From the browser</a>
-      <a href="#everything">Everything it does</a>
-      <a href="#safe">Safety</a>
-      <a href="#faq">FAQ</a>
+      <a href="#checked">Checked</a>
+      <a href="#browser">The web</a>
+      <a href="#formats">Your file</a>
+      <a href="#everything">Tools</a>
+      <a href="#faq">Questions</a>
     </nav>
     <div class="nav-end">
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch light or dark">
@@ -128,76 +128,58 @@
       </div>
     </section>
 
-    <!-- try: a real conversion in the browser, nothing uploaded -->
-    <section class="try" id="try" aria-labelledby="try-title">
-      <div class="try-copy">
-        <h2 id="try-title" class="reveal">Try it right here.</h2>
-        <p class="sub reveal">Drop a picture. It's converted by your browser, on your computer; nothing is uploaded. The app does the same for 201 kinds of files.</p>
-        <div class="try-controls reveal">
-          <div class="seg" role="radiogroup" aria-label="Convert to" id="try-format">
-            <button type="button" role="radio" aria-checked="true" data-fmt="image/jpeg">JPG</button>
-            <button type="button" role="radio" aria-checked="false" data-fmt="image/png">PNG</button>
-            <button type="button" role="radio" aria-checked="false" data-fmt="image/webp">WEBP</button>
-          </div>
-          <label class="quality" id="try-quality-row">Quality <input type="range" id="try-quality" min="40" max="100" value="82"><output id="try-quality-out">82</output></label>
-        </div>
-      </div>
-      <div class="try-stage">
-        <label class="drop" id="drop" tabindex="0">
-          <input type="file" id="try-file" accept="image/*" hidden>
-          <span class="drop-ring" aria-hidden="true"></span>
-          <span class="drop-orbit" aria-hidden="true"><b>JPG</b><b>PNG</b><b>WEBP</b><b>AVIF</b><b>GIF</b><b>BMP</b></span>
-          <span class="drop-core">
-            <i class="ph-bold ph-download-simple" aria-hidden="true"></i>
-            <strong>Drop a picture</strong>
-            <small>or click to choose one</small>
-          </span>
-        </label>
-        <div class="result" id="result" aria-live="polite" hidden>
-          <img id="result-img" alt="The converted picture">
-          <div class="result-info">
-            <strong id="result-name"></strong>
-            <span id="result-sizes"></span>
-            <a class="btn btn-primary btn-small" id="result-save" download><i class="ph-bold ph-download-simple" aria-hidden="true"></i><span>Save it</span></a>
-          </div>
-        </div>
-        <p class="try-note" id="try-note" role="status"></p>
-      </div>
-    </section>
-
-    <!-- how: the real demo, the steps beside it -->
+    <!-- how: tap, don't drag -->
     <section class="how" id="how">
-      <h2 class="reveal">Three moves. No app to open.</h2>
+      <p class="eyebrow reveal">How it works</p>
+      <h2 class="reveal">Tap, don't drag.</h2>
+      <p class="sub reveal">There's no window to open and nothing to drag around. Deskvert works on the files you've already
+        selected, right where they are.</p>
+      <p class="flow reveal" aria-label="Select files, tap Ctrl and Shift together, then pick a format">
+        <span class="flow-step"><i class="ph ph-cursor-click" aria-hidden="true"></i>Select</span>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <span class="flow-step"><kbd>Ctrl</kbd><span class="flow-plus">+</span><kbd>Shift</kbd></span>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <span class="flow-step"><i class="ph ph-circles-three" aria-hidden="true"></i>Pick</span>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <span class="flow-step done"><i class="ph-bold ph-check" aria-hidden="true"></i>Saved beside it</span>
+      </p>
       <div class="how-grid">
-        <ol class="steps">
-          <li class="step reveal">
-            <i class="ph ph-cursor-click" aria-hidden="true"></i>
-            <div><h3>Select</h3><p>One file or a hundred, in File Explorer or on the desktop. Folders too.</p></div>
-          </li>
-          <li class="step reveal">
-            <i class="ph ph-keyboard" aria-hidden="true"></i>
-            <div><h3>Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd></h3><p>Both keys, then let go. Normal shortcuts like Ctrl + Shift + T keep working.</p></div>
-          </li>
-          <li class="step reveal">
-            <i class="ph ph-circles-three" aria-hidden="true"></i>
-            <div><h3>Pick</h3><p>A web of choices opens at your mouse. Only the ones that fit your files.</p></div>
-          </li>
-          <li class="step reveal">
-            <i class="ph ph-seal-check" aria-hidden="true"></i>
-            <div><h3>Done</h3><p>The new file lands next to the original, checked first. Undo is one click.</p></div>
-          </li>
-        </ol>
         <figure class="demo reveal">
           <video class="themed" data-media="demo" muted loop playsinline preload="none" width="1360" height="792" aria-label="Deskvert in File Explorer: a picture is selected, Ctrl + Shift opens the picker, WEBP is chosen and the converted file is saved"></video>
         </figure>
+        <ul class="facts">
+          <li class="reveal"><b>One file or five hundred.</b> Folders too: their files are converted, the folders stay put.</li>
+          <li class="reveal"><b>Your shortcuts keep working.</b> Ctrl + Shift + T and the rest still do what they did.</li>
+          <li class="reveal"><b>Only what fits.</b> The picker shows formats that make sense for what you selected.</li>
+          <li class="reveal"><b>Changed your mind?</b> Undo puts the new files in the Recycle Bin.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- checked: what Deskvert compares before it keeps a file -->
+    <section class="checked" id="checked" aria-labelledby="checked-title">
+      <div class="checked-copy">
+        <p class="eyebrow reveal">The part you don't see</p>
+        <h2 id="checked-title" class="reveal">Every file is checked before you see it.</h2>
+        <p class="sub reveal">Each result is made off to the side, opened again and compared with the original. If anything
+          doesn't match, nothing is saved, and Deskvert tells you why.</p>
+      </div>
+      <div class="ledger reveal" role="list" aria-label="Examples of what is checked">
+        <div class="ledger-head" aria-hidden="true"><span></span><span></span><span></span><b>checks</b></div>
+        <div class="line" role="listitem" style="--i:0"><span class="pair">report.pdf → report.docx</span><span class="what">2,418 of 2,418 words</span><i class="ph-bold ph-check" aria-hidden="true"></i></div>
+        <div class="line" role="listitem" style="--i:1"><span class="pair">budget.xlsx → budget.csv</span><span class="what">every cell compared</span><i class="ph-bold ph-check" aria-hidden="true"></i></div>
+        <div class="line" role="listitem" style="--i:2"><span class="pair">beach.heic → beach.jpg</span><span class="what">same size, same picture</span><i class="ph-bold ph-check" aria-hidden="true"></i></div>
+        <div class="line" role="listitem" style="--i:3"><span class="pair">talk.mp4 → talk.mp3</span><span class="what">as long as the sound track</span><i class="ph-bold ph-check" aria-hidden="true"></i></div>
+        <div class="line" role="listitem" style="--i:4"><span class="pair">logo.png → logo.svg</span><span class="what">drawn again, compared</span><i class="ph-bold ph-check" aria-hidden="true"></i></div>
+        <div class="line fail" role="listitem" style="--i:5"><span class="pair">scan.pdf → scan.docx</span><span class="what">no text in it: not saved</span><i class="ph-bold ph-x" aria-hidden="true"></i></div>
       </div>
     </section>
 
     <!-- from the browser: a bento of the real animations -->
     <section class="browser" id="browser">
-      <p class="eyebrow reveal">New in 1.12 and 1.13</p>
-      <h2 class="reveal">Straight from your browser.</h2>
-      <p class="sub reveal">Edge, Chrome, Brave, Firefox. Nothing to install in the browser: hold Ctrl + Shift while you drag, or tap it on a page.</p>
+      <p class="eyebrow reveal">Edge, Chrome, Brave, Firefox</p>
+      <h2 class="reveal">The web counts too.</h2>
+      <p class="sub reveal">Point at a link, select a table, or pull a picture out of a page. There's nothing to add to your browser.</p>
       <div class="bento">
         <article class="cell cell-big spot reveal" data-story="web_drag">
           <video class="themed" muted loop playsinline preload="none" aria-label="A picture dragged out of a web page onto the Deskvert circle, then a choice of formats"></video>
@@ -238,32 +220,66 @@
       </div>
     </section>
 
-    <!-- formats: the one marquee on the page -->
+    <!-- formats: look up your own file -->
     <section class="formats" id="formats" aria-labelledby="formats-title">
       <div class="counts">
-        <h2 id="formats-title" class="reveal"><span class="count" data-to="201">201</span> kinds of files.<br><span class="count" data-to="169">169</span> ways out.</h2>
-        <p class="sub reveal">Pictures, PDFs, Office documents, e-mails, sound, video stills, e-books, data, maps, 3D models, fonts and more. Each result is opened again and checked before it's saved.</p>
+        <h2 id="formats-title" class="reveal">Which file have you got?</h2>
+        <p class="tally reveal"><span><span class="count" data-to="201">201</span> kinds of files in</span><span><span class="count" data-to="169">169</span> ways out</span></p>
         <div class="finder reveal">
-          <label for="finder">What can it do with your file?</label>
+          <label for="finder">Type its ending to see everything it can become</label>
           <div class="finder-box">
             <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
             <span class="dot" aria-hidden="true">.</span>
             <input id="finder" type="search" placeholder="heic, pdf, mp4, msg…" autocomplete="off" spellcheck="false" aria-describedby="finder-out">
           </div>
           <div class="finder-out" id="finder-out" aria-live="polite"></div>
-          <a class="link" href="/convert">Every conversion, one page each <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+          <a class="link" href="/convert">A short guide for each conversion <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
         </div>
       </div>
-      <div class="marquee" aria-hidden="true">
-        <div class="track" id="track-a"></div>
-        <div class="track reverse" id="track-b"></div>
+    </section>
+
+    <!-- try: a real conversion in the browser, nothing uploaded -->
+    <section class="try" id="try" aria-labelledby="try-title">
+      <div class="try-copy">
+        <p class="eyebrow reveal">No install needed for this one</p>
+        <h2 id="try-title" class="reveal">Convert a picture in this tab.</h2>
+        <p class="sub reveal">Drop a photo here and your browser converts it, on your computer, with nothing sent anywhere. That's the idea behind Deskvert, for 201 kinds of files.</p>
+        <div class="try-controls reveal">
+          <div class="seg" role="radiogroup" aria-label="Convert to" id="try-format">
+            <button type="button" role="radio" aria-checked="true" data-fmt="image/jpeg">JPG</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="image/png">PNG</button>
+            <button type="button" role="radio" aria-checked="false" data-fmt="image/webp">WEBP</button>
+          </div>
+          <label class="quality" id="try-quality-row">Quality <input type="range" id="try-quality" min="40" max="100" value="82"><output id="try-quality-out">82</output></label>
+        </div>
+      </div>
+      <div class="try-stage">
+        <label class="drop" id="drop" tabindex="0">
+          <input type="file" id="try-file" accept="image/*" hidden>
+          <span class="drop-ring" aria-hidden="true"></span>
+          <span class="drop-orbit" aria-hidden="true"><b>JPG</b><b>PNG</b><b>WEBP</b><b>AVIF</b><b>GIF</b><b>BMP</b></span>
+          <span class="drop-core">
+            <i class="ph-bold ph-download-simple" aria-hidden="true"></i>
+            <strong>Drop a picture</strong>
+            <small>or click to choose one</small>
+          </span>
+        </label>
+        <div class="result" id="result" aria-live="polite" hidden>
+          <img id="result-img" alt="The converted picture">
+          <div class="result-info">
+            <strong id="result-name"></strong>
+            <span id="result-sizes"></span>
+            <a class="btn btn-primary btn-small" id="result-save" download><i class="ph-bold ph-download-simple" aria-hidden="true"></i><span>Save it</span></a>
+          </div>
+        </div>
+        <p class="try-note" id="try-note" role="status"></p>
       </div>
     </section>
 
     <!-- everything: a horizontal pan of the real animations -->
     <section class="pan" id="everything" aria-labelledby="pan-title">
       <div class="pan-sticky">
-        <h2 id="pan-title">Every conversion, acted out.</h2>
+        <h2 id="pan-title">Small jobs, done in place.</h2>
         <div class="pan-track" id="pan-track">
           <article class="slide" data-story="pdf_compress"><video class="themed" muted loop playsinline preload="none" aria-label="A PDF shrinking to a size limit"></video><h3>Compress to a size</h3><p>Under 200 KB, 1 MB, or your own limit.</p></article>
           <article class="slide" data-story="img_convert"><video class="themed" muted loop playsinline preload="none" aria-label="A HEIC photo turning into JPG, PNG, WEBP and AVIF"></video><h3>Any picture format</h3><p>HEIC, WEBP, AVIF, PNG, JPG, RAW.</p></article>
@@ -288,7 +304,7 @@
     <section class="safe" id="safe">
       <h2 class="statement reveal">Your originals<br>are <em>never</em> touched.</h2>
       <div class="promises">
-        <div class="promise reveal"><i class="ph ph-shield-check" aria-hidden="true"></i><h3>Checked before it's saved</h3><p>Every result is made in a private folder, opened again and compared with the original: pixels, pages, words, cells.</p></div>
+        <div class="promise reveal"><i class="ph ph-folder-simple-lock" aria-hidden="true"></i><h3>Made off to the side</h3><p>Results are built in a private folder; only a file that passed its checks is moved next to the original.</p></div>
         <div class="promise reveal"><i class="ph ph-cloud-slash" aria-hidden="true"></i><h3>Nothing is uploaded</h3><p>No account, no analytics. Your files are converted on your PC. <a href="https://github.com/syedtaj7/DeskVert/blob/main/PRIVACY.md">What goes online</a></p></div>
         <div class="promise reveal"><i class="ph ph-lock-key" aria-hidden="true"></i><h3>Office runs locked down</h3><p>Documents open read-only with macros off, in a hidden copy that closes when done.</p></div>
         <div class="promise reveal"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><h3>Undo in one click</h3><p>The result card has Undo: new files go to the Recycle Bin.</p></div>
@@ -331,17 +347,17 @@
       <div class="support reveal" id="support">
         <i class="ph-bold ph-heart" aria-hidden="true"></i>
         <div>
-          <strong>Free, with no ads and no catch.</strong>
-          <span>If Deskvert saves you time, you can help keep it going.</span>
+          <strong>Built in the open by one developer.</strong>
+          <span>Saved you a trip to an upload site? Sponsoring pays for the next feature.</span>
         </div>
-        <a class="btn btn-ghost btn-small" href="https://github.com/sponsors/syedtaj7"><i class="ph ph-heart" aria-hidden="true"></i><span>Support Deskvert</span></a>
+        <a class="btn btn-ghost btn-small" href="https://github.com/sponsors/syedtaj7"><i class="ph ph-heart" aria-hidden="true"></i><span>Sponsor on GitHub</span></a>
       </div>
       <p class="note reveal"><i class="ph ph-info" aria-hidden="true"></i> Windows may say "Windows protected your PC" for new apps: choose <b>More info</b>, then <b>Run anyway</b>. Every release is built from the public source by GitHub Actions.</p>
     </section>
 
     <!-- FAQ -->
     <section class="faq" id="faq">
-      <h2 class="reveal">Questions</h2>
+      <h2 class="reveal">Before you download</h2>
       <div class="qa">
         <details class="reveal"><summary>Is it really free?</summary><p>Yes. Deskvert is free and open source under the AGPL-3.0. No trial, no account, no ads.</p></details>
         <details class="reveal"><summary>Do I need Microsoft Office?</summary><p>Only for Word, Excel and PowerPoint files, and the free LibreOffice works too. Everything else needs nothing extra.</p></details>

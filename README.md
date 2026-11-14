@@ -22,28 +22,51 @@
 
 <img src="docs/readme/ticker.svg" width="100%" alt="Examples of what Deskvert does">
 
-**No app to open. No upload. No account.**<br>
-Deskvert waits quietly in your tray. Select files, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick what you want,<br>
-and the new file appears right next to the original, checked and ready.
+**Tap, don't drag.**<br>
+Deskvert waits in your tray and works on the files you've already selected.<br>
+Tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd>, pick a format, and the new file lands beside the original, checked before you see it.
 
 </div>
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## ⚡ How it works
+## ⌨️ Tap, don't drag
 
 <img src="docs/readme/flow.svg" width="100%" alt="Select files, tap Ctrl + Shift, pick a format, saved and verified">
 
-1. **Select** one file or many, in File Explorer or on the Desktop.
-2. **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd>: press both, let go. Normal shortcuts like <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> keep working.
-3. **Pick** from the orbit: tools circle on one ring, formats on the other. Related tools are grouped into a web: point at **Split** and its choices (in half, every N pages, by ranges, every page) fan out around it. A small card says what each one does and what the new file will be called. Choices that hold more open their own fan further out, like a spider's web: everything is one point away, no menus or search. Right-click for options.
-4. **Done.** `photo.heic` becomes `photo.webp` in the same folder. Nothing is ever overwritten.
+Select some files in File Explorer or on the desktop, press <kbd>Ctrl</kbd> and <kbd>Shift</kbd> together and let go.
+The **orbit** opens at your pointer with only the choices that fit what you selected: formats on one ring, tools on
+the other. Related tools fan out when you point at them (**Split** opens *in half*, *every N pages*, *by ranges*,
+*every page*), and a small card says what each does and what the new file will be called. `photo.heic` becomes
+`photo.webp` in the same folder.
+
+- **One file or five hundred,** and folders too: their files are converted, the folders stay where they are.
+- **Your shortcuts keep working:** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> and the rest do what they always did.
+- **Nothing is overwritten,** and **Undo** on the result card sends new files to the Recycle Bin.
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## 🌐 Straight from your browser
+## ✅ Checked before you see it
 
-**New in 1.12.** Edge, Chrome, Brave, Firefox, Opera: nothing to install in the browser. Hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> while you drag anything out of a page, or tap it on a browser window.
+Every result is made in a private folder, **opened again and compared with the original**, and only then moved next
+to it. If a check fails, nothing is saved and you're told why in plain words.
+
+| Converting | What's compared |
+|---|---|
+| Pictures | Size and pixels (lossless formats pixel for pixel), rotation, colour profile |
+| PDF → Word | Every word of the PDF is in the document |
+| Word, Excel, PowerPoint | Page counts, words, every spreadsheet cell, slides and their shapes |
+| Sound, and sound from videos | Its length, against the sound track itself |
+| Data files | Values like `007`, `1.50` and long IDs, exactly as written |
+| Maps, subtitles, fonts | Every place and coordinate, every cue, every font table |
+| Pictures traced to SVG | The drawing is drawn again and compared with the picture |
+
+<img src="docs/readme/divider.svg" width="100%" alt="">
+
+## 🌐 The web counts too
+
+Edge, Chrome, Brave, Firefox and Opera, with nothing to add to the browser. Point at a link, select some text or a
+table, or hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> while you pull something out of a page.
 
 | You do | You get |
 |---|---|
@@ -51,6 +74,7 @@ and the new file appears right next to the original, checked and ready.
 | **Select some text** on a page, tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | Choices made for a selection: a clean **PDF**, Word, Markdown, plain text or a picture of it, with a line saying where it came from |
 | **Select a table** the same way | **Excel**, one sheet per table (merged cells spread out, numbers as numbers), or CSV |
 | **Tap** <kbd>Ctrl</kbd> + <kbd>Shift</kbd> on a browser window with nothing selected | The page as a **PDF** or **one long picture** (made by the Edge or Chrome already on your PC), **just the article** as a clean PDF (no ads, menus or cookie banners), **every picture** on the page in one folder, or a **QR code** of its address |
+| **Point at a link** and tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | What it points to: a linked **PDF, picture or file** is fetched; a linked page gives that page's choices |
 | **Drag a link** in | A **QR code** that's read back before saving, so it always scans |
 | **Drag a Google Drive, Docs, Dropbox or OneDrive share link** | The **file itself**, with its real name (Docs, Sheets and Slides come as Word, Excel and PowerPoint) |
 | **Win + Shift + S**, then tap <kbd>Ctrl</kbd> + <kbd>Shift</kbd> | Your snip (or any copied picture) in the picker: save it as PNG, JPG, PDF, read its text… |
@@ -61,7 +85,7 @@ To read a selection, Deskvert copies it and then puts your clipboard back exactl
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## 🧰 Everyday tools
+## 🧰 Small jobs, done in place
 
 <img src="docs/readme/tools.svg" width="100%" alt="Compress images, PDF toolkit, OCR, zip and extract, data files, Markdown">
 
@@ -72,22 +96,25 @@ To read a selection, Deskvert copies it and then puts your clipboard back exactl
 | 🔍 **Read text (OCR)** | Text from photos and scanned PDFs, or a **searchable PDF** that looks exactly like the scan. Uses the engine built into Windows, so nothing extra is downloaded. Sideways scans are turned upright automatically. |
 | 📦 **Zip & extract** | ZIP the selected files · extract **ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO** · repack any archive as a ZIP |
 | 📊 **Data files** | CSV / TSV / Excel / JSON / **YAML** / **TOML** / **XML** / **JSON Lines** into each other · Excel sheets → CSV each, without Excel · **vCard contacts** ↔ CSV / Excel · **tidy** or **minify** JSON. Values like `007`, `1.50` and long IDs stay exactly as written. |
-| 🗺️ **Maps** | **GeoJSON, KML, KMZ, GPX** into each other, to CSV or Excel, and a CSV with coordinates → map file |
+| 🗺️ **Maps** | **GeoJSON, KML, KMZ, GPX** and **Shapefiles** into each other, to CSV or Excel, and a CSV with coordinates → map file |
 | 🧊 **3D models** | **STL, OBJ, PLY, 3MF, GLB/glTF** into each other, plus a shaded **picture** of the model |
 | 📐 **CAD** | **DXF** → **PDF**, **SVG** or **PNG**, without AutoCAD |
 | 🔤 **Fonts** | **TTF / OTF ↔ WOFF**, → **EOT** |
-| 🎵 **Sound & video** | **MP3, M4A, WAV, FLAC, WMA** (and AAC, OGG, Opus, AIFF in) into each other · **Trim** a recording to the part you need · the **sound from a video** (MP4, MOV, MKV, AVI, WMV...) · a **still picture** of any moment of a video, or a **frames sheet** of nine moments. Uses Windows' own converter and decoder, so nothing is downloaded and it stays light. Videos themselves aren't re-encoded. |
+| 🎵 **Sound & video** | **MP3, M4A, WAV, FLAC, WMA** (and AAC, OGG, Opus, AIFF in) into each other · **Trim** a recording to the part you need · the **sound from a video** (MP4, MOV, MKV, AVI, WMV...) · a **still picture** of any moment of a video, a **frames sheet** of nine moments, or a few seconds as a looping **GIF**. Uses Windows' own converter and decoder, so nothing is downloaded and it stays light. Videos themselves aren't re-encoded. |
 | ✉️ **Mail & saved pages** | **EML** and **Outlook .msg** e-mails (no Outlook needed) and **MHTML** pages → **PDF**, **HTML**, **TXT**, **Markdown**; e-mail attachments → **ZIP** |
 | 📝 **Markdown** | → **PDF** (A4, with headings, tables, code and images) · **HTML** · **Word** |
-| 🖼️ **Picture edits** | **Turn** left, right or upside down · **Mirror** · **Grayscale** · **Resize** (half, 1920, 1280 or 1080 px) · **Clean info**: removes location, camera and date before you share (JPG and PNG aren't re-encoded) · **Long image**: several pictures stitched one under the other |
+| 🖼️ **Picture edits** | **Trace to SVG** (logos, icons, drawings) · **Turn** left, right or upside down · **Mirror** · **Grayscale** · **Resize** (half, 1920, 1280 or 1080 px) · **Clean info**: removes location, camera and date before you share (JPG and PNG aren't re-encoded) · **Long image**: several pictures stitched one under the other |
 | 📚 **E-books** | **EPUB, MOBI, FB2**, comics (**CBZ, CBR, CB7, CBT**) and XPS → **PDF**, **EPUB** or **TXT** · Markdown, HTML, TXT and PDF → **EPUB** · PDF → **CBZ**. No e-book software needed. |
 | 💬 **Subtitles** | **SRT, WebVTT, ASS/SSA, SAMI, TTML, LRC, MicroDVD** into each other, saved as UTF-8 |
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## 🔁 Every format
+## 🔎 Which file have you got?
 
 <img src="docs/readme/formats.svg" width="100%" alt="Supported formats">
+
+Type a file's ending into the [format finder](https://deskvert-website.vercel.app/#formats) to see everything it
+can become, or read the [short guide for each conversion](https://deskvert-website.vercel.app/convert).
 
 <details>
 <summary><b>See what converts to what</b></summary>
@@ -96,7 +123,7 @@ To read a selection, Deskvert copies it and then puts your clipboard back exactl
 | You select | You can make |
 |---|---|
 | **Images:** JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PSD, SVG, camera RAW | JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, TGA, PDF, several images in one PDF · Compress · Crop to a shape · Watermark · Passport photo sheet · Read text |
-| **PDF** | PNG or JPG pages, text, Split, Merge · Compress · Lock / Unlock · Pages · Rotate · Numbers · Watermark · Tables to Excel · Remove blank pages · Read text · Searchable PDF |
+| **PDF** | **Word (DOCX)**, PNG or JPG pages, text, Split, Merge · Compress · Lock / Unlock · Pages · Rotate · Numbers · Watermark · Tables to Excel · Remove blank pages · Read text · Searchable PDF |
 | **Word:** DOCX, DOC, ODT, RTF, TXT, HTML | PDF, DOCX, ODT, RTF, TXT, DOC; and without Office: DOCX / ODT to TXT, Markdown, HTML |
 | **Apple:** Pages, Numbers, Keynote | The preview saved inside, as PDF or JPG |
 | **Excel:** XLSX, XLS, ODS | PDF, XLSX, CSV (first sheet), ODS, XLS |
@@ -105,7 +132,7 @@ To read a selection, Deskvert copies it and then puts your clipboard back exactl
 | **Databases (SQLite), settings (INI, .env, .properties), calendars (.ics)** | Excel or CSV per table; JSON or YAML; events as a table |
 | **Markdown, Jupyter notebooks** | PDF, HTML, DOCX; notebooks to HTML (with charts), Markdown, Python |
 | **Archives:** ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST, CAB, ISO | Extract into a new folder, or repack as ZIP |
-| **Audio, video** | Into each other, Trim; a still picture or a frames sheet from a video; its sound |
+| **Audio, video** | Into each other, Trim; a still picture, a frames sheet or a GIF from a video; its sound |
 | **E-mails:** EML, Outlook MSG | PDF, HTML, TXT, Markdown, attachments as a ZIP |
 | **Any files** | ZIP the selection · SHA-256 checksum · **Rename** many at once (tidy copies by date or number) |
 
@@ -117,12 +144,12 @@ To read a selection, Deskvert copies it and then puts your clipboard back exactl
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## 🛡️ Safe by design
+## 🛡️ Your originals are never touched
 
 <img src="docs/readme/safety.svg" width="100%" alt="Built in a private folder, verified, then saved next to the original">
 
 - **Your original is never touched.** Every result is a new file, such as `report (compressed).pdf`, and nothing is overwritten.
-- **Every result is checked before you see it.** The new file is opened again and compared with the original: pixels, pages, words, every spreadsheet cell. If anything is off, it's thrown away and you're told why, in plain words.
+- **Checked first** ([what's compared](#-checked-before-you-see-it)); a result that fails its checks is never saved.
 - **Private.** Everything happens on your PC. No uploads, no account, no tracking.
 - **Crash-proof.** Conversions run in separate worker processes, so a damaged file can't take Deskvert down.
 
@@ -136,7 +163,7 @@ Built for low-end laptops. Deskvert uses **no CPU while idle**. Every conversion
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## 📸 See it
+## 🖼️ Screens
 
 <table>
 <tr>
@@ -182,7 +209,7 @@ Any of these works, and each removes everything (app, settings, logs):
 
 <img src="docs/readme/divider.svg" width="100%" alt="">
 
-## ⌨️ Using it
+## 🎛️ Day to day
 
 | Action | How |
 |---|---|
@@ -246,9 +273,9 @@ Building the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.p
 
 ## 💚 Support Deskvert
 
-Deskvert is free, with no ads, accounts or tracking, and it will stay that way. If it saves you time, you can
-help keep it going on **[GitHub Sponsors](https://github.com/sponsors/syedtaj7)**. Starring the repository and
-telling a friend help too.
+Deskvert is built in the open by one developer. If it saved you a trip to an upload site, sponsoring on
+**[GitHub Sponsors](https://github.com/sponsors/syedtaj7)** pays for the next feature. A star on the repository or
+a word to a friend helps as well.
 
 ## 📜 License
 
