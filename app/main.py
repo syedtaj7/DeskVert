@@ -480,6 +480,11 @@ class Controller(QObject):
                 self.settings.save()
             self.folder_watch.set_rules(self.settings.watch_folders)
             return
+        if key == "always":
+            self.settings.always = {k: dict(v) for k, v in (value or {}).items()}
+            if save:
+                self.settings.save()
+            return
         if key == "reduce_motion":
             from .ui import fx
 
@@ -627,16 +632,20 @@ class Controller(QObject):
         elif paths:
             self._show_notice("Nothing to convert in there", "The selected folder has no files in it.", "info")
 
-    def repeat_last(self, files: list[Path]) -> None:
-        """Run the last chosen action again, with the same options, on these files."""
+    def _offer_for(self, files: list[Path], action: dict):
+        """The offer matching a remembered action (its picker key, else its target) for these files, or None."""
         from .menu import build_menu
 
-        last = self._last_action
         nodes, quick, _ = build_menu(files, self.settings)
         leaves = [leaf for n in quick + nodes for leaf in n.leaves()]
-        node = next((n for n in leaves if n.key == last["key"]), None) or next(
-            (n for n in leaves if n.offer is not None and n.offer.target.key == last["target"]), None)
-        offer = node.offer if node is not None else None
+        node = next((n for n in leaves if n.key == action.get("key")), None) or next(
+            (n for n in leaves if n.offer is not None and n.offer.target.key == action.get("target")), None)
+        return node.offer if node is not None else None
+
+    def repeat_last(self, files: list[Path]) -> None:
+        """Run the last chosen action again, with the same options, on these files."""
+        last = self._last_action
+        offer = self._offer_for(files, last)
         if offer is None:
             self._show_notice(f"Can't repeat {last['label']} here",
                               f"{last['label']} doesn't apply to the selected files.", "info")
@@ -644,7 +653,7 @@ class Controller(QObject):
         log.info("repeat: %s on %d file(s)", last["key"], len(offer.sources))
         self._submit(offer, dict(last["options"]), last["key"])
 
-    def _submit(self, offer, options: dict, key: str = "") -> None:
+    def _submit(self, offer, options: dict, key: str = "", auto: bool = False) -> None:
         from .menu import remember
 
         key = key or (self.popup.last_key if _alive(self.popup) and self.popup.last_key else offer.target.key)
@@ -666,7 +675,8 @@ class Controller(QObject):
             dest = QFileDialog.getExistingDirectory(None, "Save the new files in", start)
             if not dest:
                 return  # cancelled: nothing is converted
-        self.jobs.submit(offer, options, dest)
+        self.jobs.submit(offer, options, dest, action={**self._last_action, "auto": auto,
+                                                       "files": [str(p) for p in offer.sources]})
 
     # ------------------------------------------------------------ drag and convert
     def show_dropzone(self) -> None:
@@ -986,6 +996,10 @@ class Controller(QObject):
         from .menu import build_menu
 
         self._roots = list(roots or [])
+        skip = getattr(self, "_skip_always", False)
+        self._skip_always = False
+        if not skip and where not in ("page", "clip") and self._run_always(files):
+            return
 
         nodes, quick, left_out = build_menu(files, self.settings)
         offers = []  # every action, for the searchable list
@@ -1037,6 +1051,62 @@ class Controller(QObject):
         self._popup_opened = time.monotonic()
         self._popup_files = list(files)
 
+    # ------------------------------------------------------------ "always do this"
+    @staticmethod
+    def _one_kind(paths) -> str:
+        """The files' shared extension ('.heic'), or '' when they're of different kinds."""
+        exts = {Path(p).suffix.lower() for p in paths}
+        return exts.pop() if len(exts) == 1 and "" not in exts else ""
+
+    def _run_always(self, files: list[Path]) -> bool:
+        """When you chose "always do this" for these files' kind, do it without the picker."""
+        ext = self._one_kind(files)
+        rule = (self.settings.always or {}).get(ext) if ext else None
+        if not rule:
+            return False
+        offer = self._offer_for(files, rule)
+        if offer is None:
+            log.info("always %s: %s doesn't apply to this selection; showing the picker", ext, rule.get("label"))
+            return False
+        log.info("always %s -> %s on %d file(s)", ext, rule.get("label"), len(offer.sources))
+        self._submit(offer, dict(rule.get("options") or {}), rule.get("key", ""), auto=True)
+        return True
+
+    def _make_always(self, ext: str, action: dict) -> None:
+        rules = dict(self.settings.always or {})
+        rules[ext] = {k: action[k] for k in ("key", "target", "label", "options") if k in action}
+        self.settings.always = rules
+        self.settings.save()
+        log.info("always %s -> %s", ext, action.get("label"))
+        self.panel.extra(f"Done: {ext.lstrip('.').upper()} files now become {action.get('label')} right away. "
+                         "Change it in Settings.")
+
+    def _choose_other(self, files: list[str]) -> None:
+        paths = [Path(f) for f in files if os.path.exists(f)]
+        if not paths:
+            return
+        self._skip_always = True
+        self.open_picker(paths, "explorer")
+
+    def _offer_always(self, batch: Batch, ok: list[dict]) -> None:
+        """Under a finished conversion: "Always do this for HEIC files", or, when it was an always-choice,
+        "Choose something else"."""
+        action = batch.action or {}
+        if not ok or not action.get("target"):
+            return
+        sources = [s for r in ok for s in (r.get("sources") or [])]
+        ext = self._one_kind(sources)
+        if not ext:
+            return
+        kind = ext.lstrip(".").upper()
+        if action.get("auto"):
+            self.panel.extra(f"Something else for these {kind} files…", lambda: self._choose_other(action["files"]))
+            return
+        current = (self.settings.always or {}).get(ext, {})
+        if current.get("target") == action.get("target") and current.get("options") == action.get("options"):
+            return
+        self.panel.extra(f"Always do this for {kind} files", lambda: self._make_always(ext, action))
+
     def _popup_closed(self, *_):
         self.popup = None
         QTimer.singleShot(1500, winutil.trim_memory)
@@ -1087,6 +1157,7 @@ class Controller(QObject):
             kind = Path(r["output"]).suffix.lstrip(".").upper() or batch.label
             self.panel.finish("success", f"Saved as {kind}", body, first_out, [r["output"]],
                               sources=list(r.get("sources") or []), name=Path(r["output"]).name)
+            self._offer_always(batch, ok)
         elif len(batch.results) == 1 and failed:
             r = failed[0]
             self.panel.finish("error", "Couldn't convert this file",
@@ -1107,6 +1178,8 @@ class Controller(QObject):
             self.panel.finish("error" if failed and not ok else ("warning" if failed else "success"),
                               title, "\n".join(lines), first_out, [r["output"] for r in ok],
                               sources=[s for r in ok for s in (r.get("sources") or [])], details=True)
+            if not failed:
+                self._offer_always(batch, ok)
         QTimer.singleShot(3000, winutil.trim_memory)
 
     # ------------------------------------------------------------ exit

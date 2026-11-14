@@ -125,3 +125,42 @@ def test_an_update_is_downloaded_in_the_app_whether_installed_or_not(qapp, monke
     assert opened == [update_ui.WHATS_NEW]  # the other button is What's new, not a download page
     panel._on_checked(updater.Release("99.0.0", "https://example.org/release", [], None, None))
     assert panel.primary.text() == "Open the release page"  # only when a release has no installer
+
+
+def test_always_do_this(qapp, tmp_path):
+    """After a conversion the card offers "Always do this for HEIC files"; then HEIC files skip the picker,
+    and the card offers something else for them."""
+    from types import SimpleNamespace
+
+    from app.jobs import Batch
+    from app.main import Controller
+    from app.settings import Settings
+    from app.ui.panels import ProgressPanel
+
+    a, b = tmp_path / "a.heic", tmp_path / "b.heic"
+    for f in (a, b):
+        f.write_bytes(b"x")
+    panel = ProgressPanel()
+    submitted, saved = [], []
+    settings = Settings()
+    settings.save = lambda: saved.append(dict(settings.always))
+    fake = SimpleNamespace(settings=settings, panel=panel, _one_kind=Controller._one_kind,
+                           _offer_for=lambda files, action: SimpleNamespace(sources=files),
+                           _submit=lambda offer, options, key, auto=False: submitted.append((key, options, auto)))
+    fake._make_always = lambda ext, action: Controller._make_always(fake, ext, action)
+    fake._choose_other = lambda files: None
+    action = {"key": "image.jpg", "target": "image.jpg", "label": "JPG", "options": {"quality": 90}, "auto": False,
+              "files": [str(a)]}
+    ok = [{"ok": True, "output": str(tmp_path / "a.jpg"), "sources": [str(a)]}]
+
+    assert not Controller._run_always(fake, [a, b])  # nothing chosen yet: the picker opens
+    Controller._offer_always(fake, Batch("JPG", [], action=action), ok)
+    assert panel.extra_btn.text() == "Always do this for HEIC files"
+    panel._extra()
+    assert settings.always[".heic"]["target"] == "image.jpg" and saved and "right away" in panel.extra_btn.text()
+
+    assert Controller._run_always(fake, [a, b])  # now: straight away, with the same options
+    assert submitted == [("image.jpg", {"quality": 90}, True)]
+    Controller._offer_always(fake, Batch("JPG", [], action={**action, "auto": True}), ok)
+    assert panel.extra_btn.text().startswith("Something else for these HEIC files")
+    assert not Controller._run_always(fake, [a, tmp_path / "c.png"])  # mixed kinds: the picker as usual

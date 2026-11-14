@@ -5,6 +5,9 @@
 - **Full-screen apps, more precisely:** only windows without a title bar (games, full-screen video) count as full
   screen, so a maximized app keeps working with Deskvert even when the taskbar hides itself.
 - **Every release tests itself:** the built app runs its own conversions before a release is published.
+- **Always do this:** after converting, the result card offers "Always do this for HEIC files". From then on,
+  tapping Ctrl + Shift on HEIC files converts them straight away with the same choices, no picker; the card then
+  offers something else for them. Settings → General lists these and removes them.
 
 ## 1.15.2
 
