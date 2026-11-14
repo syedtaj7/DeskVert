@@ -474,3 +474,75 @@ def test_smooth_shading_is_not_traced(tmp_path):
     Image.radial_gradient("L").resize((300, 300)).convert("RGB").save(src)
     res = convert([src], "SVG", ok=False)
     assert "logos, icons and drawings" in res["error"]
+
+
+# ---------------------------------------------------------------- Shapefiles (read without extra libraries)
+
+def _shapefile(folder: Path, shapes: list[tuple[int, list]], rows: list[dict], prj: str | None = None) -> Path:
+    """A minimal .shp + .dbf (+ .prj): shapes are (type, parts), parts a list of [(x, y), ...]."""
+    import struct
+
+    recs = b""
+    for i, (kind, parts) in enumerate(shapes, 1):
+        if kind == 1:
+            body = struct.pack("<i2d", 1, *parts[0][0])
+        else:
+            pts = [p for part in parts for p in part]
+            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+            body = struct.pack("<i4d2i", kind, min(xs), min(ys), max(xs), max(ys), len(parts), len(pts))
+            start = 0
+            for part in parts:
+                body += struct.pack("<i", start)
+                start += len(part)
+            body += b"".join(struct.pack("<2d", *p) for p in pts)
+        recs += struct.pack(">2i", i, len(body) // 2) + body
+    kind0 = shapes[0][0]
+    header = struct.pack(">7i", 9994, 0, 0, 0, 0, 0, (100 + len(recs)) // 2) + struct.pack("<2i4d4d", 1000, kind0,
+                                                                                          0, 0, 0, 0, 0, 0, 0, 0)
+    (folder / "places.shp").write_bytes(header + recs)
+    fields = [("NAME", "C", 20, 0), ("POP", "N", 10, 0)]
+    hdr_len = 32 + 32 * len(fields) + 1
+    rec_len = 1 + sum(f[2] for f in fields)
+    dbf = struct.pack("<BBBBIHH20x", 3, 126, 1, 1, len(rows), hdr_len, rec_len)
+    for name, typ, length, dec in fields:
+        dbf += name.encode().ljust(11, b"\0") + typ.encode() + b"\0" * 4 + bytes([length, dec]) + b"\0" * 14
+    dbf += b"\r"
+    for r in rows:
+        dbf += b" " + r["NAME"].encode("utf-8").ljust(20) + str(r["POP"]).encode().rjust(10)
+    (folder / "places.dbf").write_bytes(dbf + b"\x1a")
+    (folder / "places.cpg").write_text("UTF-8")
+    if prj:
+        (folder / "places.prj").write_text(prj)
+    return folder / "places.shp"
+
+
+def test_shapefile_to_geojson_with_details(tmp_path):
+    square = [(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]  # clockwise: an outer edge
+    hole = [(4, 4), (6, 4), (6, 6), (4, 6), (4, 4)]  # counter-clockwise: a hole
+    shp = _shapefile(tmp_path, [(5, [square, hole])], [{"NAME": "Parc Café", "POP": 1200}],
+                     prj='GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]]]')
+    res = convert([shp], "GeoJSON")
+    data = json.loads(res["path"].read_text(encoding="utf-8"))
+    f = data["features"][0]
+    assert f["properties"] == {"NAME": "Parc Café", "POP": 1200}
+    assert f["geometry"]["type"] == "Polygon" and len(f["geometry"]["coordinates"]) == 2  # the edge and its hole
+
+
+def test_shapefile_points_from_utm_and_web_mercator(tmp_path):
+    from app.engines.shapefile import _utm, _web_mercator
+
+    lon, lat = _utm(33, False)(500000.0, 4649776.22)  # zone 33N central meridian, 42° north
+    assert abs(lon - 15.0) < 1e-6 and abs(lat - 42.0) < 1e-5
+    lon, lat = _web_mercator(20037508.342789244, 0.0)
+    assert abs(lon - 180.0) < 1e-9 and abs(lat) < 1e-9
+    utm = 'PROJCS["WGS_1984_UTM_Zone_33N",GEOGCS["GCS_WGS_1984"],PROJECTION["Transverse_Mercator"]]'
+    shp = _shapefile(tmp_path, [(1, [[(500000.0, 4649776.22)]])], [{"NAME": "Pin", "POP": 1}], prj=utm)
+    res = convert([shp], "KML")
+    assert "15.0" in res["path"].read_text(encoding="utf-8") and any("UTM zone 33N" in n for n in res["notes"])
+
+
+def test_shapefile_in_an_unknown_projection_is_refused(tmp_path):
+    lambert = 'PROJCS["RGF93_Lambert_93",GEOGCS["GCS_RGF_1993"],PROJECTION["Lambert_Conformal_Conic"]]'
+    shp = _shapefile(tmp_path, [(1, [[(700000.0, 6600000.0)]])], [{"NAME": "Paris", "POP": 2}], prj=lambert)
+    res = convert([shp], "GeoJSON", ok=False)
+    assert "Lambert_93" in res["error"]

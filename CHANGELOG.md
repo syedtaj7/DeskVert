@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Shapefile maps:** .shp files (with the .dbf, .prj and .cpg beside them) become KML, GeoJSON, GPX, KMZ, CSV
+  or Excel, with each place's details. Maps in degrees, Web Mercator or UTM are turned into longitude /
+  latitude; other projections are refused with a plain message instead of being guessed.
 - **Picture to SVG:** a picture's new **SVG** option traces logos, icons and drawings into shapes that stay sharp
   at any size, in colour or black and white. The drawing is drawn again and compared with the picture before
   it's kept.

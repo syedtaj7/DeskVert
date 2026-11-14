@@ -39,7 +39,7 @@ FONT_EXTS = {".ttf", ".otf", ".woff", ".eot"}
 MODEL_EXTS = {".stl", ".obj", ".ply", ".3mf", ".glb", ".gltf"}
 DRAWING_EXTS = {".dxf"}
 MAIL_EXTS = {".eml", ".msg", ".mht", ".mhtml"}
-MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx"}
+MAP_EXTS = {".geojson", ".kml", ".kmz", ".gpx", ".shp"}
 VECTOR_EXTS = {".ai"}
 # Sound only, through Windows' own converter (videos: their sound; the picture is never re-encoded).
 from .engines.media import AUDIO_EXTS, VIDEO_EXTS  # noqa: E402  (plain sets, nothing heavy)

@@ -471,7 +471,6 @@ _COMING = {
     "Kindle book": {".azw", ".azw3", ".kfx"},
     "WOFF2 font": {".woff2"},
     "AutoCAD DWG drawing": {".dwg"},
-    "Shapefile map": {".shp"},
     "subtitle file": {".scc"},
 }
 _NEVER = {

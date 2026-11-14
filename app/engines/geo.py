@@ -1,4 +1,4 @@
-"""Maps and GPS data: GeoJSON, KML, KMZ, GPX and CSV into each other.
+"""Maps and GPS data: GeoJSON, KML, KMZ, GPX and CSV into each other (and Shapefiles into them).
 
 Everything is read into GeoJSON-style features (points, lines and areas with
 their names and other details), always in longitude / latitude (WGS 84), and
@@ -391,8 +391,13 @@ def _flat(feats) -> list[tuple]:
 
 def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
     src = sources[0]
-    feats = read(src)
     notes: list[str] = []
+    if src.suffix.lower() == ".shp":  # a Shapefile: read with its .dbf / .prj beside it
+        from .shapefile import read_shp
+
+        feats, notes = read_shp(src)
+    else:
+        feats = read(src)
     if fmt == "geojson":
         Path(long_path(out)).write_text(to_geojson(feats), encoding="utf-8")
     elif fmt == "kml":
