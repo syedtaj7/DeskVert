@@ -365,6 +365,25 @@ def move_from_old_name() -> dict:
     return found
 
 
+def is_fullscreen(hwnd: int) -> bool:
+    """A window covering its whole screen (a game, a video player, a slideshow): Deskvert stays out of its way."""
+    try:
+        import win32api
+        import win32con
+        import win32gui
+
+        if not hwnd or not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) in ("Progman", "WorkerW", "Shell_TrayWnd"):  # the desktop and taskbar
+            return False
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        mon = win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST))
+        m_left, m_top, m_right, m_bottom = mon["Monitor"]
+        return left <= m_left and top <= m_top and right >= m_right and bottom >= m_bottom
+    except Exception:  # noqa: BLE001 - can't tell: behave as usual
+        return False
+
+
 INSTALLER_ID = "{6D3B7E2A-4C1F-4B8E-9A57-2F1C0D9E7A31}_is1"  # installer/deskvert.iss AppId, as Windows records it
 
 

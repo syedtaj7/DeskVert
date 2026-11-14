@@ -39,6 +39,97 @@ async def _duration(path: Path, video: bool) -> float:
     return props.duration.total_seconds() if hasattr(props.duration, "total_seconds") else float(props.duration) / 1e7
 
 
+MP4_FAMILY = {".mp4", ".m4v", ".mov", ".3gp", ".3g2", ".m4a", ".m4b"}
+
+
+def _boxes(f, start: int, end: int):
+    """(type, payload start, payload end) of the MP4 boxes between two offsets (big media data is skipped)."""
+    import struct
+
+    pos = start
+    while pos + 8 <= end:
+        f.seek(pos)
+        head = f.read(16)
+        if len(head) < 8:
+            return
+        size, kind = struct.unpack(">I4s", head[:8])
+        hdr = 8
+        if size == 1 and len(head) >= 16:
+            size, hdr = struct.unpack(">Q", head[8:16])[0], 16
+        elif size == 0:
+            size = end - pos
+        if size < hdr:
+            return
+        yield kind.decode("latin-1"), pos + hdr, min(pos + size, end)
+        pos += size
+
+
+def sound_track_seconds(path: Path) -> float | None:
+    """How long a video's sound track is, read from the file itself (MP4 / MOV / 3GP), or None.
+    A video's sound can end before its picture does; Windows reports the picture's length."""
+    import os
+    import struct
+
+    if path.suffix.lower() not in MP4_FAMILY:
+        return None
+    try:
+        with open(long_path(path), "rb") as f:
+            size = os.fstat(f.fileno()).st_size
+            moov = next(((s, e) for k, s, e in _boxes(f, 0, size) if k == "moov"), None)
+            if moov is None:
+                return None
+            movie_scale = 0
+            longest = None
+            for kind, s, e in _boxes(f, *moov):
+                if kind == "mvhd":
+                    f.seek(s)
+                    v = f.read(1)[0]
+                    f.seek(s + (20 if v == 1 else 12))
+                    movie_scale = struct.unpack(">I", f.read(4))[0]
+                if kind != "trak":
+                    continue
+                parts = {k: (ps, pe) for k, ps, pe in _boxes(f, s, e)}
+                if "mdia" not in parts:
+                    continue
+                mdia = {k: (ps, pe) for k, ps, pe in _boxes(f, *parts["mdia"])}
+                if "hdlr" not in mdia or "mdhd" not in mdia:
+                    continue
+                f.seek(mdia["hdlr"][0] + 8)
+                if f.read(4) != b"soun":
+                    continue
+                f.seek(mdia["mdhd"][0])
+                v = f.read(1)[0]
+                if v == 1:
+                    f.seek(mdia["mdhd"][0] + 20)
+                    scale, dur = struct.unpack(">IQ", f.read(12))
+                else:
+                    f.seek(mdia["mdhd"][0] + 12)
+                    scale, dur = struct.unpack(">II", f.read(8))
+                seconds = dur / scale if scale else 0.0
+                if "edts" in parts and movie_scale:  # an edit list says which part of the sound is played
+                    elst = next(((ps, pe) for k, ps, pe in _boxes(f, *parts["edts"]) if k == "elst"), None)
+                    if elst:
+                        f.seek(elst[0])
+                        ev = f.read(1)[0]
+                        f.read(3)
+                        (n,) = struct.unpack(">I", f.read(4))
+                        played = 0
+                        for _ in range(min(n, 1000)):
+                            if ev == 1:
+                                seg, media_time = struct.unpack(">Qq", f.read(16))
+                            else:
+                                seg, media_time = struct.unpack(">Ii", f.read(8))
+                            f.read(4)
+                            if media_time != -1:  # -1: an empty edit (a pause before the sound starts)
+                                played += seg
+                        if played:
+                            seconds = min(seconds, played / movie_scale)
+                longest = max(longest or 0.0, seconds)
+            return longest if longest else None
+    except (OSError, struct.error, IndexError, ValueError):
+        return None
+
+
 def parse_time(text: str) -> float:
     """"1:23", "83", "1:02:03" or "1:23.5" -> seconds. Raises ValueError with a plain message."""
     t = (text or "").strip().replace(",", ".")
@@ -173,10 +264,27 @@ def convert(sources: list[Path], out: Path, fmt: str, opts: dict) -> list[str]:
         after = asyncio.run(_duration(out, False))
     if after <= 0:
         raise VerificationError("the new file has no sound")
-    if before > 0 and abs(after - before) > max(0.25, before * 0.01):
+    tol = max(0.25, before * 0.01)
+    video_len = before if is_video else 0.0
+    shorter_sound = None
+    if is_video and before > 0 and after < before - tol:
+        # A video's sound can end before its picture: compare with the sound track itself when the file says how
+        # long it is; otherwise sound shorter than the picture is fine, but never longer.
+        track = sound_track_seconds(src)
+        if track is not None:
+            before, tol = track, max(0.25, track * 0.01)
+        else:
+            shorter_sound = before
+            before = 0.0
+    if before > 0 and abs(after - before) > tol:
         raise VerificationError(f"the new file is {after:.1f} s long, the original {before:.1f} s")
+    if shorter_sound is not None and after > shorter_sound + tol:
+        raise VerificationError(f"the new file is {after:.1f} s long, longer than the video ({shorter_sound:.1f} s)")
     mins, secs = divmod(int(round(after)), 60)
     notes = [f"Checked: {mins}:{secs:02d} of sound{', taken from the video' if is_video else ''}."]
+    if video_len and after < video_len - max(0.25, video_len * 0.01):
+        notes.append(f"The video's sound is shorter than its picture ({after:.1f} s of sound, "
+                     f"{video_len:.1f} s of video); all of the sound is here.")
     lossy_src = ext in (".mp3", ".m4a", ".aac", ".wma", ".ogg", ".opus", ".amr", ".3ga") or is_video
     if fmt in ("wav", "flac") and lossy_src:
         notes.append("Lossless formats keep the sound exactly as it is now; they can't bring back quality the "
