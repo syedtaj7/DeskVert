@@ -29,7 +29,7 @@
   ];
   const qp = document.createElement("div");
   qp.className = "qp"; qp.inert = true; qp.setAttribute("role", "dialog"); qp.setAttribute("aria-label", "Convert photo.heic to");
-  qp.innerHTML = `<div class="qp-ring"></div><div class="qp-hub"><i class="ph-fill ph-file-image" aria-hidden="true"></i>`
+  qp.innerHTML = `<div class="qp-ring"></div><div class="qp-hub"><i class="ph-bold ph-file-image" aria-hidden="true"></i>`
     + `<strong>photo.heic</strong><small>2.4 MB</small></div>`
     + CHIPS.map(([name, , , tool], i) => {
       const a = (i / CHIPS.length) * Math.PI * 2 - Math.PI / 2, r = 132;
@@ -38,7 +38,7 @@
     }).join("");
   const toast = document.createElement("div");
   toast.className = "qp-toast"; toast.setAttribute("role", "status");
-  toast.innerHTML = `<i class="ph-fill ph-check-circle" aria-hidden="true"></i><div><strong></strong><span></span></div>`;
+  toast.innerHTML = `<i class="ph-bold ph-check-circle" aria-hidden="true"></i><div><strong></strong><span></span></div>`;
   document.body.append(qp, toast);
 
   let px = innerWidth / 2, py = innerHeight / 2, open = false, toastTimer = 0, opener = null;
