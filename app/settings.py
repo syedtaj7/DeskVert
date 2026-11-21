@@ -104,6 +104,11 @@ class Settings:
                 for k, v in data.items():
                     if k in names and isinstance(v, type(getattr(s, k))):
                         setattr(s, k, v)
+                # 1.16.0 could keep a PDF password in an "always do this" rule: never keep one
+                held = {e for e, r in s.always.items() if isinstance(r, dict) and "password" in (r.get("options") or {})}
+                if held:
+                    s.always = {e: r for e, r in s.always.items() if e not in held}
+                    migrated = True
                 if migrated or set(names) - set(data):
                     s.save()  # write migrated values and any new settings
             except Exception:

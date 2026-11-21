@@ -695,7 +695,9 @@ class Controller(QObject):
             dest = QFileDialog.getExistingDirectory(None, "Save the new files in", start)
             if not dest:
                 return  # cancelled: nothing is converted
-        self.jobs.submit(offer, options, dest, action={**self._last_action, "auto": auto,
+        # a password typed for this conversion is never saved as an "always do this" rule
+        secret = any(o.kind == "password" for o in offer.options)
+        self.jobs.submit(offer, options, dest, action={**self._last_action, "auto": auto, "secret": secret,
                                                        "files": [str(p) for p in offer.sources]})
 
     # ------------------------------------------------------------ drag and convert
@@ -1088,6 +1090,16 @@ class Controller(QObject):
         if offer is None:
             log.info("always %s: %s doesn't apply to this selection; showing the picker", ext, rule.get("label"))
             return False
+        if any(o.kind == "password" for o in offer.options):  # saved by 1.16.0, which allowed it: forget it
+            rules = dict(self.settings.always or {})
+            rules.pop(ext, None)
+            self.settings.always = rules
+            try:
+                self.settings.save()
+            except OSError:
+                pass
+            log.info("always %s: removed a rule that held a password", ext)
+            return False
         log.info("always %s -> %s on %d file(s)", ext, rule.get("label"), len(offer.sources))
         self._submit(offer, dict(rule.get("options") or {}), rule.get("key", ""), auto=True)
         return True
@@ -1096,7 +1108,12 @@ class Controller(QObject):
         rules = dict(self.settings.always or {})
         rules[ext] = {k: action[k] for k in ("key", "target", "label", "options") if k in action}
         self.settings.always = rules
-        self.settings.save()
+        try:
+            self.settings.save()
+        except OSError as e:
+            log.warning("always %s: settings couldn't be saved (%s)", ext, e)
+            self.panel.extra("Couldn't save that choice: the settings file can't be written.", lambda: None)
+            return
         log.info("always %s -> %s", ext, action.get("label"))
         self.panel.extra(f"Done: {ext.lstrip('.').upper()} files now become {action.get('label')} right away. "
                          "Change it in Settings.")
@@ -1112,7 +1129,7 @@ class Controller(QObject):
         """Under a finished conversion: "Always do this for HEIC files", or, when it was an always-choice,
         "Choose something else"."""
         action = batch.action or {}
-        if not ok or not action.get("target"):
+        if not ok or not action.get("target") or action.get("secret"):
             return
         sources = [s for r in ok for s in (r.get("sources") or [])]
         ext = self._one_kind(sources)

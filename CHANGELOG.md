@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.16.1
+
+Fixes from a code review of 1.16.0:
+
+- **Passwords are never kept by "Always do this":** after adding or removing a PDF password, the result card no
+  longer offers "Always do this". A rule like that saved by 1.16.0 is removed, together with its password.
+- **SCC captions:** paint-on captions (text that appears letter by letter) were lost, and with roll-up captions
+  the last line before the screen cleared went missing. Both are kept now.
+- **Article as PDF:** a web page can no longer put pictures or links from this PC (file: addresses) into the
+  article, and odd picture sizes on a page no longer stop the conversion.
+- **All pictures on a page:** a picture named like a Windows device (nul, con, com1...) is saved under another
+  name, and one picture that can't be saved no longer stops the rest.
+- **Damaged files:** a damaged Kindle book can't make a conversion hang, a WOFF or WOFF2 font that claims to be
+  gigantic is refused instead of filling memory, and a font with a damaged name table still converts.
+- **DWG drawings:** with several versions of ODA File Converter installed, the newest is used (25.12 over 25.9).
+- **History and settings:** a damaged history file or a settings file that can't be written never stops a
+  conversion or the History window.
+
 ## 1.16.0
 
 - **Full-screen apps, more precisely:** only windows without a title bar (games, full-screen video) count as full

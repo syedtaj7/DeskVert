@@ -110,6 +110,8 @@ def read_scc(text: str) -> list[tuple[int, int, str]]:
                 elif ch == 0x14 and b2 == 0x29:  # resume direct captioning: paint-on
                     scr.mode = "paint"
                 elif ch == 0x14 and b2 == 0x2C:  # erase what's shown
+                    if scr.mode != "pop":  # roll-up and paint-on text goes straight to the screen
+                        changed(ms)
                     scr.shown = {}
                     changed(ms)
                 elif ch == 0x14 and b2 == 0x2E:  # erase what's being loaded
@@ -144,7 +146,9 @@ def read_scc(text: str) -> list[tuple[int, int, str]]:
                         scr.put(" ")
                 continue
             last_control = None
-            scr.put(_char(b1) + _char(b2))  # roll-up and paint-on lines count once complete (carriage return)
+            scr.put(_char(b1) + _char(b2))
+        if scr.mode != "pop":  # roll-up and paint-on text shows as it's sent: each line of the file is a step
+            changed(last_ms)
     changed(last_ms)
     if on_screen[0]:  # a caption still showing when the file ends: 4 s more
         cues.append((on_screen[1], max(last_ms, on_screen[1]) + 4000, on_screen[0]))

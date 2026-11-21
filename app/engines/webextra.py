@@ -43,6 +43,15 @@ def dump_dom(url: str, workdir: Path, timeout: int = 90) -> str:
     return r.stdout.decode("utf-8", errors="replace")
 
 
+def _web_address(base: str, link: str | None) -> str:
+    """``link`` as a full http(s) address, or "" for anything else (file:, data:, javascript:...): the article is
+    opened from a file on this PC, so a page must never be able to pull this PC's own files into it."""
+    if not link or not link.strip():
+        return ""
+    full = urllib.parse.urljoin(base, link.strip())
+    return full if urllib.parse.urlsplit(full).scheme.lower() in ("http", "https") else ""
+
+
 def _best_from_srcset(srcset: str, base: str) -> tuple[str, float]:
     best, best_w = "", 0.0
     for part in srcset.split(","):
@@ -51,7 +60,7 @@ def _best_from_srcset(srcset: str, base: str) -> tuple[str, float]:
             continue
         w = 1.0
         if len(bits) > 1:
-            m = re.match(r"([\d.]+)([wx])", bits[1])
+            m = re.match(r"(\d+(?:\.\d+)?|\.\d+)([wx])", bits[1])  # "640w", "1.5x" (never ".." from a bad page)
             if m:
                 w = float(m.group(1)) * (1 if m.group(2) == "w" else 1000)
         if w >= best_w:
@@ -108,6 +117,8 @@ def _fetch(url: str, referer: str) -> bytes:
 def _name_for(url: str, ext: str, used: set[str]) -> str:
     stem = Path(urllib.parse.unquote(urllib.parse.urlsplit(url).path)).stem or "picture"
     stem = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", stem).strip(" .")[:80] or "picture"
+    if re.fullmatch(r"(con|prn|aux|nul|com\d|lpt\d)(\..*)?", stem, re.I):  # names Windows keeps for devices
+        stem = f"picture {stem}"
     name, k = f"{stem}{ext}", 2
     while name.lower() in used:
         name, k = f"{stem} ({k}){ext}", k + 1
@@ -149,7 +160,11 @@ def save_pictures(page: str, url: str, folder: Path) -> list[str]:
         if w < MIN_SIDE and h < MIN_SIDE:
             small += 1
             continue
-        (folder / _name_for(addr, ext, used)).write_bytes(data)
+        try:
+            (folder / _name_for(addr, ext, used)).write_bytes(data)
+        except OSError:  # one name Windows won't take never stops the rest
+            failed += 1
+            continue
         saved += 1
         total += len(data)
     if not saved:
@@ -231,18 +246,19 @@ def article(page: str, url: str) -> tuple[str, str]:
         if tag == "img":
             options = [_best_from_srcset(el.get(a), url) for a in ("srcset", "data-srcset") if el.get(a)]
             src = (max(options, key=lambda o: o[1])[0] if options else "") or el.get("data-src") or el.get("src")
-            if not src or src.startswith("data:"):
+            src = _web_address(url, src)
+            if not src:  # data:, file:, javascript: and the like never reach the saved article
                 el.drop_tree()
                 continue
             alt = el.get("alt") or ""
             el.attrib.clear()
-            el.set("src", urllib.parse.urljoin(url, src))
+            el.set("src", src)
             el.set("alt", alt)
             continue
-        href = el.get("href") if tag == "a" else None
+        href = _web_address(url, el.get("href")) if tag == "a" else ""
         el.attrib.clear()
-        if href and not href.startswith("javascript:"):
-            el.set("href", urllib.parse.urljoin(url, href))
+        if href:
+            el.set("href", href)
     body = lxml.html.tostring(best, encoding="unicode", method="html")
     if title and title.lower() not in body[:2000].lower():
         body = f"<h1>{html.escape(title)}</h1>\n" + body
