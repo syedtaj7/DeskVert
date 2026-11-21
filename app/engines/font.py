@@ -19,6 +19,8 @@ from pathlib import Path
 from ..errors import ConversionError, VerificationError
 from ..paths import long_path
 
+MAX_FONT_BYTES = 256 * 1024 * 1024  # far bigger than any real font (the largest CJK fonts are ~30 MB)
+
 
 # ---------------------------------------------------------------- reading
 
@@ -48,7 +50,13 @@ def _woff_tables(data: bytes) -> tuple[bytes, dict[bytes, bytes]]:
     for i in range(n):
         tag, off, comp, orig, _cs = struct.unpack(">4sIIII", data[44 + 20 * i:64 + 20 * i])
         chunk = data[off:off + comp]
-        tables[tag] = zlib.decompress(chunk) if comp < orig else chunk
+        if orig > MAX_FONT_BYTES:
+            raise ConversionError("This WOFF font says it's bigger than any real font, so it's damaged.")
+        # never unpack more than the table says it holds (a tiny table can't swell to gigabytes)
+        try:
+            tables[tag] = zlib.decompressobj().decompress(chunk, orig + 1) if comp < orig else chunk
+        except zlib.error as e:
+            raise ConversionError("This WOFF font is damaged.") from e
         if len(tables[tag]) != orig:
             raise ConversionError("This WOFF font is damaged.")
     return flavor, tables
@@ -86,6 +94,8 @@ def woff2_to_sfnt(data: bytes) -> bytes:
 
     if data[:4] != b"wOF2":
         raise ConversionError("This isn't a WOFF2 font.")
+    if len(data) < 20 or struct.unpack(">I", data[16:20])[0] > MAX_FONT_BYTES:  # totalSfntSize
+        raise ConversionError("This WOFF2 font says it's bigger than any real font, so it's damaged.")
     out = io.BytesIO()
     try:
         woff2.decompress(io.BytesIO(data), out)
@@ -179,6 +189,14 @@ def build_woff(flavor: bytes, tables: dict[bytes, bytes]) -> bytes:
 
 
 def _name(tables: dict[bytes, bytes], name_id: int) -> str:
+    """The font's name for messages; a damaged name table just gives "" (it never fails a conversion)."""
+    try:
+        return _read_name(tables, name_id)
+    except (struct.error, IndexError, ValueError):
+        return ""
+
+
+def _read_name(tables: dict[bytes, bytes], name_id: int) -> str:
     t = tables.get(b"name")
     if not t:
         return ""

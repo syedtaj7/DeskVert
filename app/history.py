@@ -20,9 +20,19 @@ def path() -> Path:
 def load() -> list[dict]:
     try:
         data = json.loads(path().read_text(encoding="utf-8"))
-        return [e for e in data if isinstance(e, dict) and e.get("outputs")] if isinstance(data, list) else []
     except (OSError, ValueError):
         return []
+    return [e for e in data if _sound(e)] if isinstance(data, list) else []
+
+
+def _sound(e) -> bool:
+    """An entry as add() writes it (a hand-edited or damaged file never breaks the History window)."""
+    def paths(v):
+        return isinstance(v, list) and all(isinstance(x, str) for x in v)
+
+    return (isinstance(e, dict) and bool(e.get("outputs")) and paths(e.get("outputs")) and paths(e.get("sources", []))
+            and isinstance(e.get("time", 0), (int, float)) and isinstance(e.get("label", ""), str)
+            and isinstance(e.get("failed", 0), int))
 
 
 def add(label: str, sources: list[str], outputs: list[str], failed: int = 0) -> None:
@@ -32,9 +42,9 @@ def add(label: str, sources: list[str], outputs: list[str], failed: int = 0) -> 
     entry = {"time": time.time(), "label": label, "sources": list(dict.fromkeys(sources)), "outputs": list(outputs),
              "failed": failed}
     items = [entry] + load()
-    p = path()
-    tmp = p.with_suffix(".tmp")
-    try:
+    try:  # history is a convenience: a full disk or a locked folder never stops a conversion's result
+        p = path()
+        tmp = p.with_suffix(".tmp")
         tmp.write_text(json.dumps(items[:LIMIT], indent=1), encoding="utf-8")
         os.replace(tmp, p)
     except OSError:

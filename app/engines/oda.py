@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import glob
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -29,7 +30,12 @@ def find_oda() -> str | None:
                  os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs")):
         if base:
             found += glob.glob(os.path.join(base, "ODA", "ODAFileConverter*", "ODAFileConverter.exe"))
-    return sorted(found)[-1] if found else None  # the newest version when there are several
+    return max(found, key=_version) if found else None  # the newest version when there are several
+
+
+def _version(exe: str) -> tuple:
+    """(25, 12, 0) from ".../ODAFileConverter 25.12.0/ODAFileConverter.exe", so 25.12 beats 25.9."""
+    return tuple(int(n) for n in re.findall(r"\d+", Path(exe).parent.name)) or (0,)
 
 
 def dwg_to_dxf(src: Path, work: Path, timeout: float = 180) -> Path:

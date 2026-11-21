@@ -85,10 +85,12 @@ def _exth(rec0: bytes, header_len: int) -> dict[int, list[bytes]]:
         return {}
     (n,) = struct.unpack(">I", rec0[start + 8:start + 12])
     pos, out = start + 12, {}
-    for _ in range(n):
+    for _ in range(min(n, len(rec0) // 8)):  # the count comes from the file: never more entries than fit
         if pos + 8 > len(rec0):
             break
         kind, size = struct.unpack(">II", rec0[pos:pos + 8])
+        if size < 8:  # a damaged entry: stop instead of reading the same place again and again
+            break
         out.setdefault(kind, []).append(rec0[pos + 8:pos + size])
         pos += size
     return out

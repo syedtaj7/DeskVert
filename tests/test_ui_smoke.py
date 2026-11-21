@@ -145,7 +145,7 @@ def test_always_do_this(qapp, tmp_path):
     settings = Settings()
     settings.save = lambda: saved.append(dict(settings.always))
     fake = SimpleNamespace(settings=settings, panel=panel, _one_kind=Controller._one_kind,
-                           _offer_for=lambda files, action: SimpleNamespace(sources=files),
+                           _offer_for=lambda files, action: SimpleNamespace(sources=files, options=[]),
                            _submit=lambda offer, options, key, auto=False: submitted.append((key, options, auto)))
     fake._make_always = lambda ext, action: Controller._make_always(fake, ext, action)
     fake._choose_other = lambda files: None
