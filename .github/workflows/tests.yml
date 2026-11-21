@@ -17,7 +17,7 @@ jobs:
       QT_QPA_PLATFORM: offscreen   # windows are built and driven, never shown
       DESKVERT_TEST_CPU: "100"     # the 25 % cap is for people's laptops, not for CI
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
