@@ -49,12 +49,13 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <meta name="google-site-verification" content="rGd7zGs_g5XIwDr_pWML2h6sK4TzUJxrcqPMAdk2r40">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="fx.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="fx.css?v=7">
   <script>
     // the saved theme choice, before anything paints (no flash)
     document.documentElement.classList.remove("no-js");
     try { const t = localStorage.getItem("deskvert-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    try { if (localStorage.getItem("deskvert-motion") === "off") document.documentElement.dataset.motion = "off"; } catch (e) {}
   </script>
 </head>
 <body>
@@ -77,6 +78,9 @@
       <a href="#faq">Questions</a>
     </nav>
     <div class="nav-end">
+      <button class="icon-btn" id="motion-toggle" type="button" aria-label="Pause animations" aria-pressed="false" title="Pause animations">
+        <i class="ph ph-pause" aria-hidden="true"></i>
+      </button>
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch light or dark">
         <i class="ph ph-moon-stars" aria-hidden="true"></i>
       </button>
@@ -398,7 +402,7 @@
     </nav>
   </footer>
 
-  <script src="app.js" defer></script>
-  <script src="fx.js?v=5" defer></script>
+  <script src="app.js?v=2" defer></script>
+  <script src="fx.js?v=6" defer></script>
 </body>
 </html>

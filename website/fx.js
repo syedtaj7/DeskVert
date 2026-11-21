@@ -4,7 +4,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.documentElement;
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || root.dataset.motion === "off";
   const fine = matchMedia("(pointer: fine)").matches;
   root.classList.add("fx");
 

@@ -222,8 +222,8 @@ body::after {
   transition: transform .5s cubic-bezier(.3, 1.6, .5, 1); transition-delay: calc(.55s + var(--i) * .32s);
 }
 .ledger.in .line i { transform: none; }
-.ledger .line.fail i { background: #d4553f; color: #fff; }
-.ledger .line.fail .what { color: #d4553f; }
+.ledger .line.fail i { background: var(--bad); color: var(--bad-ink); }
+.ledger .line.fail .what { color: var(--bad); }
 .no-js .ledger .line, .no-js .ledger .line i { opacity: 1; transform: none; }
 
 /* ---------------------------------------------------------------- formats: the counts as one quiet line */
@@ -299,3 +299,8 @@ a.chip-out:hover { background: var(--accent); color: var(--accent-ink); }
   .giant span { --fill: 100%; animation: none; }
   .glow, .progress { display: none; }
 }
+:root[data-motion="off"] .split .w > span { transform: none; }
+:root[data-motion="off"] .ledger .line, :root[data-motion="off"] .ledger .line i { opacity: 1; transform: none; transition: none; }
+:root[data-motion="off"] .fx .cell video, :root[data-motion="off"] .fx .slide video, :root[data-motion="off"] .fx .demo video { clip-path: none; }
+:root[data-motion="off"] .giant span { --fill: 100%; animation: none; }
+:root[data-motion="off"] .glow, :root[data-motion="off"] .progress { display: none; }
