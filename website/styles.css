@@ -12,6 +12,7 @@
   --accent: #168056;
   --accent-ink: #ffffff;
   --accent-soft: rgb(22 128 86 / .12);
+  --bad: #b23a26; --bad-ink: #ffffff; /* something that failed: text on surfaces, and its badge */
   --shadow: 0 1px 0 rgb(24 24 27 / .04), 0 18px 48px -18px rgb(24 40 32 / .25);
   --radius: 20px;
   --font: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -22,14 +23,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121214; --surface: #1c1c20; --surface-2: #232328; --text: #f0f0ee; --dim: #a1a1a9;
-    --line: rgb(255 255 255 / .09); --accent: #34be84; --accent-ink: #0d1a14; --accent-soft: rgb(52 190 132 / .14);
+    --line: rgb(255 255 255 / .09); --accent: #34be84; --accent-ink: #0d1a14; --accent-soft: rgb(52 190 132 / .14); --bad: #f0806b; --bad-ink: #1f0c08;
     --shadow: 0 1px 0 rgb(255 255 255 / .03), 0 24px 60px -20px rgb(0 0 0 / .7);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121214; --surface: #1c1c20; --surface-2: #232328; --text: #f0f0ee; --dim: #a1a1a9;
-  --line: rgb(255 255 255 / .09); --accent: #34be84; --accent-ink: #0d1a14; --accent-soft: rgb(52 190 132 / .14);
+  --line: rgb(255 255 255 / .09); --accent: #34be84; --accent-ink: #0d1a14; --accent-soft: rgb(52 190 132 / .14); --bad: #f0806b; --bad-ink: #1f0c08;
   --shadow: 0 1px 0 rgb(255 255 255 / .03), 0 24px 60px -20px rgb(0 0 0 / .7);
   color-scheme: dark;
 }
@@ -81,6 +82,13 @@ section { position: relative; z-index: 1; padding: clamp(72px, 10vw, 140px) clam
 }
 .icon-btn:hover { background: var(--surface-2); }
 .icon-btn:active { transform: scale(.94); }
+.icon-btn[hidden] { display: none; }
+/* touch screens: 44 px buttons, and a bigger tap area around the orbit's small buttons (they look the same) */
+@media (pointer: coarse) {
+  .icon-btn { width: 44px; height: 44px; }
+  .nav .btn-small { min-height: 44px; }
+  .planet::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; }
+}
 
 /* ---------------------------------------------------------------- buttons */
 .btn {
@@ -332,7 +340,8 @@ details p { color: var(--dim); padding: 0 0 16px; }
   .seg button { padding: 10px 14px; }
 }
 
-/* ---------------------------------------------------------------- less motion */
+/* ---------------------------------------------------------------- less motion (the system's setting, or the
+   page's own Pause animations button: data-motion="off") */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
@@ -341,3 +350,11 @@ details p { color: var(--dim); padding: 0 0 16px; }
   .pan-sticky { position: static; height: auto; padding: 80px 0; }
   .pan-track { width: auto; overflow-x: auto; transform: none !important; }
 }
+:root[data-motion="off"] { scroll-behavior: auto; }
+:root[data-motion="off"] *, :root[data-motion="off"] *::before, :root[data-motion="off"] *::after {
+  animation: none !important; transition-duration: .01ms !important;
+}
+:root[data-motion="off"] .reveal { opacity: 1; transform: none; }
+:root[data-motion="off"] .pan { height: auto; }
+:root[data-motion="off"] .pan-sticky { position: static; height: auto; padding: 80px 0; }
+:root[data-motion="off"] .pan-track { width: auto; overflow-x: auto; transform: none !important; }

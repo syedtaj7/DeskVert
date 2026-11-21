@@ -4,8 +4,9 @@
   "use strict";
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const systemCalm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const root = document.documentElement;
+  const reduce = systemCalm || root.dataset.motion === "off"; // the system's setting, or Pause animations
 
   // ---------------------------------------------------------------- theme (auto, light, dark)
   const darkQuery = matchMedia("(prefers-color-scheme: dark)");
@@ -24,6 +25,22 @@
     const icon = $("#theme-toggle i");
     if (icon) icon.className = isDark() ? "ph ph-sun" : "ph ph-moon-stars";
     sky.recolor();
+  }
+  // ---------------------------------------------------------------- Pause animations (remembered). Everything that
+  // moves decides at page load, so switching reloads the page in place; hidden when the system already asks for less
+  const motionBtn = $("#motion-toggle");
+  if (motionBtn) {
+    if (systemCalm) motionBtn.hidden = true;
+    const paused = root.dataset.motion === "off";
+    motionBtn.setAttribute("aria-pressed", String(paused));
+    motionBtn.setAttribute("aria-label", paused ? "Play animations" : "Pause animations");
+    motionBtn.title = paused ? "Play animations" : "Pause animations";
+    $("i", motionBtn).className = paused ? "ph ph-play" : "ph ph-pause";
+    motionBtn.addEventListener("click", () => {
+      try { localStorage.setItem("deskvert-motion", paused ? "on" : "off"); } catch (e) { /* private window */ }
+      if (paused) delete root.dataset.motion; else root.dataset.motion = "off";
+      location.reload();
+    });
   }
   $("#theme-toggle")?.addEventListener("click", () => {
     root.dataset.theme = isDark() ? "light" : "dark";
