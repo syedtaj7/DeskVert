@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.28.0.schema.json
+
+PackageIdentifier: Syedtaj7.Deskvert
+PackageVersion: 1.16.2
+InstallerType: inno
+Scope: user
+InstallModes:
+- interactive
+- silent
+- silentWithProgress
+UpgradeBehavior: install
+ReleaseDate: 2026-11-28
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/syedtaj7/DeskVert/releases/download/v1.16.2/Deskvert-Setup-1.16.2.exe
+  InstallerSha256: 0E584B388F890DB252B7219F33AF096905DDB971EE59637086E05A1F9DC44BD2
+ManifestType: installer
+ManifestVersion: 1.28.0
