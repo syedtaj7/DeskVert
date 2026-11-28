@@ -102,6 +102,8 @@ class FolderWatcher(QObject):
                     continue
                 if self._before.get(e.path) == st.st_mtime or self._seen.get(e.path) == -1:
                     continue  # there before watching started (and unchanged), or already handled
+                if st.st_size == 0:  # created but nothing written yet: wait for it to grow
+                    continue
                 if self._seen.get(e.path) != st.st_size:  # still arriving: look again in a moment
                     self._seen[e.path] = st.st_size
                     waiting = True

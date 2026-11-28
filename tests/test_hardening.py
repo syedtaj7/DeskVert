@@ -223,3 +223,41 @@ def test_a_saved_rule_with_a_password_is_dropped(tmp_path, monkeypatch):
     s = Settings.load()
     assert list(s.always) == [".heic"]
     assert "x1234" not in Path(p).read_text(encoding="utf-8")
+
+
+def test_output_moved_across_drives_keeps_the_free_name(tmp_path, monkeypatch):
+    """A cross-drive move is staged as a copy; it must still get photo.webp, not photo (1).webp."""
+    import errno
+    import os
+
+    from app import safe_write
+
+    tmp = tmp_path / "work" / "output.webp"
+    tmp.parent.mkdir()
+    tmp.write_bytes(b"picture")
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    real, first = os.rename, [True]
+
+    def rename(a, b):
+        if first[0]:
+            first[0] = False
+            raise OSError(errno.EXDEV, "not the same device")
+        return real(a, b)
+
+    monkeypatch.setattr(safe_write.os, "rename", rename)
+    final = safe_write._place(tmp, dest, "photo", ".webp")
+    assert final == dest / "photo.webp" and final.read_bytes() == b"picture"
+    assert [p.name for p in dest.iterdir()] == ["photo.webp"]  # no staged copy left behind
+
+
+def test_cancel_removes_a_scratch_folder_left_in_the_destination(tmp_path):
+    from app.jobs import _remove_workdirs
+
+    src = tmp_path / "photo.jpg"
+    src.write_bytes(b"x")
+    dest = tmp_path / "Converted"
+    scratch = dest / ".deskvert-abc123"
+    scratch.mkdir(parents=True)
+    _remove_workdirs({"id": "abc123", "sources": [str(src)], "dest": str(dest)})
+    assert not scratch.exists()

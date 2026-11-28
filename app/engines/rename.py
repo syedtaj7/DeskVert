@@ -59,9 +59,11 @@ def plan(sources: list[Path], pattern: str, order: str, start: int = 1) -> list[
     used: set[str] = set()
     out = []
     for i, p in enumerate(files):
-        stem = pattern.replace("{n}", str(start + i).zfill(width)).replace("{name}", p.stem)
+        # {date} first: an original name that itself contains "{date}" must stay as it is
+        stem = pattern.replace("{n}", str(start + i).zfill(width))
         if "{date}" in stem:
             stem = stem.replace("{date}", dates[p].strftime("%Y-%m-%d"))
+        stem = stem.replace("{name}", p.stem)
         stem = BAD.sub("_", stem).strip(" .") or f"file {start + i}"
         name, k = stem + p.suffix.lower(), 2
         while name.lower() in used:

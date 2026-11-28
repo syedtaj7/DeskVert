@@ -341,8 +341,11 @@ def _remove_workdirs(job: dict) -> None:
             p.unlink()
         except OSError:
             pass
+    # make_workdir may have put a hidden scratch folder in the destination (another drive),
+    # which is the source's folder unless a "Converted" or chosen folder was used
     src = Path(job["sources"][0])
-    shutil.rmtree(src.parent / f".deskvert-{job['id']}", ignore_errors=True)
+    for folder in {src.parent, Path(job["dest"]) if job.get("dest") else src.parent}:
+        shutil.rmtree(folder / f".deskvert-{job['id']}", ignore_errors=True)
 
 
 def clean_stale_workdirs() -> None:
