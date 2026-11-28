@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.16.2
+
+Fixes from a code review of 1.16.1:
+
+- **File names on another drive:** a conversion saved to a different drive than Deskvert's work folder was named
+  "photo (1).webp" even when "photo.webp" was free. It now gets the free name.
+- **Cancel:** cancelling a conversion that saved into a "Converted" or chosen folder on another drive no longer
+  leaves a hidden ".deskvert-..." work folder behind.
+- **Rename:** a file whose name contains "{date}" no longer stops a rename whose pattern doesn't use {date}.
+- **Watch folders:** a file that appears empty at first (a download that hasn't started writing yet) is now
+  waited on, instead of failing as empty and never being converted.
+
 ## 1.16.1
 
 Fixes from a code review of 1.16.0:
