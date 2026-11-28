@@ -68,9 +68,12 @@ def _sha256(p: Path) -> str:
 def _place(tmp: Path, folder: Path, stem: str, ext: str) -> Path:
     staged: Path | None = None
     try:
-        for name in candidate_names(stem, ext):
+        names = candidate_names(stem, ext)
+        name = next(names, None)
+        while name is not None:
             final = folder / name
             if os.path.lexists(long_path(final)):
+                name = next(names, None)
                 continue
             src = staged or tmp
             try:
@@ -79,9 +82,11 @@ def _place(tmp: Path, folder: Path, stem: str, ext: str) -> Path:
                 os.rename(long_path(src), long_path(final))
                 return final
             except FileExistsError:
+                name = next(names, None)
                 continue
             except OSError as e:
-                if getattr(e, "winerror", None) == ERROR_NOT_SAME_DEVICE or e.errno == errno.EXDEV:
+                if staged is None and (getattr(e, "winerror", None) == ERROR_NOT_SAME_DEVICE
+                                       or e.errno == errno.EXDEV):
                     # Different drive: copy next to the destination first, check
                     # the copy is identical, then rename it into place.
                     staged = folder / f".{stem}.{uuid.uuid4().hex[:8]}.partial"
@@ -94,7 +99,7 @@ def _place(tmp: Path, folder: Path, stem: str, ext: str) -> Path:
                     for a, b in pairs:
                         if os.path.getsize(long_path(a)) != os.path.getsize(long_path(b)) or _sha256(a) != _sha256(b):
                             raise ConversionError("Copying to the destination drive produced a different file.")
-                    continue
+                    continue  # retry the same (still free) name with the staged copy
                 raise
         raise ConversionError("Couldn't find a free file name in the destination folder.")
     finally:

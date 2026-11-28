@@ -202,6 +202,37 @@ def test_watch_folder_converts_new_files_once(tmp_path):
     assert len(got) == 1  # once only
 
 
+def test_rename_keeps_braces_that_are_part_of_the_original_name(tmp_path):
+    from app.engines.rename import plan
+
+    f = tmp_path / "trip {date}.jpg"
+    f.write_bytes(b"x")
+    assert [n for _, n in plan([f], "{name}", "Name")] == ["trip {date}.jpg"]
+
+
+def test_watch_folder_waits_for_an_empty_new_file_to_fill(tmp_path):
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+    from app.watch import FolderWatcher
+
+    folder = tmp_path / "Inbox"
+    folder.mkdir()
+    w = FolderWatcher(Settings())
+    got = []
+    w.convert.connect(lambda offer, opts, dest: got.append(offer))
+    w.set_rules([{"path": str(folder), "action": "PDF"}])
+    new = folder / "new.png"
+    new.write_bytes(b"")  # created, nothing written yet
+    w.scan()
+    w.scan()
+    assert got == []  # not handled (and so not given up on) while empty
+    Image.new("RGB", (20, 20), "blue").save(new)
+    w.scan()
+    w.scan()
+    assert len(got) == 1 and got[0].sources == [new]
+
+
 # ---------------------------------------------------------------- a video's sound can end before its picture (#29)
 
 def _box(kind: bytes, payload: bytes) -> bytes:
